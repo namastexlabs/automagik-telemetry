@@ -16,7 +16,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { TelemetryClient, TelemetryConfig } from '../src/client';
+import { TelemetryClient, TelemetryConfig, LogSeverity, MetricType } from '../src/client';
 
 // Mock file system operations
 jest.mock('fs');
@@ -69,18 +69,18 @@ describe('TelemetryClient', () => {
     it('should use custom endpoint when provided', () => {
       const customConfig = {
         ...mockConfig,
-        endpoint: 'https://custom.endpoint.com/traces',
+        endpoint: 'https://custom.endpoint.com',
       };
       const client = new TelemetryClient(customConfig);
       const status = client.getStatus();
-      expect(status.endpoint).toBe('https://custom.endpoint.com/traces');
+      expect(status.endpoint).toBe('https://custom.endpoint.com/v1/traces');
     });
 
     it('should respect endpoint from environment variable', () => {
-      process.env.AUTOMAGIK_TELEMETRY_ENDPOINT = 'https://env.endpoint.com/traces';
+      process.env.AUTOMAGIK_TELEMETRY_ENDPOINT = 'https://env.endpoint.com';
       const client = new TelemetryClient(mockConfig);
       const status = client.getStatus();
-      expect(status.endpoint).toBe('https://env.endpoint.com/traces');
+      expect(status.endpoint).toBe('https://env.endpoint.com/v1/traces');
     });
 
     it('should use default organization', () => {
@@ -263,18 +263,18 @@ describe('TelemetryClient', () => {
       expect(fs.unlinkSync).toHaveBeenCalledWith(mockOptOutFile);
     });
 
-    it('should disable telemetry when disable() is called', () => {
+    it('should disable telemetry when disable() is called', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       const client = new TelemetryClient(mockConfig);
       expect(client.isEnabled()).toBe(true);
 
-      client.disable();
+      await client.disable();
       expect(client.isEnabled()).toBe(false);
     });
 
-    it('should create opt-out file when disable() is called', () => {
+    it('should create opt-out file when disable() is called', async () => {
       const client = new TelemetryClient(mockConfig);
-      client.disable();
+      await client.disable();
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(mockOptOutFile, '', 'utf-8');
     });
@@ -289,13 +289,13 @@ describe('TelemetryClient', () => {
       expect(() => client.enable()).not.toThrow();
     });
 
-    it('should handle errors when creating opt-out file gracefully', () => {
+    it('should handle errors when creating opt-out file gracefully', async () => {
       (fs.writeFileSync as jest.Mock).mockImplementation(() => {
         throw new Error('Write error');
       });
 
       const client = new TelemetryClient(mockConfig);
-      expect(() => client.disable()).not.toThrow();
+      await expect(client.disable()).resolves.not.toThrow();
     });
   });
 
@@ -597,6 +597,377 @@ describe('TelemetryClient', () => {
       client.enable();
       status = client.getStatus();
       expect(status.enabled).toBe(true);
+    });
+  });
+
+  describe('Batch Processing', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should queue events instead of sending immediately', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 10,
+      });
+
+      client.trackEvent('test.event.1');
+      client.trackEvent('test.event.2');
+      client.trackEvent('test.event.3');
+
+      // Events should be queued, not sent yet
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should flush when batch size is reached', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 3,
+      });
+
+      client.trackEvent('test.event.1');
+      client.trackEvent('test.event.2');
+      client.trackEvent('test.event.3'); // This triggers flush
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('should flush on interval', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        flushInterval: 1000,
+        batchSize: 100,
+      });
+
+      client.trackEvent('test.event.1');
+      client.trackEvent('test.event.2');
+
+      // Fast-forward time by 1 second
+      jest.advanceTimersByTime(1000);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should flush manually when flush() is called', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 100,
+      });
+
+      client.trackEvent('test.event.1');
+      client.trackEvent('test.event.2');
+
+      await client.flush();
+
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Compression', () => {
+    it('should compress large payloads', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        compressionEnabled: true,
+        compressionThreshold: 100, // Low threshold for testing
+        batchSize: 1, // Flush immediately
+      });
+
+      const largeData = { data: 'a'.repeat(200) };
+      client.trackEvent('test.event', largeData);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      expect(callArgs[1].headers['Content-Encoding']).toBe('gzip');
+    });
+
+    it('should not compress small payloads', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        compressionEnabled: true,
+        compressionThreshold: 1024,
+        batchSize: 1,
+      });
+
+      client.trackEvent('test.event', { small: 'data' });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      expect(callArgs[1].headers['Content-Encoding']).toBeUndefined();
+    });
+
+    it('should respect compression disabled setting', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        compressionEnabled: false,
+        batchSize: 1,
+      });
+
+      const largeData = { data: 'a'.repeat(2000) };
+      client.trackEvent('test.event', largeData);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      expect(callArgs[1].headers['Content-Encoding']).toBeUndefined();
+    });
+  });
+
+  describe('Retry Logic', () => {
+    it('should retry on 500 errors', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      let attempts = 0;
+      (global.fetch as jest.Mock).mockImplementation(() => {
+        attempts++;
+        if (attempts < 3) {
+          return Promise.resolve({ ok: false, status: 500 });
+        }
+        return Promise.resolve({ ok: true, status: 200 });
+      });
+
+      const client = new TelemetryClient({
+        ...mockConfig,
+        maxRetries: 3,
+        retryBackoffBase: 10, // Short backoff for testing
+        batchSize: 1,
+      });
+
+      client.trackEvent('test.event');
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(attempts).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should not retry on 400 errors', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 400 });
+
+      const client = new TelemetryClient({
+        ...mockConfig,
+        maxRetries: 3,
+        batchSize: 1,
+      });
+
+      client.trackEvent('test.event');
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledTimes(1); // No retries
+    });
+
+    it('should respect maxRetries setting', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 503 });
+
+      const client = new TelemetryClient({
+        ...mockConfig,
+        maxRetries: 2,
+        retryBackoffBase: 10,
+        batchSize: 1,
+      });
+
+      client.trackEvent('test.event');
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(global.fetch).toHaveBeenCalledTimes(3); // Initial + 2 retries
+    });
+  });
+
+  describe('OTLP Metrics', () => {
+    it('should send gauge metric', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 1,
+      });
+
+      client.trackMetric('cpu.usage', 75.5, { unit: 'percent' }, MetricType.GAUGE);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      const payload = JSON.parse(callArgs[1].body);
+
+      expect(payload).toHaveProperty('resourceMetrics');
+      expect(payload.resourceMetrics[0].scopeMetrics[0].metrics[0].name).toBe('cpu.usage');
+      expect(payload.resourceMetrics[0].scopeMetrics[0].metrics[0].gauge).toBeDefined();
+    });
+
+    it('should send counter metric', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 1,
+      });
+
+      client.trackMetric('requests.total', 100, {}, MetricType.COUNTER);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      const payload = JSON.parse(callArgs[1].body);
+
+      expect(payload.resourceMetrics[0].scopeMetrics[0].metrics[0].sum).toBeDefined();
+      expect(payload.resourceMetrics[0].scopeMetrics[0].metrics[0].sum.isMonotonic).toBe(true);
+    });
+
+    it('should send histogram metric', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 1,
+      });
+
+      client.trackMetric('request.duration', 123, { unit: 'ms' }, MetricType.HISTOGRAM);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      const payload = JSON.parse(callArgs[1].body);
+
+      expect(payload.resourceMetrics[0].scopeMetrics[0].metrics[0].histogram).toBeDefined();
+    });
+
+    it('should use metrics endpoint', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 1,
+      });
+
+      client.trackMetric('test.metric', 42);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://telemetry.namastex.ai/v1/metrics',
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('OTLP Logs', () => {
+    it('should send log with INFO severity', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 1,
+      });
+
+      client.trackLog('Test log message', LogSeverity.INFO, { context: 'test' });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      const payload = JSON.parse(callArgs[1].body);
+
+      expect(payload).toHaveProperty('resourceLogs');
+      expect(payload.resourceLogs[0].scopeLogs[0].logRecords[0].body.stringValue).toBe(
+        'Test log message'
+      );
+      expect(payload.resourceLogs[0].scopeLogs[0].logRecords[0].severityNumber).toBe(
+        LogSeverity.INFO
+      );
+    });
+
+    it('should send log with ERROR severity', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 1,
+      });
+
+      client.trackLog('Error occurred', LogSeverity.ERROR, { error_code: 'TEST-001' });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalled();
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      const payload = JSON.parse(callArgs[1].body);
+
+      expect(payload.resourceLogs[0].scopeLogs[0].logRecords[0].severityNumber).toBe(
+        LogSeverity.ERROR
+      );
+    });
+
+    it('should use logs endpoint', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        batchSize: 1,
+      });
+
+      client.trackLog('Test log');
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://telemetry.namastex.ai/v1/logs',
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('Custom Endpoints', () => {
+    it('should use custom metrics endpoint', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        metricsEndpoint: 'https://custom.endpoint.com/metrics',
+        batchSize: 1,
+      });
+
+      client.trackMetric('test.metric', 42);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://custom.endpoint.com/metrics',
+        expect.any(Object)
+      );
+    });
+
+    it('should use custom logs endpoint', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new TelemetryClient({
+        ...mockConfig,
+        logsEndpoint: 'https://custom.endpoint.com/logs',
+        batchSize: 1,
+      });
+
+      client.trackLog('test log');
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://custom.endpoint.com/logs',
+        expect.any(Object)
+      );
     });
   });
 });

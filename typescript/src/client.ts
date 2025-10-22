@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import * as zlib from 'zlib';
 
 /**
  * Configuration interface for TelemetryClient.
@@ -24,6 +25,22 @@ export interface TelemetryConfig {
   organization?: string;
   /** HTTP timeout in seconds (default: 5) */
   timeout?: number;
+  /** Batch size for event queue (default: 100) */
+  batchSize?: number;
+  /** Flush interval in milliseconds (default: 5000ms) */
+  flushInterval?: number;
+  /** Enable payload compression (default: true) */
+  compressionEnabled?: boolean;
+  /** Compression threshold in bytes (default: 1024) */
+  compressionThreshold?: number;
+  /** Maximum retry attempts (default: 3) */
+  maxRetries?: number;
+  /** Retry backoff base in milliseconds (default: 1000ms) */
+  retryBackoffBase?: number;
+  /** Custom metrics endpoint (defaults to /v1/metrics) */
+  metricsEndpoint?: string;
+  /** Custom logs endpoint (defaults to /v1/logs) */
+  logsEndpoint?: string;
 }
 
 /**
@@ -59,6 +76,41 @@ interface SystemInfo {
 }
 
 /**
+ * Event types for batch processing.
+ */
+type EventType = 'trace' | 'metric' | 'log';
+
+/**
+ * Queued event structure for batch processing.
+ */
+interface QueuedEvent {
+  type: EventType;
+  payload: any;
+  endpoint: string;
+}
+
+/**
+ * Log severity levels (OTLP format).
+ */
+export enum LogSeverity {
+  TRACE = 1,
+  DEBUG = 5,
+  INFO = 9,
+  WARN = 13,
+  ERROR = 17,
+  FATAL = 21,
+}
+
+/**
+ * Metric types (OTLP format).
+ */
+export enum MetricType {
+  GAUGE = 'gauge',
+  COUNTER = 'counter',
+  HISTOGRAM = 'histogram',
+}
+
+/**
  * Privacy-first telemetry client for Automagik projects.
  *
  * Features:
@@ -88,10 +140,26 @@ export class TelemetryClient {
   private organization: string;
   private timeout: number;
   private endpoint: string;
+  private metricsEndpoint: string;
+  private logsEndpoint: string;
   private userId: string;
   private sessionId: string;
   private enabled: boolean;
   private verbose: boolean;
+
+  // Batch processing
+  private eventQueue: QueuedEvent[];
+  private batchSize: number;
+  private flushInterval: number;
+  private flushTimer?: NodeJS.Timeout;
+
+  // Compression
+  private compressionEnabled: boolean;
+  private compressionThreshold: number;
+
+  // Retry logic
+  private maxRetries: number;
+  private retryBackoffBase: number;
 
   /**
    * Initialize telemetry client.
@@ -105,10 +173,16 @@ export class TelemetryClient {
     this.timeout = (config.timeout || 5) * 1000; // Convert to milliseconds
 
     // Allow custom endpoint for self-hosting
-    this.endpoint =
-      config.endpoint ||
+    const baseEndpoint = config.endpoint ||
       process.env.AUTOMAGIK_TELEMETRY_ENDPOINT ||
-      'https://telemetry.namastex.ai/v1/traces';
+      'https://telemetry.namastex.ai';
+
+    // Remove trailing slash and /v1/traces if present
+    const cleanBaseEndpoint = baseEndpoint.replace(/\/v1\/traces\/?$/, '').replace(/\/$/, '');
+
+    this.endpoint = `${cleanBaseEndpoint}/v1/traces`;
+    this.metricsEndpoint = config.metricsEndpoint || `${cleanBaseEndpoint}/v1/metrics`;
+    this.logsEndpoint = config.logsEndpoint || `${cleanBaseEndpoint}/v1/logs`;
 
     // User & session IDs
     this.userId = this.getOrCreateUserId();
@@ -119,6 +193,24 @@ export class TelemetryClient {
 
     // Verbose mode (print events to console)
     this.verbose = process.env.AUTOMAGIK_TELEMETRY_VERBOSE?.toLowerCase() === 'true';
+
+    // Batch processing configuration
+    this.eventQueue = [];
+    this.batchSize = config.batchSize || 100;
+    this.flushInterval = config.flushInterval || 5000;
+
+    // Compression configuration
+    this.compressionEnabled = config.compressionEnabled !== false; // default: true
+    this.compressionThreshold = config.compressionThreshold || 1024;
+
+    // Retry configuration
+    this.maxRetries = config.maxRetries || 3;
+    this.retryBackoffBase = config.retryBackoffBase || 1000;
+
+    // Start periodic flush timer
+    if (this.enabled) {
+      this.startFlushTimer();
+    }
   }
 
   /**
@@ -250,6 +342,144 @@ export class TelemetryClient {
   }
 
   /**
+   * Start periodic flush timer.
+   */
+  private startFlushTimer(): void {
+    this.flushTimer = setInterval(() => {
+      this.flush().catch(() => {
+        // Silent failure
+      });
+    }, this.flushInterval);
+  }
+
+  /**
+   * Stop periodic flush timer.
+   */
+  private stopFlushTimer(): void {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = undefined;
+    }
+  }
+
+  /**
+   * Compress payload using gzip.
+   *
+   * @param data - Data to compress
+   * @returns Compressed buffer
+   */
+  private async compressPayload(data: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      zlib.gzip(Buffer.from(data, 'utf-8'), (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  }
+
+  /**
+   * Send HTTP request with retry logic.
+   *
+   * @param endpoint - Target endpoint
+   * @param payload - Request payload
+   * @param attempt - Current attempt number (internal)
+   */
+  private async sendWithRetry(
+    endpoint: string,
+    payload: any,
+    attempt: number = 0
+  ): Promise<void> {
+    try {
+      const payloadString = JSON.stringify(payload);
+      let body: Buffer | string = payloadString;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Apply compression if enabled and payload exceeds threshold
+      if (
+        this.compressionEnabled &&
+        Buffer.byteLength(payloadString, 'utf-8') > this.compressionThreshold
+      ) {
+        body = await this.compressPayload(payloadString);
+        headers['Content-Encoding'] = 'gzip';
+      }
+
+      // Send HTTP request using native fetch (Node.js 18+)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        // Check for retryable errors (5xx)
+        if (response.status >= 500 && response.status < 600) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        // Don't retry on 4xx errors (client errors)
+        if (response.status >= 400 && response.status < 500) {
+          if (this.verbose) {
+            console.debug(`Telemetry event failed with status ${response.status}`);
+          }
+          return; // Don't retry
+        }
+
+        if (response.status !== 200) {
+          if (this.verbose) {
+            console.debug(`Telemetry event failed with status ${response.status}`);
+          }
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    } catch (error) {
+      // Retry logic for network errors or 5xx responses
+      if (attempt < this.maxRetries) {
+        const backoffDelay = this.retryBackoffBase * Math.pow(2, attempt);
+        if (this.verbose) {
+          console.debug(
+            `Telemetry request failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffDelay}ms...`
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+        return this.sendWithRetry(endpoint, payload, attempt + 1);
+      }
+
+      // Max retries exceeded
+      if (this.verbose) {
+        console.debug(`Telemetry event error after ${this.maxRetries + 1} attempts:`, error);
+      }
+      // Silent failure - never crash the application
+    }
+  }
+
+  /**
+   * Add event to queue and flush if batch size reached.
+   *
+   * @param event - Event to queue
+   */
+  private async queueEvent(event: QueuedEvent): Promise<void> {
+    this.eventQueue.push(event);
+
+    // Flush if batch size reached
+    if (this.eventQueue.length >= this.batchSize) {
+      await this.flush();
+    }
+  }
+
+  /**
    * Send telemetry event to the endpoint (internal method).
    *
    * @param eventType - Event type name
@@ -330,42 +560,238 @@ export class TelemetryClient {
 
       // Verbose mode: print event to console
       if (this.verbose) {
-        console.log(`\n[Telemetry] Sending event: ${eventType}`);
+        console.log(`\n[Telemetry] Queuing trace event: ${eventType}`);
         console.log(`  Project: ${this.projectName}`);
         console.log(`  Data: ${JSON.stringify(data, null, 2)}`);
         console.log(`  Endpoint: ${this.endpoint}\n`);
       }
 
-      // Send HTTP request using native fetch (Node.js 18+)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-      try {
-        const response = await fetch(this.endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.status !== 200) {
-          // Log only in debug mode, never crash the application
-          if (this.verbose) {
-            console.debug(`Telemetry event failed with status ${response.status}`);
-          }
-        }
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      }
+      // Queue event for batch processing
+      await this.queueEvent({
+        type: 'trace',
+        payload,
+        endpoint: this.endpoint,
+      });
     } catch (error) {
       // Log any errors in debug mode only
       if (this.verbose) {
         console.debug(`Telemetry event error:`, error);
+      }
+      // Silent failure - never crash the application
+    }
+  }
+
+  /**
+   * Send OTLP metric (internal method).
+   *
+   * @param metricName - Metric name
+   * @param value - Metric value
+   * @param metricType - Metric type (gauge, counter, histogram)
+   * @param data - Additional metric attributes
+   */
+  private async sendMetric(
+    metricName: string,
+    value: number,
+    metricType: MetricType,
+    data: Record<string, any>
+  ): Promise<void> {
+    if (!this.enabled) {
+      return; // Silent no-op when disabled
+    }
+
+    try {
+      // Get current time in nanoseconds
+      const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
+
+      // Create OTLP-compatible metric payload
+      const dataPoint: any = {
+        attributes: this.createAttributes(data),
+        timeUnixNano: timeNano.toString(),
+      };
+
+      // Add value based on metric type
+      if (metricType === MetricType.GAUGE) {
+        dataPoint.asDouble = value;
+      } else if (metricType === MetricType.COUNTER) {
+        dataPoint.asDouble = value;
+      } else if (metricType === MetricType.HISTOGRAM) {
+        // Histogram requires count, sum, and bucket counts
+        dataPoint.count = 1;
+        dataPoint.sum = value;
+        dataPoint.bucketCounts = [1];
+        dataPoint.explicitBounds = [];
+      }
+
+      const metricData: any = {
+        name: metricName,
+        unit: data.unit || '',
+      };
+
+      // Set metric type-specific structure
+      if (metricType === MetricType.GAUGE) {
+        metricData.gauge = { dataPoints: [dataPoint] };
+      } else if (metricType === MetricType.COUNTER) {
+        metricData.sum = {
+          dataPoints: [dataPoint],
+          aggregationTemporality: 'AGGREGATION_TEMPORALITY_CUMULATIVE',
+          isMonotonic: true,
+        };
+      } else if (metricType === MetricType.HISTOGRAM) {
+        metricData.histogram = {
+          dataPoints: [dataPoint],
+          aggregationTemporality: 'AGGREGATION_TEMPORALITY_CUMULATIVE',
+        };
+      }
+
+      const payload = {
+        resourceMetrics: [
+          {
+            resource: {
+              attributes: [
+                {
+                  key: 'service.name',
+                  value: { stringValue: this.projectName },
+                },
+                {
+                  key: 'service.version',
+                  value: { stringValue: this.projectVersion },
+                },
+                {
+                  key: 'service.organization',
+                  value: { stringValue: this.organization },
+                },
+                {
+                  key: 'user.id',
+                  value: { stringValue: this.userId },
+                },
+                {
+                  key: 'session.id',
+                  value: { stringValue: this.sessionId },
+                },
+              ],
+            },
+            scopeMetrics: [
+              {
+                scope: {
+                  name: `${this.projectName}.telemetry`,
+                  version: this.projectVersion,
+                },
+                metrics: [metricData],
+              },
+            ],
+          },
+        ],
+      };
+
+      // Verbose mode: print metric to console
+      if (this.verbose) {
+        console.log(`\n[Telemetry] Queuing metric: ${metricName}`);
+        console.log(`  Type: ${metricType}`);
+        console.log(`  Value: ${value}`);
+        console.log(`  Endpoint: ${this.metricsEndpoint}\n`);
+      }
+
+      // Queue metric for batch processing
+      await this.queueEvent({
+        type: 'metric',
+        payload,
+        endpoint: this.metricsEndpoint,
+      });
+    } catch (error) {
+      // Log any errors in debug mode only
+      if (this.verbose) {
+        console.debug(`Telemetry metric error:`, error);
+      }
+      // Silent failure - never crash the application
+    }
+  }
+
+  /**
+   * Send OTLP log (internal method).
+   *
+   * @param message - Log message
+   * @param severity - Log severity level
+   * @param data - Additional log attributes
+   */
+  private async sendLog(
+    message: string,
+    severity: LogSeverity,
+    data: Record<string, any>
+  ): Promise<void> {
+    if (!this.enabled) {
+      return; // Silent no-op when disabled
+    }
+
+    try {
+      // Get current time in nanoseconds
+      const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
+
+      // Create OTLP-compatible log payload
+      const payload = {
+        resourceLogs: [
+          {
+            resource: {
+              attributes: [
+                {
+                  key: 'service.name',
+                  value: { stringValue: this.projectName },
+                },
+                {
+                  key: 'service.version',
+                  value: { stringValue: this.projectVersion },
+                },
+                {
+                  key: 'service.organization',
+                  value: { stringValue: this.organization },
+                },
+                {
+                  key: 'user.id',
+                  value: { stringValue: this.userId },
+                },
+                {
+                  key: 'session.id',
+                  value: { stringValue: this.sessionId },
+                },
+              ],
+            },
+            scopeLogs: [
+              {
+                scope: {
+                  name: `${this.projectName}.telemetry`,
+                  version: this.projectVersion,
+                },
+                logRecords: [
+                  {
+                    timeUnixNano: timeNano.toString(),
+                    severityNumber: severity,
+                    severityText: LogSeverity[severity],
+                    body: { stringValue: message },
+                    attributes: this.createAttributes(data),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      // Verbose mode: print log to console
+      if (this.verbose) {
+        console.log(`\n[Telemetry] Queuing log: ${message}`);
+        console.log(`  Severity: ${LogSeverity[severity]}`);
+        console.log(`  Endpoint: ${this.logsEndpoint}\n`);
+      }
+
+      // Queue log for batch processing
+      await this.queueEvent({
+        type: 'log',
+        payload,
+        endpoint: this.logsEndpoint,
+      });
+    } catch (error) {
+      // Log any errors in debug mode only
+      if (this.verbose) {
+        console.debug(`Telemetry log error:`, error);
       }
       // Silent failure - never crash the application
     }
@@ -423,25 +849,102 @@ export class TelemetryClient {
   }
 
   /**
-   * Track a numeric metric.
+   * Track a numeric metric using OTLP metrics format.
    *
    * @param metricName - Metric name
    * @param value - Metric value
    * @param attributes - Metric attributes
+   * @param metricType - Metric type (default: GAUGE)
    *
    * @example
    * ```typescript
-   * telemetry.trackMetric(StandardEvents.OPERATION_LATENCY, 123, {
+   * telemetry.trackMetric('api.request.latency', 123, {
    *   operation_type: 'api_request',
-   *   duration_ms: 123
+   *   unit: 'ms'
+   * }, MetricType.HISTOGRAM);
+   * ```
+   */
+  trackMetric(
+    metricName: string,
+    value: number,
+    attributes?: Record<string, any>,
+    metricType: MetricType = MetricType.GAUGE
+  ): void {
+    this.sendMetric(metricName, value, metricType, attributes || {}).catch(() => {
+      // Silent failure
+    });
+  }
+
+  /**
+   * Track a log message using OTLP logs format.
+   *
+   * @param message - Log message
+   * @param severity - Log severity level (default: INFO)
+   * @param attributes - Log attributes
+   *
+   * @example
+   * ```typescript
+   * telemetry.trackLog('User action completed', LogSeverity.INFO, {
+   *   action: 'file_upload',
+   *   file_size: 1024
    * });
    * ```
    */
-  trackMetric(metricName: string, value: number, attributes?: Record<string, any>): void {
-    const data = { value, ...(attributes || {}) };
-    this.sendEvent(metricName, data).catch(() => {
+  trackLog(
+    message: string,
+    severity: LogSeverity = LogSeverity.INFO,
+    attributes?: Record<string, any>
+  ): void {
+    this.sendLog(message, severity, attributes || {}).catch(() => {
       // Silent failure
     });
+  }
+
+  /**
+   * Manually flush all queued events.
+   * This sends all pending events immediately.
+   *
+   * @returns Promise that resolves when flush is complete
+   *
+   * @example
+   * ```typescript
+   * await telemetry.flush();
+   * ```
+   */
+  async flush(): Promise<void> {
+    if (!this.enabled || this.eventQueue.length === 0) {
+      return;
+    }
+
+    // Get current queue and clear it
+    const eventsToSend = [...this.eventQueue];
+    this.eventQueue = [];
+
+    if (this.verbose) {
+      console.log(`\n[Telemetry] Flushing ${eventsToSend.length} queued events\n`);
+    }
+
+    // Group events by endpoint for efficient batch sending
+    const eventsByEndpoint = new Map<string, QueuedEvent[]>();
+    for (const event of eventsToSend) {
+      const existing = eventsByEndpoint.get(event.endpoint) || [];
+      existing.push(event);
+      eventsByEndpoint.set(event.endpoint, existing);
+    }
+
+    // Send all events with retry logic
+    const sendPromises: Promise<void>[] = [];
+    for (const [endpoint, events] of eventsByEndpoint.entries()) {
+      for (const event of events) {
+        sendPromises.push(this.sendWithRetry(endpoint, event.payload));
+      }
+    }
+
+    try {
+      await Promise.all(sendPromises);
+    } catch (error) {
+      // Silent failure - errors already logged in sendWithRetry
+    }
   }
 
   // === Control Methods ===
@@ -461,14 +964,24 @@ export class TelemetryClient {
         // Silent failure
       }
     }
+    // Start flush timer
+    this.startFlushTimer();
   }
 
   /**
    * Disable telemetry permanently.
    * Creates an opt-out file in the user's home directory.
+   * Flushes any pending events before disabling.
    */
-  disable(): void {
+  async disable(): Promise<void> {
+    // Flush pending events before disabling
+    await this.flush();
+
     this.enabled = false;
+
+    // Stop flush timer
+    this.stopFlushTimer();
+
     // Create opt-out file
     try {
       const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');

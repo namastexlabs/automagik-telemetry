@@ -20,4 +20,6 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   verbose: true,
+  forceExit: true, // Force exit after tests complete
+  testTimeout: 60000, // 60 second timeout for all tests
 };

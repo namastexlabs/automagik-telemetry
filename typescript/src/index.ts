@@ -4,7 +4,7 @@
  * Privacy-first, opt-in telemetry SDK for the Automagik ecosystem
  */
 
-export { TelemetryClient } from './client';
+export { TelemetryClient, LogSeverity, MetricType } from './client';
 export { TelemetryOptIn, promptUserIfNeeded, shouldPromptUser } from './opt-in';
 export { StandardEvents } from './schema';
 export type { TelemetryConfig, ValidatedConfig } from './config';
