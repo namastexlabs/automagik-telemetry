@@ -5,20 +5,20 @@
  * what data is collected and gives users full control.
  */
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as readline from 'readline';
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import * as readline from "readline";
 
 export class TelemetryOptIn {
   private static readonly PREFERENCE_FILE = path.join(
     os.homedir(),
-    '.automagik',
-    'telemetry_preference'
+    ".automagik",
+    "telemetry_preference",
   );
   private static readonly OPT_OUT_FILE = path.join(
     os.homedir(),
-    '.automagik-no-telemetry'
+    ".automagik-no-telemetry",
   );
 
   /**
@@ -57,8 +57,11 @@ export class TelemetryOptIn {
     // Check preference file
     if (fs.existsSync(this.PREFERENCE_FILE)) {
       try {
-        const content = fs.readFileSync(this.PREFERENCE_FILE, 'utf-8').trim().toLowerCase();
-        return ['true', 'yes', '1', 'enabled'].includes(content);
+        const content = fs
+          .readFileSync(this.PREFERENCE_FILE, "utf-8")
+          .trim()
+          .toLowerCase();
+        return ["true", "yes", "1", "enabled"].includes(content);
       } catch {
         // Ignore errors
       }
@@ -67,7 +70,7 @@ export class TelemetryOptIn {
     // Check environment variable
     const envVar = process.env.AUTOMAGIK_TELEMETRY_ENABLED;
     if (envVar !== undefined) {
-      return ['true', '1', 'yes', 'on'].includes(envVar.toLowerCase());
+      return ["true", "1", "yes", "on"].includes(envVar.toLowerCase());
     }
 
     return null;
@@ -89,10 +92,10 @@ export class TelemetryOptIn {
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true });
         }
-        fs.writeFileSync(this.PREFERENCE_FILE, 'enabled');
+        fs.writeFileSync(this.PREFERENCE_FILE, "enabled");
       } else {
         // Create opt-out file
-        fs.closeSync(fs.openSync(this.OPT_OUT_FILE, 'w'));
+        fs.closeSync(fs.openSync(this.OPT_OUT_FILE, "w"));
 
         // Remove preference file if exists
         if (fs.existsSync(this.PREFERENCE_FILE)) {
@@ -124,13 +127,13 @@ export class TelemetryOptIn {
     }
 
     // Windows 10+ supports ANSI
-    if (process.platform === 'win32') {
+    if (process.platform === "win32") {
       return true;
     }
 
     // Unix/Linux - check TERM
-    const term = process.env.TERM || '';
-    return term !== 'dumb' && term !== '';
+    const term = process.env.TERM || "";
+    return term !== "dumb" && term !== "";
   }
 
   /**
@@ -146,7 +149,7 @@ export class TelemetryOptIn {
   /**
    * Show first-run opt-in prompt if user hasn't decided yet.
    */
-  static async promptUser(projectName: string = 'Automagik'): Promise<boolean> {
+  static async promptUser(projectName: string = "Automagik"): Promise<boolean> {
     // Don't prompt if user already decided
     if (this.hasUserDecided()) {
       const preference = this.getUserPreference();
@@ -159,18 +162,18 @@ export class TelemetryOptIn {
     }
 
     // Color codes (ANSI)
-    const CYAN = '96';
-    const GREEN = '92';
-    const YELLOW = '93';
-    const RED = '91';
-    const BLUE = '94';
-    const BOLD = '1';
-    const DIM = '2';
+    const CYAN = "96";
+    const GREEN = "92";
+    const YELLOW = "93";
+    const RED = "91";
+    const BLUE = "94";
+    const BOLD = "1";
+    const DIM = "2";
 
     // Build colorful prompt
     const titleText = `  Help Improve ${projectName}! 🚀`;
     const title = this.colorize(titleText, `${BOLD};${CYAN}`);
-    const padding = ' '.repeat(61 - titleText.length);
+    const padding = " ".repeat(61 - titleText.length);
 
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
@@ -179,25 +182,25 @@ export class TelemetryOptIn {
 
 We'd love your help making ${this.colorize(projectName, BOLD)} better for everyone.
 
-${this.colorize('📊 What we collect', `${BOLD};${GREEN}`)} (if you opt-in):
-  ${this.colorize('✓', GREEN)} Feature usage (which commands/APIs you use)
-  ${this.colorize('✓', GREEN)} Performance metrics (how fast things run)
-  ${this.colorize('✓', GREEN)} Error reports (when things break)
-  ${this.colorize('✓', GREEN)} Anonymous usage patterns
+${this.colorize("📊 What we collect", `${BOLD};${GREEN}`)} (if you opt-in):
+  ${this.colorize("✓", GREEN)} Feature usage (which commands/APIs you use)
+  ${this.colorize("✓", GREEN)} Performance metrics (how fast things run)
+  ${this.colorize("✓", GREEN)} Error reports (when things break)
+  ${this.colorize("✓", GREEN)} Anonymous usage patterns
 
 ${this.colorize("🔒 What we DON'T collect:", `${BOLD};${RED}`)}
-  ${this.colorize('✗', RED)} Your messages or personal data
-  ${this.colorize('✗', RED)} API keys or credentials
-  ${this.colorize('✗', RED)} User identities (everything is anonymized)
-  ${this.colorize('✗', RED)} File contents or business logic
+  ${this.colorize("✗", RED)} Your messages or personal data
+  ${this.colorize("✗", RED)} API keys or credentials
+  ${this.colorize("✗", RED)} User identities (everything is anonymized)
+  ${this.colorize("✗", RED)} File contents or business logic
 
-${this.colorize('🌐 Your data, your control:', `${BOLD};${BLUE}`)}
-  • Data sent to: ${this.colorize('telemetry.namastex.ai', CYAN)} (open-source dashboard)
+${this.colorize("🌐 Your data, your control:", `${BOLD};${BLUE}`)}
+  • Data sent to: ${this.colorize("telemetry.namastex.ai", CYAN)} (open-source dashboard)
   • You can self-host: See docs/telemetry.md
-  • Opt-out anytime: Set ${this.colorize('AUTOMAGIK_TELEMETRY_ENABLED=false', YELLOW)}
-  • View what's sent: Use ${this.colorize('--telemetry-verbose', YELLOW)} flag
+  • Opt-out anytime: Set ${this.colorize("AUTOMAGIK_TELEMETRY_ENABLED=false", YELLOW)}
+  • View what's sent: Use ${this.colorize("--telemetry-verbose", YELLOW)} flag
 
-${this.colorize('More info:', DIM)} https://docs.automagik.ai/privacy
+${this.colorize("More info:", DIM)} https://docs.automagik.ai/privacy
 `);
 
     try {
@@ -207,31 +210,44 @@ ${this.colorize('More info:', DIM)} https://docs.automagik.ai/privacy
       });
 
       const response = await new Promise<string>((resolve) => {
-        const promptText = this.colorize('Enable telemetry? [y/N]: ', `${BOLD};${CYAN}`);
+        const promptText = this.colorize(
+          "Enable telemetry? [y/N]: ",
+          `${BOLD};${CYAN}`,
+        );
         rl.question(promptText, (answer) => {
           rl.close();
           resolve(answer);
         });
       });
 
-      const enabled = ['y', 'yes'].includes(response.trim().toLowerCase());
+      const enabled = ["y", "yes"].includes(response.trim().toLowerCase());
 
       // Save preference
       this.savePreference(enabled);
 
       // Show confirmation
       if (enabled) {
-        console.log(`\n${this.colorize('✅ Thank you!', `${BOLD};${GREEN}`)} Telemetry enabled.`);
-        console.log('   Your anonymous usage data will help improve Automagik.\n');
+        console.log(
+          `\n${this.colorize("✅ Thank you!", `${BOLD};${GREEN}`)} Telemetry enabled.`,
+        );
+        console.log(
+          "   Your anonymous usage data will help improve Automagik.\n",
+        );
       } else {
-        console.log(`\n${this.colorize('✅ Telemetry disabled.', `${BOLD};${YELLOW}`)}`);
-        console.log(`   You can enable it later with: ${this.colorize('export AUTOMAGIK_TELEMETRY_ENABLED=true', CYAN)}\n`);
+        console.log(
+          `\n${this.colorize("✅ Telemetry disabled.", `${BOLD};${YELLOW}`)}`,
+        );
+        console.log(
+          `   You can enable it later with: ${this.colorize("export AUTOMAGIK_TELEMETRY_ENABLED=true", CYAN)}\n`,
+        );
       }
 
       return enabled;
     } catch (error) {
       // User cancelled - treat as "no"
-      console.log(`\n\n${this.colorize('✅ Telemetry disabled.', `${BOLD};${YELLOW}`)}`);
+      console.log(
+        `\n\n${this.colorize("✅ Telemetry disabled.", `${BOLD};${YELLOW}`)}`,
+      );
       this.savePreference(false);
       return false;
     }
@@ -247,7 +263,14 @@ ${this.colorize('More info:', DIM)} https://docs.automagik.ai/privacy
     }
 
     // Check if in CI environment
-    const ciVars = ['CI', 'GITHUB_ACTIONS', 'TRAVIS', 'JENKINS', 'GITLAB_CI', 'CIRCLECI'];
+    const ciVars = [
+      "CI",
+      "GITHUB_ACTIONS",
+      "TRAVIS",
+      "JENKINS",
+      "GITLAB_CI",
+      "CIRCLECI",
+    ];
     if (ciVars.some((v) => process.env[v])) {
       return false;
     }
@@ -259,13 +282,15 @@ ${this.colorize('More info:', DIM)} https://docs.automagik.ai/privacy
 /**
  * Convenience function to check if we should show the opt-in prompt.
  */
-export function shouldPromptUser(_projectName: string = 'Automagik'): boolean {
-  return !TelemetryOptIn.hasUserDecided() && TelemetryOptIn['isInteractive']();
+export function shouldPromptUser(_projectName: string = "Automagik"): boolean {
+  return !TelemetryOptIn.hasUserDecided() && TelemetryOptIn["isInteractive"]();
 }
 
 /**
  * Show opt-in prompt if needed and return user's decision.
  */
-export async function promptUserIfNeeded(projectName: string = 'Automagik'): Promise<boolean> {
+export async function promptUserIfNeeded(
+  projectName: string = "Automagik",
+): Promise<boolean> {
   return TelemetryOptIn.promptUser(projectName);
 }

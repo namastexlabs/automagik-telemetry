@@ -5,12 +5,12 @@
  * including phone numbers, emails, API keys, and other sensitive data.
  */
 
-import { createHash } from 'crypto';
+import { createHash } from "crypto";
 
 /**
  * Sanitization strategy for handling PII.
  */
-export type SanitizationStrategy = 'hash' | 'redact' | 'truncate';
+export type SanitizationStrategy = "hash" | "redact" | "truncate";
 
 /**
  * Configuration for privacy utilities.
@@ -22,22 +22,24 @@ export interface PrivacyConfig {
 }
 
 const DEFAULT_CONFIG: Required<PrivacyConfig> = {
-  strategy: 'hash',
+  strategy: "hash",
   maxStringLength: 1000,
-  redactionText: '[REDACTED]',
+  redactionText: "[REDACTED]",
 };
 
 // PII detection patterns
 // Exported for testing purposes to allow mocking
 export const PATTERNS = {
   // Phone: matches international formats like +1-555-555-5555, (555) 555-5555, 555.555.5555
-  phone: /(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(\+?[0-9]{1,3}[-.\s]?)?(\([0-9]{2,4}\)|[0-9]{2,4})[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{4}/g,
+  phone:
+    /(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(\+?[0-9]{1,3}[-.\s]?)?(\([0-9]{2,4}\)|[0-9]{2,4})[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{4}/g,
 
   // Email: standard email pattern
   email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
 
   // API keys: patterns like xxx-xxx-xxx, sk_live_xxx, Bearer xxx
-  apiKey: /\b(sk_live_|sk_test_|pk_live_|pk_test_|Bearer\s+|api[_-]?key[_-]?)[a-zA-Z0-9_-]{20,}\b/gi,
+  apiKey:
+    /\b(sk_live_|sk_test_|pk_live_|pk_test_|Bearer\s+|api[_-]?key[_-]?)[a-zA-Z0-9_-]{20,}\b/gi,
 
   // Credit card: basic pattern (not perfect, but catches most)
   creditCard: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
@@ -60,7 +62,7 @@ export const PATTERNS = {
  * ```
  */
 export function hashValue(value: string): string {
-  const hash = createHash('sha256').update(value).digest('hex');
+  const hash = createHash("sha256").update(value).digest("hex");
   return `sha256:${hash.substring(0, 16)}`;
 }
 
@@ -74,9 +76,9 @@ export function hashValue(value: string): string {
  * ```
  */
 export function detectPII(value: string): boolean {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
 
-  return Object.values(PATTERNS).some(pattern => {
+  return Object.values(PATTERNS).some((pattern) => {
     // Reset regex state before testing
     pattern.lastIndex = 0;
     return pattern.test(value);
@@ -95,7 +97,10 @@ export function detectPII(value: string): boolean {
  * // Returns: '[REDACTED]'
  * ```
  */
-export function sanitizePhone(value: string, config: PrivacyConfig = {}): string {
+export function sanitizePhone(
+  value: string,
+  config: PrivacyConfig = {},
+): string {
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
   // Reset regex state
@@ -107,12 +112,12 @@ export function sanitizePhone(value: string, config: PrivacyConfig = {}): string
   // Reset again before replace
   PATTERNS.phone.lastIndex = 0;
   switch (cfg.strategy) {
-    case 'hash':
+    case "hash":
       return value.replace(PATTERNS.phone, (match) => hashValue(match));
-    case 'redact':
+    case "redact":
       return value.replace(PATTERNS.phone, cfg.redactionText);
-    case 'truncate':
-      return value.replace(PATTERNS.phone, 'XXX-XXX-XXXX');
+    case "truncate":
+      return value.replace(PATTERNS.phone, "XXX-XXX-XXXX");
     default:
       return value;
   }
@@ -130,7 +135,10 @@ export function sanitizePhone(value: string, config: PrivacyConfig = {}): string
  * // Returns: '[REDACTED]'
  * ```
  */
-export function sanitizeEmail(value: string, config: PrivacyConfig = {}): string {
+export function sanitizeEmail(
+  value: string,
+  config: PrivacyConfig = {},
+): string {
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
   // Reset regex state
@@ -142,13 +150,13 @@ export function sanitizeEmail(value: string, config: PrivacyConfig = {}): string
   // Reset again before replace
   PATTERNS.email.lastIndex = 0;
   switch (cfg.strategy) {
-    case 'hash':
+    case "hash":
       return value.replace(PATTERNS.email, (match) => hashValue(match));
-    case 'redact':
+    case "redact":
       return value.replace(PATTERNS.email, cfg.redactionText);
-    case 'truncate':
+    case "truncate":
       return value.replace(PATTERNS.email, (match) => {
-        const [user, domain] = match.split('@');
+        const [user, domain] = match.split("@");
         return `${user.substring(0, 2)}***@${domain}`;
       });
     default:
@@ -190,7 +198,7 @@ export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
   if (value == null) return value;
 
   // Handle strings
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     // Truncate if too long
     let sanitized = truncateString(value, cfg.maxStringLength);
 
@@ -217,30 +225,30 @@ export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
     if (PATTERNS.ipv4.test(sanitized)) {
       PATTERNS.ipv4.lastIndex = 0;
       sanitized = sanitized.replace(PATTERNS.ipv4, (match) =>
-        cfg.strategy === 'hash' ? hashValue(match) : 'X.X.X.X'
+        cfg.strategy === "hash" ? hashValue(match) : "X.X.X.X",
       );
     }
     PATTERNS.userPath.lastIndex = 0;
     if (PATTERNS.userPath.test(sanitized)) {
       PATTERNS.userPath.lastIndex = 0;
-      sanitized = sanitized.replace(PATTERNS.userPath, '/[USER_PATH]');
+      sanitized = sanitized.replace(PATTERNS.userPath, "/[USER_PATH]");
     }
 
     return sanitized;
   }
 
   // Handle numbers (pass through)
-  if (typeof value === 'number' || typeof value === 'boolean') {
+  if (typeof value === "number" || typeof value === "boolean") {
     return value;
   }
 
   // Handle arrays recursively
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeValue(item, config));
+    return value.map((item) => sanitizeValue(item, config));
   }
 
   // Handle objects recursively
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const sanitized: Record<string, any> = {};
     for (const [key, val] of Object.entries(value)) {
       sanitized[key] = sanitizeValue(val, config);
@@ -265,15 +273,19 @@ export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
 export function redactSensitiveKeys(
   obj: Record<string, any>,
   keys: string[],
-  config: PrivacyConfig = {}
+  config: PrivacyConfig = {},
 ): Record<string, any> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const result: Record<string, any> = {};
 
   for (const [key, value] of Object.entries(obj)) {
-    if (keys.some(k => key.toLowerCase().includes(k.toLowerCase()))) {
+    if (keys.some((k) => key.toLowerCase().includes(k.toLowerCase()))) {
       result[key] = cfg.redactionText;
-    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    } else if (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value)
+    ) {
       result[key] = redactSensitiveKeys(value, keys, config);
     } else {
       result[key] = value;
@@ -287,19 +299,19 @@ export function redactSensitiveKeys(
  * Common sensitive key patterns to redact.
  */
 export const SENSITIVE_KEYS = [
-  'password',
-  'passwd',
-  'pwd',
-  'secret',
-  'token',
-  'api_key',
-  'apikey',
-  'access_token',
-  'refresh_token',
-  'private_key',
-  'credit_card',
-  'ssn',
-  'social_security',
+  "password",
+  "passwd",
+  "pwd",
+  "secret",
+  "token",
+  "api_key",
+  "apikey",
+  "access_token",
+  "refresh_token",
+  "private_key",
+  "credit_card",
+  "ssn",
+  "social_security",
 ];
 
 /**
@@ -322,7 +334,7 @@ export const SENSITIVE_KEYS = [
  */
 export function sanitizeTelemetryData(
   data: Record<string, any>,
-  config: PrivacyConfig = {}
+  config: PrivacyConfig = {},
 ): Record<string, any> {
   // First redact known sensitive keys
   let sanitized = redactSensitiveKeys(data, SENSITIVE_KEYS, config);

@@ -48,8 +48,8 @@ export interface ValidatedConfig {
  * Default configuration values.
  */
 export const DEFAULT_CONFIG = {
-  endpoint: 'https://telemetry.namastex.ai/v1/traces',
-  organization: 'namastex',
+  endpoint: "https://telemetry.namastex.ai/v1/traces",
+  organization: "namastex",
   timeout: 5000, // milliseconds
   enabled: false, // Disabled by default - opt-in only
   verbose: false,
@@ -59,10 +59,10 @@ export const DEFAULT_CONFIG = {
  * Environment variables used for configuration.
  */
 export const ENV_VARS = {
-  ENABLED: 'AUTOMAGIK_TELEMETRY_ENABLED',
-  ENDPOINT: 'AUTOMAGIK_TELEMETRY_ENDPOINT',
-  VERBOSE: 'AUTOMAGIK_TELEMETRY_VERBOSE',
-  TIMEOUT: 'AUTOMAGIK_TELEMETRY_TIMEOUT',
+  ENABLED: "AUTOMAGIK_TELEMETRY_ENABLED",
+  ENDPOINT: "AUTOMAGIK_TELEMETRY_ENDPOINT",
+  VERBOSE: "AUTOMAGIK_TELEMETRY_VERBOSE",
+  TIMEOUT: "AUTOMAGIK_TELEMETRY_TIMEOUT",
 } as const;
 
 /**
@@ -117,7 +117,7 @@ export function loadConfigFromEnv(): Partial<TelemetryConfig> {
  */
 function parseBooleanEnv(value: string): boolean {
   const normalized = value.toLowerCase().trim();
-  return ['true', '1', 'yes', 'on'].includes(normalized);
+  return ["true", "1", "yes", "on"].includes(normalized);
 }
 
 /**
@@ -137,7 +137,8 @@ export function mergeConfig(userConfig: TelemetryConfig): ValidatedConfig {
   return {
     projectName: userConfig.projectName,
     version: userConfig.version,
-    endpoint: userConfig.endpoint ?? envConfig.endpoint ?? DEFAULT_CONFIG.endpoint,
+    endpoint:
+      userConfig.endpoint ?? envConfig.endpoint ?? DEFAULT_CONFIG.endpoint,
     organization: userConfig.organization ?? DEFAULT_CONFIG.organization,
     timeout: userConfig.timeout ?? envConfig.timeout ?? DEFAULT_CONFIG.timeout,
     enabled: userConfig.enabled ?? envConfig.enabled ?? DEFAULT_CONFIG.enabled,
@@ -154,23 +155,29 @@ export function mergeConfig(userConfig: TelemetryConfig): ValidatedConfig {
 export function validateConfig(config: TelemetryConfig): void {
   // Validate required fields
   if (!config.projectName || config.projectName.trim().length === 0) {
-    throw new Error('TelemetryConfig: projectName is required and cannot be empty');
+    throw new Error(
+      "TelemetryConfig: projectName is required and cannot be empty",
+    );
   }
 
   if (!config.version || config.version.trim().length === 0) {
-    throw new Error('TelemetryConfig: version is required and cannot be empty');
+    throw new Error("TelemetryConfig: version is required and cannot be empty");
   }
 
   // Validate endpoint URL format if provided
   if (config.endpoint !== undefined) {
     try {
       const url = new URL(config.endpoint);
-      if (!['http:', 'https:'].includes(url.protocol)) {
-        throw new Error('TelemetryConfig: endpoint must use http or https protocol');
+      if (!["http:", "https:"].includes(url.protocol)) {
+        throw new Error(
+          "TelemetryConfig: endpoint must use http or https protocol",
+        );
       }
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new Error(`TelemetryConfig: endpoint must be a valid URL (got: ${config.endpoint})`);
+        throw new Error(
+          `TelemetryConfig: endpoint must be a valid URL (got: ${config.endpoint})`,
+        );
       }
       throw error;
     }
@@ -179,16 +186,25 @@ export function validateConfig(config: TelemetryConfig): void {
   // Validate timeout if provided
   if (config.timeout !== undefined) {
     if (!Number.isInteger(config.timeout) || config.timeout <= 0) {
-      throw new Error(`TelemetryConfig: timeout must be a positive integer (got: ${config.timeout})`);
+      throw new Error(
+        `TelemetryConfig: timeout must be a positive integer (got: ${config.timeout})`,
+      );
     }
     if (config.timeout > 60000) {
-      throw new Error(`TelemetryConfig: timeout should not exceed 60000ms (got: ${config.timeout})`);
+      throw new Error(
+        `TelemetryConfig: timeout should not exceed 60000ms (got: ${config.timeout})`,
+      );
     }
   }
 
   // Validate organization if provided
-  if (config.organization !== undefined && config.organization.trim().length === 0) {
-    throw new Error('TelemetryConfig: organization cannot be empty if provided');
+  if (
+    config.organization !== undefined &&
+    config.organization.trim().length === 0
+  ) {
+    throw new Error(
+      "TelemetryConfig: organization cannot be empty if provided",
+    );
   }
 }
 

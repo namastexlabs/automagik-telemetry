@@ -5,11 +5,11 @@
  * Uses only Node.js standard library - no external dependencies.
  */
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as crypto from 'crypto';
-import * as zlib from 'zlib';
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import * as crypto from "crypto";
+import * as zlib from "zlib";
 
 /**
  * Configuration interface for TelemetryClient.
@@ -78,7 +78,7 @@ interface SystemInfo {
 /**
  * Event types for batch processing.
  */
-type EventType = 'trace' | 'metric' | 'log';
+type EventType = "trace" | "metric" | "log";
 
 /**
  * Queued event structure for batch processing.
@@ -105,9 +105,9 @@ export enum LogSeverity {
  * Metric types (OTLP format).
  */
 export enum MetricType {
-  GAUGE = 'gauge',
-  COUNTER = 'counter',
-  HISTOGRAM = 'histogram',
+  GAUGE = "gauge",
+  COUNTER = "counter",
+  HISTOGRAM = "histogram",
 }
 
 /**
@@ -169,19 +169,23 @@ export class AutomagikTelemetry {
   constructor(config: TelemetryConfig) {
     this.projectName = config.projectName;
     this.projectVersion = config.version;
-    this.organization = config.organization || 'namastex';
+    this.organization = config.organization || "namastex";
     this.timeout = (config.timeout || 5) * 1000; // Convert to milliseconds
 
     // Allow custom endpoint for self-hosting
-    const baseEndpoint = config.endpoint ||
+    const baseEndpoint =
+      config.endpoint ||
       process.env.AUTOMAGIK_TELEMETRY_ENDPOINT ||
-      'https://telemetry.namastex.ai';
+      "https://telemetry.namastex.ai";
 
     // Remove trailing slash and /v1/traces if present
-    const cleanBaseEndpoint = baseEndpoint.replace(/\/v1\/traces\/?$/, '').replace(/\/$/, '');
+    const cleanBaseEndpoint = baseEndpoint
+      .replace(/\/v1\/traces\/?$/, "")
+      .replace(/\/$/, "");
 
     this.endpoint = `${cleanBaseEndpoint}/v1/traces`;
-    this.metricsEndpoint = config.metricsEndpoint || `${cleanBaseEndpoint}/v1/metrics`;
+    this.metricsEndpoint =
+      config.metricsEndpoint || `${cleanBaseEndpoint}/v1/metrics`;
     this.logsEndpoint = config.logsEndpoint || `${cleanBaseEndpoint}/v1/logs`;
 
     // User & session IDs
@@ -192,7 +196,8 @@ export class AutomagikTelemetry {
     this.enabled = this.isTelemetryEnabled();
 
     // Verbose mode (print events to console)
-    this.verbose = process.env.AUTOMAGIK_TELEMETRY_VERBOSE?.toLowerCase() === 'true';
+    this.verbose =
+      process.env.AUTOMAGIK_TELEMETRY_VERBOSE?.toLowerCase() === "true";
 
     // Batch processing configuration
     this.eventQueue = [];
@@ -219,12 +224,12 @@ export class AutomagikTelemetry {
    * @returns Persistent anonymous user ID
    */
   private getOrCreateUserId(): string {
-    const userIdFile = path.join(os.homedir(), '.automagik', 'user_id');
+    const userIdFile = path.join(os.homedir(), ".automagik", "user_id");
 
     // Try to read existing ID
     if (fs.existsSync(userIdFile)) {
       try {
-        return fs.readFileSync(userIdFile, 'utf-8').trim();
+        return fs.readFileSync(userIdFile, "utf-8").trim();
       } catch (error) {
         // Continue to create new ID if read fails
       }
@@ -237,7 +242,7 @@ export class AutomagikTelemetry {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(userIdFile, userId, 'utf-8');
+      fs.writeFileSync(userIdFile, userId, "utf-8");
     } catch (error) {
       // Continue with in-memory ID if file creation fails
     }
@@ -254,23 +259,23 @@ export class AutomagikTelemetry {
     // Explicit enable/disable via environment variable
     const envVar = process.env.AUTOMAGIK_TELEMETRY_ENABLED;
     if (envVar !== undefined) {
-      return ['true', '1', 'yes', 'on'].includes(envVar.toLowerCase());
+      return ["true", "1", "yes", "on"].includes(envVar.toLowerCase());
     }
 
     // Check for opt-out file
-    const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
+    const optOutFile = path.join(os.homedir(), ".automagik-no-telemetry");
     if (fs.existsSync(optOutFile)) {
       return false;
     }
 
     // Auto-disable in CI/testing environments
     const ciEnvironments = [
-      'CI',
-      'GITHUB_ACTIONS',
-      'TRAVIS',
-      'JENKINS',
-      'GITLAB_CI',
-      'CIRCLECI',
+      "CI",
+      "GITHUB_ACTIONS",
+      "TRAVIS",
+      "JENKINS",
+      "GITLAB_CI",
+      "CIRCLECI",
     ];
     if (ciEnvironments.some((varName) => process.env[varName])) {
       return false;
@@ -278,7 +283,10 @@ export class AutomagikTelemetry {
 
     // Check for development indicators
     const environment = process.env.ENVIRONMENT;
-    if (environment && ['development', 'dev', 'test', 'testing'].includes(environment)) {
+    if (
+      environment &&
+      ["development", "dev", "test", "testing"].includes(environment)
+    ) {
       return false;
     }
 
@@ -297,7 +305,7 @@ export class AutomagikTelemetry {
       os_version: os.release(),
       node_version: process.version,
       architecture: os.arch(),
-      is_docker: fs.existsSync('/.dockerenv'),
+      is_docker: fs.existsSync("/.dockerenv"),
       project_name: this.projectName,
       project_version: this.projectVersion,
       organization: this.organization,
@@ -316,20 +324,26 @@ export class AutomagikTelemetry {
     // Add system information
     const systemInfo = this.getSystemInfo();
     for (const [key, value] of Object.entries(systemInfo)) {
-      if (typeof value === 'boolean') {
+      if (typeof value === "boolean") {
         attributes.push({ key: `system.${key}`, value: { boolValue: value } });
-      } else if (typeof value === 'number') {
-        attributes.push({ key: `system.${key}`, value: { doubleValue: value } });
+      } else if (typeof value === "number") {
+        attributes.push({
+          key: `system.${key}`,
+          value: { doubleValue: value },
+        });
       } else {
-        attributes.push({ key: `system.${key}`, value: { stringValue: String(value) } });
+        attributes.push({
+          key: `system.${key}`,
+          value: { stringValue: String(value) },
+        });
       }
     }
 
     // Add event data
     for (const [key, value] of Object.entries(data)) {
-      if (typeof value === 'boolean') {
+      if (typeof value === "boolean") {
         attributes.push({ key, value: { boolValue: value } });
-      } else if (typeof value === 'number') {
+      } else if (typeof value === "number") {
         attributes.push({ key, value: { doubleValue: value } });
       } else {
         // Truncate long strings to prevent payload bloat
@@ -370,7 +384,7 @@ export class AutomagikTelemetry {
    */
   private async compressPayload(data: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      zlib.gzip(Buffer.from(data, 'utf-8'), (error, result) => {
+      zlib.gzip(Buffer.from(data, "utf-8"), (error, result) => {
         if (error) {
           reject(error);
         } else {
@@ -390,22 +404,22 @@ export class AutomagikTelemetry {
   private async sendWithRetry(
     endpoint: string,
     payload: any,
-    attempt: number = 0
+    attempt: number = 0,
   ): Promise<void> {
     try {
       const payloadString = JSON.stringify(payload);
       let body: Buffer | string = payloadString;
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
 
       // Apply compression if enabled and payload exceeds threshold
       if (
         this.compressionEnabled &&
-        Buffer.byteLength(payloadString, 'utf-8') > this.compressionThreshold
+        Buffer.byteLength(payloadString, "utf-8") > this.compressionThreshold
       ) {
         body = await this.compressPayload(payloadString);
-        headers['Content-Encoding'] = 'gzip';
+        headers["Content-Encoding"] = "gzip";
       }
 
       // Send HTTP request using native fetch (Node.js 18+)
@@ -414,7 +428,7 @@ export class AutomagikTelemetry {
 
       try {
         const response = await fetch(endpoint, {
-          method: 'POST',
+          method: "POST",
           headers,
           body,
           signal: controller.signal,
@@ -430,14 +444,18 @@ export class AutomagikTelemetry {
         // Don't retry on 4xx errors (client errors)
         if (response.status >= 400 && response.status < 500) {
           if (this.verbose) {
-            console.debug(`Telemetry event failed with status ${response.status}`);
+            console.debug(
+              `Telemetry event failed with status ${response.status}`,
+            );
           }
           return; // Don't retry
         }
 
         if (response.status !== 200) {
           if (this.verbose) {
-            console.debug(`Telemetry event failed with status ${response.status}`);
+            console.debug(
+              `Telemetry event failed with status ${response.status}`,
+            );
           }
         }
       } catch (error) {
@@ -450,7 +468,7 @@ export class AutomagikTelemetry {
         const backoffDelay = this.retryBackoffBase * Math.pow(2, attempt);
         if (this.verbose) {
           console.debug(
-            `Telemetry request failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffDelay}ms...`
+            `Telemetry request failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffDelay}ms...`,
           );
         }
         await new Promise((resolve) => setTimeout(resolve, backoffDelay));
@@ -459,7 +477,10 @@ export class AutomagikTelemetry {
 
       // Max retries exceeded
       if (this.verbose) {
-        console.debug(`Telemetry event error after ${this.maxRetries + 1} attempts:`, error);
+        console.debug(
+          `Telemetry event error after ${this.maxRetries + 1} attempts:`,
+          error,
+        );
       }
       // Silent failure - never crash the application
     }
@@ -485,15 +506,20 @@ export class AutomagikTelemetry {
    * @param eventType - Event type name
    * @param data - Event data
    */
-  private async sendEvent(eventType: string, data: Record<string, any>): Promise<void> {
+  private async sendEvent(
+    eventType: string,
+    data: Record<string, any>,
+  ): Promise<void> {
     if (!this.enabled) {
       return; // Silent no-op when disabled
     }
 
     try {
       // Generate trace and span IDs (32 and 16 hex chars respectively)
-      const traceId = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-      const spanId = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+      const traceId =
+        crypto.randomUUID().replace(/-/g, "") +
+        crypto.randomUUID().replace(/-/g, "");
+      const spanId = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
       // Get current time in nanoseconds
       const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
@@ -505,32 +531,32 @@ export class AutomagikTelemetry {
             resource: {
               attributes: [
                 {
-                  key: 'service.name',
+                  key: "service.name",
                   value: { stringValue: this.projectName },
                 },
                 {
-                  key: 'service.version',
+                  key: "service.version",
                   value: { stringValue: this.projectVersion },
                 },
                 {
-                  key: 'service.organization',
+                  key: "service.organization",
                   value: { stringValue: this.organization },
                 },
                 {
-                  key: 'user.id',
+                  key: "user.id",
                   value: { stringValue: this.userId },
                 },
                 {
-                  key: 'session.id',
+                  key: "session.id",
                   value: { stringValue: this.sessionId },
                 },
                 {
-                  key: 'telemetry.sdk.name',
-                  value: { stringValue: 'automagik-telemetry' },
+                  key: "telemetry.sdk.name",
+                  value: { stringValue: "automagik-telemetry" },
                 },
                 {
-                  key: 'telemetry.sdk.version',
-                  value: { stringValue: '0.1.0' },
+                  key: "telemetry.sdk.version",
+                  value: { stringValue: "0.1.0" },
                 },
               ],
             },
@@ -545,11 +571,11 @@ export class AutomagikTelemetry {
                     traceId: traceId,
                     spanId: spanId,
                     name: eventType,
-                    kind: 'SPAN_KIND_INTERNAL',
+                    kind: "SPAN_KIND_INTERNAL",
                     startTimeUnixNano: timeNano.toString(),
                     endTimeUnixNano: timeNano.toString(),
                     attributes: this.createAttributes(data),
-                    status: { code: 'STATUS_CODE_OK' },
+                    status: { code: "STATUS_CODE_OK" },
                   },
                 ],
               },
@@ -568,7 +594,7 @@ export class AutomagikTelemetry {
 
       // Queue event for batch processing
       await this.queueEvent({
-        type: 'trace',
+        type: "trace",
         payload,
         endpoint: this.endpoint,
       });
@@ -593,7 +619,7 @@ export class AutomagikTelemetry {
     metricName: string,
     value: number,
     metricType: MetricType,
-    data: Record<string, any>
+    data: Record<string, any>,
   ): Promise<void> {
     if (!this.enabled) {
       return; // Silent no-op when disabled
@@ -624,7 +650,7 @@ export class AutomagikTelemetry {
 
       const metricData: any = {
         name: metricName,
-        unit: data.unit || '',
+        unit: data.unit || "",
       };
 
       // Set metric type-specific structure
@@ -633,13 +659,13 @@ export class AutomagikTelemetry {
       } else if (metricType === MetricType.COUNTER) {
         metricData.sum = {
           dataPoints: [dataPoint],
-          aggregationTemporality: 'AGGREGATION_TEMPORALITY_CUMULATIVE',
+          aggregationTemporality: "AGGREGATION_TEMPORALITY_CUMULATIVE",
           isMonotonic: true,
         };
       } else if (metricType === MetricType.HISTOGRAM) {
         metricData.histogram = {
           dataPoints: [dataPoint],
-          aggregationTemporality: 'AGGREGATION_TEMPORALITY_CUMULATIVE',
+          aggregationTemporality: "AGGREGATION_TEMPORALITY_CUMULATIVE",
         };
       }
 
@@ -649,23 +675,23 @@ export class AutomagikTelemetry {
             resource: {
               attributes: [
                 {
-                  key: 'service.name',
+                  key: "service.name",
                   value: { stringValue: this.projectName },
                 },
                 {
-                  key: 'service.version',
+                  key: "service.version",
                   value: { stringValue: this.projectVersion },
                 },
                 {
-                  key: 'service.organization',
+                  key: "service.organization",
                   value: { stringValue: this.organization },
                 },
                 {
-                  key: 'user.id',
+                  key: "user.id",
                   value: { stringValue: this.userId },
                 },
                 {
-                  key: 'session.id',
+                  key: "session.id",
                   value: { stringValue: this.sessionId },
                 },
               ],
@@ -693,7 +719,7 @@ export class AutomagikTelemetry {
 
       // Queue metric for batch processing
       await this.queueEvent({
-        type: 'metric',
+        type: "metric",
         payload,
         endpoint: this.metricsEndpoint,
       });
@@ -716,7 +742,7 @@ export class AutomagikTelemetry {
   private async sendLog(
     message: string,
     severity: LogSeverity,
-    data: Record<string, any>
+    data: Record<string, any>,
   ): Promise<void> {
     if (!this.enabled) {
       return; // Silent no-op when disabled
@@ -733,23 +759,23 @@ export class AutomagikTelemetry {
             resource: {
               attributes: [
                 {
-                  key: 'service.name',
+                  key: "service.name",
                   value: { stringValue: this.projectName },
                 },
                 {
-                  key: 'service.version',
+                  key: "service.version",
                   value: { stringValue: this.projectVersion },
                 },
                 {
-                  key: 'service.organization',
+                  key: "service.organization",
                   value: { stringValue: this.organization },
                 },
                 {
-                  key: 'user.id',
+                  key: "user.id",
                   value: { stringValue: this.userId },
                 },
                 {
-                  key: 'session.id',
+                  key: "session.id",
                   value: { stringValue: this.sessionId },
                 },
               ],
@@ -784,7 +810,7 @@ export class AutomagikTelemetry {
 
       // Queue log for batch processing
       await this.queueEvent({
-        type: 'log',
+        type: "log",
         payload,
         endpoint: this.logsEndpoint,
       });
@@ -843,7 +869,7 @@ export class AutomagikTelemetry {
       error_message: error.message.slice(0, 500), // Truncate long errors
       ...(context || {}),
     };
-    this.sendEvent('automagik.error', data).catch(() => {
+    this.sendEvent("automagik.error", data).catch(() => {
       // Silent failure
     });
   }
@@ -868,11 +894,13 @@ export class AutomagikTelemetry {
     metricName: string,
     value: number,
     metricType: MetricType = MetricType.GAUGE,
-    attributes?: Record<string, any>
+    attributes?: Record<string, any>,
   ): void {
-    this.sendMetric(metricName, value, metricType, attributes || {}).catch(() => {
-      // Silent failure
-    });
+    this.sendMetric(metricName, value, metricType, attributes || {}).catch(
+      () => {
+        // Silent failure
+      },
+    );
   }
 
   /**
@@ -893,7 +921,7 @@ export class AutomagikTelemetry {
   trackLog(
     message: string,
     severity: LogSeverity = LogSeverity.INFO,
-    attributes?: Record<string, any>
+    attributes?: Record<string, any>,
   ): void {
     this.sendLog(message, severity, attributes || {}).catch(() => {
       // Silent failure
@@ -921,7 +949,9 @@ export class AutomagikTelemetry {
     this.eventQueue = [];
 
     if (this.verbose) {
-      console.log(`\n[Telemetry] Flushing ${eventsToSend.length} queued events\n`);
+      console.log(
+        `\n[Telemetry] Flushing ${eventsToSend.length} queued events\n`,
+      );
     }
 
     // Group events by endpoint for efficient batch sending
@@ -956,7 +986,7 @@ export class AutomagikTelemetry {
   enable(): void {
     this.enabled = true;
     // Remove opt-out file if it exists
-    const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
+    const optOutFile = path.join(os.homedir(), ".automagik-no-telemetry");
     if (fs.existsSync(optOutFile)) {
       try {
         fs.unlinkSync(optOutFile);
@@ -984,8 +1014,8 @@ export class AutomagikTelemetry {
 
     // Create opt-out file
     try {
-      const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
-      fs.writeFileSync(optOutFile, '', 'utf-8');
+      const optOutFile = path.join(os.homedir(), ".automagik-no-telemetry");
+      fs.writeFileSync(optOutFile, "", "utf-8");
     } catch (error) {
       // Silent failure
     }
@@ -1006,7 +1036,7 @@ export class AutomagikTelemetry {
    * @returns Status object with configuration and state
    */
   getStatus(): Record<string, any> {
-    const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
+    const optOutFile = path.join(os.homedir(), ".automagik-no-telemetry");
     return {
       enabled: this.enabled,
       user_id: this.userId,

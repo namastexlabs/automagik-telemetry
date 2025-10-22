@@ -12,10 +12,10 @@ export {
   TelemetryClient, // Backwards compatibility alias (deprecated)
   LogSeverity,
   MetricType,
-} from './client';
-export { TelemetryOptIn, promptUserIfNeeded, shouldPromptUser } from './opt-in';
-export { StandardEvents } from './schema';
-export type { TelemetryConfig, ValidatedConfig } from './config';
+} from "./client";
+export { TelemetryOptIn, promptUserIfNeeded, shouldPromptUser } from "./opt-in";
+export { StandardEvents } from "./schema";
+export type { TelemetryConfig, ValidatedConfig } from "./config";
 export {
   DEFAULT_CONFIG,
   ENV_VARS,
@@ -23,8 +23,8 @@ export {
   mergeConfig,
   validateConfig,
   loadConfigFromEnv,
-} from './config';
-export type { SanitizationStrategy, PrivacyConfig } from './privacy';
+} from "./config";
+export type { SanitizationStrategy, PrivacyConfig } from "./privacy";
 export {
   hashValue,
   detectPII,
@@ -35,6 +35,6 @@ export {
   redactSensitiveKeys,
   sanitizeTelemetryData,
   SENSITIVE_KEYS,
-} from './privacy';
+} from "./privacy";
 
-export const VERSION = '0.1.0';
+export const VERSION = "0.1.0";
