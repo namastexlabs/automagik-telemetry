@@ -853,22 +853,22 @@ export class TelemetryClient {
    *
    * @param metricName - Metric name
    * @param value - Metric value
-   * @param attributes - Metric attributes
    * @param metricType - Metric type (default: GAUGE)
+   * @param attributes - Metric attributes
    *
    * @example
    * ```typescript
-   * telemetry.trackMetric('api.request.latency', 123, {
+   * telemetry.trackMetric('api.request.latency', 123, MetricType.HISTOGRAM, {
    *   operation_type: 'api_request',
    *   unit: 'ms'
-   * }, MetricType.HISTOGRAM);
+   * });
    * ```
    */
   trackMetric(
     metricName: string,
     value: number,
-    attributes?: Record<string, any>,
-    metricType: MetricType = MetricType.GAUGE
+    metricType: MetricType = MetricType.GAUGE,
+    attributes?: Record<string, any>
   ): void {
     this.sendMetric(metricName, value, metricType, attributes || {}).catch(() => {
       // Silent failure

@@ -5,7 +5,7 @@
  * worktree usage, and errors in the Forge AI development environment.
  */
 
-import { TelemetryClient, StandardEvents } from '@automagik/telemetry';
+import { TelemetryClient, StandardEvents, MetricType } from '@automagik/telemetry';
 
 // Initialize telemetry client once at app startup
 const telemetry = new TelemetryClient({
@@ -53,7 +53,7 @@ async function trackAgentPerformance(
   /**
    * Track AI agent performance metrics for optimization
    */
-  telemetry.trackMetric(StandardEvents.OPERATION_LATENCY, responseTime, {
+  telemetry.trackMetric(StandardEvents.OPERATION_LATENCY, responseTime, MetricType.HISTOGRAM, {
     operation_type: 'agent_invocation',
     agent_type: agentType,
     token_count: tokenCount,

@@ -503,7 +503,7 @@ describe('TelemetryClient', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       const client = new TelemetryClient(mockConfig);
 
-      client.trackMetric('test.metric', 100, {
+      client.trackMetric('test.metric', 100, MetricType.GAUGE, {
         operation_type: 'api_request',
         duration_ms: 100,
       });
@@ -802,7 +802,7 @@ describe('TelemetryClient', () => {
         batchSize: 1,
       });
 
-      client.trackMetric('cpu.usage', 75.5, { unit: 'percent' }, MetricType.GAUGE);
+      client.trackMetric('cpu.usage', 75.5, MetricType.GAUGE, { unit: 'percent' });
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -822,7 +822,7 @@ describe('TelemetryClient', () => {
         batchSize: 1,
       });
 
-      client.trackMetric('requests.total', 100, {}, MetricType.COUNTER);
+      client.trackMetric('requests.total', 100, MetricType.COUNTER);
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -841,7 +841,7 @@ describe('TelemetryClient', () => {
         batchSize: 1,
       });
 
-      client.trackMetric('request.duration', 123, { unit: 'ms' }, MetricType.HISTOGRAM);
+      client.trackMetric('request.duration', 123, MetricType.HISTOGRAM, { unit: 'ms' });
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 

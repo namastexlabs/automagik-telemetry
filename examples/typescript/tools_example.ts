@@ -5,7 +5,7 @@
  * integration health, API requests, and performance monitoring.
  */
 
-import { TelemetryClient, StandardEvents } from '@automagik/telemetry';
+import { TelemetryClient, StandardEvents, MetricType } from '@automagik/telemetry';
 
 // Initialize telemetry client once at app startup
 const telemetry = new TelemetryClient({
@@ -30,7 +30,7 @@ async function trackToolInvocation(
   });
 
   // Also track as performance metric
-  telemetry.trackMetric(StandardEvents.OPERATION_LATENCY, executionTime, {
+  telemetry.trackMetric(StandardEvents.OPERATION_LATENCY, executionTime, MetricType.HISTOGRAM, {
     operation_type: 'tool_execution',
     tool_name: toolName,
     duration_ms: executionTime,

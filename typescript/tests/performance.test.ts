@@ -182,13 +182,13 @@ describe('Performance Benchmarks', () => {
 
       // Warmup
       for (let i = 0; i < 10; i++) {
-        client.trackMetric('benchmark.latency', 123.45, attributes);
+        client.trackMetric('benchmark.latency', 123.45, MetricType.GAUGE, attributes);
       }
 
       // Actual benchmark
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        client.trackMetric('operation.latency', 123.45, attributes);
+        client.trackMetric('operation.latency', 123.45, MetricType.GAUGE, attributes);
         const end = performance.now();
         timings.push(end - start);
       }

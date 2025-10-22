@@ -5,6 +5,7 @@ Based on battle-tested code from automagik-omni and automagik-spark.
 Uses only Python standard library - no external dependencies.
 """
 
+import asyncio
 import gzip
 import json
 import logging
@@ -677,8 +678,8 @@ class TelemetryClient:
         self,
         metric_name: str,
         value: float,
-        attributes: Optional[Dict[str, Any]] = None,
         metric_type: Union[MetricType, str] = MetricType.GAUGE,
+        attributes: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Track a numeric metric using OTLP metrics format.
@@ -686,26 +687,21 @@ class TelemetryClient:
         Args:
             metric_name: Metric name
             value: Metric value
-            attributes: Metric attributes (for backward compatibility, can be 3rd positional arg)
-            metric_type: Type of metric (gauge, counter, or histogram)
+            metric_type: Type of metric (gauge, counter, or histogram) - default: GAUGE
+            attributes: Metric attributes
 
         Example:
-            >>> # Old style (backward compatible)
-            >>> telemetry.track_metric("api.latency", 123.45, {"endpoint": "/v1/contacts"})
-            >>>
-            >>> # New style with metric type
             >>> from automagik_telemetry import MetricType
             >>> telemetry.track_metric(
             ...     "api.latency",
             ...     123.45,
-            ...     metric_type=MetricType.HISTOGRAM,
-            ...     attributes={"endpoint": "/v1/contacts"}
+            ...     MetricType.HISTOGRAM,
+            ...     {"endpoint": "/v1/contacts"}
             ... )
+            >>>
+            >>> # Using default GAUGE type
+            >>> telemetry.track_metric("cpu.usage", 75.5, attributes={"core": "0"})
         """
-        # Handle backward compatibility: if attributes is a dict, use old behavior
-        # The old API signature was: track_metric(name, value, attributes)
-        # Now it's: track_metric(name, value, attributes, metric_type)
-
         # Convert string to enum if needed
         if isinstance(metric_type, str):
             try:
@@ -817,6 +813,165 @@ class TelemetryClient:
             "compression_enabled": self.config.compression_enabled,
             "queue_sizes": queue_sizes,
         }
+
+    # === Async API Methods ===
+
+    async def track_event_async(
+        self,
+        event_name: str,
+        attributes: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Async version of track_event for use in async contexts.
+
+        This method allows tracking events from asyncio applications without blocking
+        the event loop. It runs the synchronous track_event method in a thread pool.
+
+        Args:
+            event_name: Event name (use StandardEvents constants)
+            attributes: Event attributes (automatically sanitized for privacy)
+
+        Example:
+            >>> import asyncio
+            >>> from automagik_telemetry import TelemetryClient, StandardEvents
+            >>>
+            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>>
+            >>> async def main():
+            ...     await telemetry.track_event_async(StandardEvents.FEATURE_USED, {
+            ...         "feature_name": "async_feature"
+            ...     })
+            >>>
+            >>> asyncio.run(main())
+        """
+        await asyncio.to_thread(self.track_event, event_name, attributes)
+
+    async def track_error_async(
+        self,
+        error: Exception,
+        context: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Async version of track_error for use in async contexts.
+
+        This method allows tracking errors from asyncio applications without blocking
+        the event loop. It runs the synchronous track_error method in a thread pool.
+
+        Args:
+            error: The exception that occurred
+            context: Additional context about the error
+
+        Example:
+            >>> import asyncio
+            >>> from automagik_telemetry import TelemetryClient
+            >>>
+            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>>
+            >>> async def main():
+            ...     try:
+            ...         raise ValueError("Test error")
+            ...     except Exception as e:
+            ...         await telemetry.track_error_async(e, {
+            ...             "error_code": "TEST-001",
+            ...             "operation": "test_operation"
+            ...         })
+            >>>
+            >>> asyncio.run(main())
+        """
+        await asyncio.to_thread(self.track_error, error, context)
+
+    async def track_metric_async(
+        self,
+        metric_name: str,
+        value: float,
+        metric_type: Union[MetricType, str] = MetricType.GAUGE,
+        attributes: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Async version of track_metric for use in async contexts.
+
+        This method allows tracking metrics from asyncio applications without blocking
+        the event loop. It runs the synchronous track_metric method in a thread pool.
+
+        Args:
+            metric_name: Metric name
+            value: Metric value
+            metric_type: Type of metric (gauge, counter, or histogram)
+            attributes: Metric attributes
+
+        Example:
+            >>> import asyncio
+            >>> from automagik_telemetry import TelemetryClient, MetricType
+            >>>
+            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>>
+            >>> async def main():
+            ...     await telemetry.track_metric_async(
+            ...         "api.latency",
+            ...         123.45,
+            ...         MetricType.HISTOGRAM,
+            ...         {"endpoint": "/v1/users"}
+            ...     )
+            >>>
+            >>> asyncio.run(main())
+        """
+        await asyncio.to_thread(self.track_metric, metric_name, value, metric_type, attributes)
+
+    async def track_log_async(
+        self,
+        message: str,
+        severity: Union[LogSeverity, str] = LogSeverity.INFO,
+        attributes: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Async version of track_log for use in async contexts.
+
+        This method allows tracking logs from asyncio applications without blocking
+        the event loop. It runs the synchronous track_log method in a thread pool.
+
+        Args:
+            message: Log message
+            severity: Log severity level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+            attributes: Additional log attributes
+
+        Example:
+            >>> import asyncio
+            >>> from automagik_telemetry import TelemetryClient, LogSeverity
+            >>>
+            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>>
+            >>> async def main():
+            ...     await telemetry.track_log_async(
+            ...         "User authentication successful",
+            ...         LogSeverity.INFO,
+            ...         {"user_id": "anonymous-uuid"}
+            ...     )
+            >>>
+            >>> asyncio.run(main())
+        """
+        await asyncio.to_thread(self.track_log, message, severity, attributes)
+
+    async def flush_async(self) -> None:
+        """
+        Async version of flush for use in async contexts.
+
+        This method allows flushing all queued events from asyncio applications
+        without blocking the event loop. It runs the synchronous flush method
+        in a thread pool.
+
+        Example:
+            >>> import asyncio
+            >>> from automagik_telemetry import TelemetryClient
+            >>>
+            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>>
+            >>> async def main():
+            ...     await telemetry.track_event_async("app.startup")
+            ...     await telemetry.flush_async()  # Ensure event is sent
+            >>>
+            >>> asyncio.run(main())
+        """
+        await asyncio.to_thread(self.flush)
 
     def __del__(self) -> None:
         """Cleanup: flush queued events and stop background timer."""

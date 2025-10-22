@@ -41,14 +41,17 @@ from automagik_telemetry.schema import StandardEvents
 
 __version__ = "0.2.0"
 __all__ = [
+    # Core client
     "TelemetryClient",
     "ClientTelemetryConfig",
     "MetricType",
     "LogSeverity",
     "StandardEvents",
+    # Opt-in utilities
     "TelemetryOptIn",
     "prompt_user_if_needed",
     "should_prompt_user",
+    # Configuration
     "TelemetryConfig",
     "ValidatedConfig",
     "create_config",
@@ -69,3 +72,10 @@ __all__ = [
     "sanitize_value",
     "truncate_string",
 ]
+
+# Note: Async methods are instance methods of TelemetryClient, not module-level exports:
+# - TelemetryClient.track_event_async()
+# - TelemetryClient.track_error_async()
+# - TelemetryClient.track_metric_async()
+# - TelemetryClient.track_log_async()
+# - TelemetryClient.flush_async()
