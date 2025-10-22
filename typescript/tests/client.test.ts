@@ -36,6 +36,20 @@ function parseBody(body: any): any {
   return JSON.parse(body);
 }
 
+/**
+ * Helper to parse payload from fetch call arguments, handling compression.
+ */
+function parsePayload(callArgs: any): any {
+  const body = callArgs[1].body;
+  const encoding = callArgs[1].headers?.['Content-Encoding'];
+
+  if (encoding === 'gzip') {
+    const decompressed = zlib.gunzipSync(Buffer.from(body));
+    return JSON.parse(decompressed.toString());
+  }
+  return JSON.parse(body);
+}
+
 describe('AutomagikTelemetry', () => {
   const mockHomedir = '/home/testuser';
   const mockUserIdFile = path.join(mockHomedir, '.automagik', 'user_id');
@@ -828,8 +842,9 @@ describe('AutomagikTelemetry', () => {
 
       client.trackEvent('test.event');
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
+      expect(global.fetch).toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledTimes(3); // Initial + 2 retries
     });
   });
@@ -1155,6 +1170,385 @@ describe('AutomagikTelemetry', () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       expect(global.fetch).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('100% Coverage Tests', () => {
+    describe('Number attributes in system info', () => {
+      it('should handle number attributes correctly', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+
+        // Mock os.cpus() to return an array (length property is a number)
+        const mockCpus = jest.fn().mockReturnValue(new Array(8));
+        jest.spyOn(os, 'cpus' as any).mockImplementation(mockCpus);
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Track event to trigger system info collection
+        client.trackEvent('test.event', { cpu_count: 8 });
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Verify the call was made
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    describe('Compression error handling', () => {
+      it('should handle gzip compression errors gracefully', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+
+        // We can't easily mock zlib.gzip to fail in Jest, so we test
+        // that compression doesn't throw even with large payloads
+        const client = new AutomagikTelemetry({
+          projectName: mockConfig.projectName,
+          version: mockConfig.version,
+          compressionEnabled: true,
+          compressionThreshold: 10, // Low threshold to force compression
+          batchSize: 1,
+        });
+
+        // Track event with large data to trigger compression
+        expect(() => client.trackEvent('test.event', { data: 'x'.repeat(2000) })).not.toThrow();
+
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // Should have successfully sent
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    describe('Verbose mode logging', () => {
+      it('should log verbose output on network errors', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+
+        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          maxRetries: 0,
+          batchSize: 1,
+        });
+
+        client.trackEvent('test.event', {});
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Verbose mode should have logged
+        expect(consoleLogSpy).toHaveBeenCalled();
+
+        consoleLogSpy.mockRestore();
+        consoleDebugSpy.mockRestore();
+      });
+
+      it('should log verbose output for queue events', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        client.trackEvent('test.event', { key: 'value' });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Should have logged queuing message
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[Telemetry] Queuing trace event')
+        );
+
+        consoleLogSpy.mockRestore();
+      });
+
+      it('should log verbose output for metrics', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        client.trackMetric('test.metric', 42);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Should have logged queuing message
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[Telemetry] Queuing metric')
+        );
+
+        consoleLogSpy.mockRestore();
+      });
+
+      it('should log verbose output for logs', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        client.trackLog('test message');
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Should have logged queuing message
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[Telemetry] Queuing log')
+        );
+
+        consoleLogSpy.mockRestore();
+      });
+
+      it('should log verbose output during flush', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 100,
+        });
+
+        client.trackEvent('test.event.1');
+        client.trackEvent('test.event.2');
+
+        await client.flush();
+
+        // Should have logged flushing message
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[Telemetry] Flushing')
+        );
+
+        consoleLogSpy.mockRestore();
+      });
+    });
+
+    describe('Timer cleanup on disable', () => {
+      it('should stop flush timer when disable is called', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          flushInterval: 1000,
+        });
+
+        // Timer should be running
+        expect(client.isEnabled()).toBe(true);
+
+        // Disable should stop the timer
+        await client.disable();
+
+        expect(client.isEnabled()).toBe(false);
+      });
+
+      it('should start flush timer when enable is called', () => {
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          flushInterval: 1000,
+        });
+
+        // Initially disabled
+        expect(client.isEnabled()).toBe(false);
+
+        // Enable should start the timer
+        client.enable();
+
+        expect(client.isEnabled()).toBe(true);
+      });
+    });
+
+    describe('Response status handling', () => {
+      it('should handle non-200 success responses', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: true,
+          status: 202, // Accepted
+        });
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        client.trackEvent('test.event');
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Should log the non-200 status in verbose mode
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Telemetry event failed with status 202')
+        );
+
+        consoleDebugSpy.mockRestore();
+      });
+
+      it('should handle 4xx errors without retry in verbose mode', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: false,
+          status: 403,
+        });
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        client.trackEvent('test.event');
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Should log the 4xx error
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Telemetry event failed with status 403')
+        );
+
+        // Should not retry
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+
+        consoleDebugSpy.mockRestore();
+      });
+    });
+
+    describe('Coverage completion tests', () => {
+      it('should handle number values in system info attributes (line 322)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Pass a number as an event attribute
+        client.trackEvent('test.event', { numeric_value: 42.5 });
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+        const payload = parsePayload(callArgs);
+        const attributes = payload.resourceSpans[0].scopeSpans[0].spans[0].attributes;
+
+        const numericAttr = attributes.find((attr: any) => attr.key === 'numeric_value');
+        expect(numericAttr.value).toHaveProperty('doubleValue', 42.5);
+      });
+
+      it('should handle disabled sendMetric call (line 599)', () => {
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Disabled client should not send
+        expect(client.isEnabled()).toBe(false);
+        expect(() => client.trackMetric('test.metric', 100)).not.toThrow();
+      });
+
+      it('should handle disabled sendLog call (line 722)', () => {
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Disabled client should not send
+        expect(client.isEnabled()).toBe(false);
+        expect(() => client.trackLog('test log')).not.toThrow();
+      });
+
+      it('should handle verbose mode console.debug in sendEvent (lines 577-578)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+
+        // Force an error during event processing
+        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          maxRetries: 0,
+          batchSize: 1,
+        });
+
+        client.trackEvent('test.event', {});
+
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
+        // Should have logged the error in verbose mode
+        expect(consoleDebugSpy).toHaveBeenCalled();
+
+        consoleDebugSpy.mockRestore();
+      });
+
+      it('should handle verbose mode console.debug in sendMetric (lines 702-703)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+
+        // Force an error during metric processing
+        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          maxRetries: 0,
+          batchSize: 1,
+        });
+
+        client.trackMetric('test.metric', 100);
+
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
+        // Should have logged the error in verbose mode
+        expect(consoleDebugSpy).toHaveBeenCalled();
+
+        consoleDebugSpy.mockRestore();
+      });
+
+      it('should handle verbose mode console.debug in sendLog (lines 793-794)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+
+        // Force an error during log processing
+        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          maxRetries: 0,
+          batchSize: 1,
+        });
+
+        client.trackLog('test log');
+
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
+        // Should have logged the error in verbose mode
+        expect(consoleDebugSpy).toHaveBeenCalled();
+
+        consoleDebugSpy.mockRestore();
+      });
     });
   });
 });

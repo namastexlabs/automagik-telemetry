@@ -185,7 +185,9 @@ describe('Config Module', () => {
 
     it('should throw for invalid endpoint URL', () => {
       const invalidConfig = { ...baseConfig, endpoint: 'not-a-url' };
-      expect(() => validateConfig(invalidConfig)).toThrow();
+      expect(() => validateConfig(invalidConfig)).toThrow(
+        'TelemetryConfig: endpoint must be a valid URL'
+      );
     });
 
     it('should throw for non-HTTP endpoint protocol', () => {

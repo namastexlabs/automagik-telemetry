@@ -493,3 +493,55 @@ class TestConvenienceFunctions:
             # Should not prompt
             mock_input.assert_not_called()
             assert result is True
+
+
+class TestWindowsColorSupport:
+    """Test Windows-specific color support edge cases."""
+
+    def test_should_handle_windows_version_parse_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test handling of Windows version parsing errors."""
+        monkeypatch.setattr("sys.platform", "win32")
+
+        # Mock platform.version to raise an exception
+        with patch("platform.version", side_effect=Exception("Parse error")):
+            assert TelemetryOptIn._supports_color() is False
+
+    def test_should_handle_windows_version_invalid_format(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test handling of invalid Windows version format."""
+        monkeypatch.setattr("sys.platform", "win32")
+
+        # Mock platform.version with invalid format (no dots)
+        with patch("platform.version", return_value="InvalidVersion"):
+            assert TelemetryOptIn._supports_color() is False
+
+
+class TestErrorHandling:
+    """Test error handling in save_preference."""
+
+    def test_should_handle_opt_out_file_unlink_error(
+        self, temp_home: Path, opt_out_file: Path, clean_env: None
+    ) -> None:
+        """Test handling of opt-out file deletion errors."""
+        with patch("pathlib.Path.unlink", side_effect=PermissionError):
+            # Should not raise exception
+            TelemetryOptIn.save_preference(True)
+
+    def test_should_handle_preference_file_unlink_error(
+        self, temp_home: Path, telemetry_preference_file: Path, clean_env: None
+    ) -> None:
+        """Test handling of preference file deletion errors."""
+        with patch("pathlib.Path.unlink", side_effect=PermissionError):
+            # Should not raise exception
+            TelemetryOptIn.save_preference(False)
+
+    def test_should_handle_opt_out_file_touch_error(
+        self, temp_home: Path, clean_env: None
+    ) -> None:
+        """Test handling of opt-out file creation errors."""
+        with patch("pathlib.Path.touch", side_effect=PermissionError):
+            # Should not raise exception
+            TelemetryOptIn.save_preference(False)

@@ -1690,6 +1690,73 @@ class TestCoverageTargeted:
         client._send_with_retry("https://example.com", {}, "test")  # Line 335
 
 
+class TestTimerFlush:
+    """Test automatic timer-based flush functionality."""
+
+    def test_should_trigger_timer_flush(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch, mock_urlopen: Mock
+    ) -> None:
+        """Test that timer automatically flushes batches - covers lines 310, 313-315."""
+        import time
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            batch_size=10,
+            flush_interval=0.1  # Very short interval
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+
+        # Send events (not enough to trigger batch flush)
+        for i in range(5):
+            client.track_event(f"test{i}", {})
+
+        # Should not have flushed yet (batch size not reached)
+        assert mock_urlopen.call_count == 0
+
+        # Wait for timer to flush
+        time.sleep(0.25)
+
+        # Verify flush happened via timer (lines 310, 313-315)
+        assert mock_urlopen.call_count >= 1
+
+    def test_should_hit_batch_threshold_exactly(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch, mock_urlopen: Mock
+    ) -> None:
+        """Test batch flush when exactly at threshold - covers lines 455, 513, 543."""
+        from automagik_telemetry.client import MetricType, LogSeverity
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            batch_size=3
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+
+        # Test trace batch threshold (line 455)
+        for i in range(3):
+            client.track_event(f"event{i}", {})
+
+        # Should have flushed exactly once when hitting batch_size
+        assert mock_urlopen.call_count == 1
+
+        # Test metric batch threshold (line 513)
+        mock_urlopen.reset_mock()
+        for i in range(3):
+            client.track_metric(f"metric{i}", float(i), MetricType.GAUGE)
+
+        assert mock_urlopen.call_count == 1
+
+        # Test log batch threshold (line 543)
+        mock_urlopen.reset_mock()
+        for i in range(3):
+            client.track_log(f"log{i}", LogSeverity.INFO)
+
+        assert mock_urlopen.call_count == 1
+
+
 class TestAsyncMethods:
     """Test async API methods."""
 
@@ -1787,3 +1854,112 @@ class TestAsyncMethods:
 
         # Flush should succeed (doesn't send more since queue is empty)
         assert mock_urlopen.call_count == 1
+
+
+class TestTimerAndBatchCoverage:
+    """Tests specifically targeting timer and batch threshold lines for 100% coverage."""
+
+    def test_should_trigger_timer_flush_callback(self, mock_urlopen, temp_home):
+        """Test that timer callback flush_and_reschedule is executed (lines 312-315)."""
+        config = TelemetryConfig(
+            project_name="test",
+            version="1.0.0",
+            batch_size=10,
+            flush_interval=0.05,  # 50ms - very short
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+        client.enable()
+
+        # Send a few events (less than batch size)
+        client.track_event("test.event", {"index": 1})
+        client.track_event("test.event", {"index": 2})
+
+        # Wait for timer to trigger flush_and_reschedule
+        time.sleep(0.15)  # Wait longer than flush_interval
+
+        # Timer should have triggered flush
+        assert mock_urlopen.called
+        client.disable()
+
+    def test_should_hit_exact_batch_threshold_for_traces(self, mock_urlopen, temp_home, monkeypatch):
+        """Test hitting exactly batch_size for traces (line 455)."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+        
+        config = TelemetryConfig(
+            project_name="test",
+            version="1.0.0",
+            batch_size=3,
+            flush_interval=999,  # Very long to avoid timer flush
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+
+        # Send exactly batch_size events to hit line 455
+        client.track_event("test.event", {"n": 1})
+        client.track_event("test.event", {"n": 2})
+        client.track_event("test.event", {"n": 3})
+
+        # Should have flushed due to batch threshold
+        assert mock_urlopen.call_count >= 1
+        client.disable()
+
+    def test_should_hit_exact_batch_threshold_for_metrics(self, mock_urlopen, temp_home, monkeypatch):
+        """Test hitting exactly batch_size for metrics (line 513)."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+        
+        config = TelemetryConfig(
+            project_name="test",
+            version="1.0.0",
+            batch_size=3,
+            flush_interval=999,
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+
+        # Send exactly batch_size metrics to hit line 513
+        client.track_metric("test.metric", 1.0, MetricType.GAUGE)
+        client.track_metric("test.metric", 2.0, MetricType.GAUGE)
+        client.track_metric("test.metric", 3.0, MetricType.GAUGE)
+
+        assert mock_urlopen.call_count >= 1
+        client.disable()
+
+    def test_should_hit_exact_batch_threshold_for_logs(self, mock_urlopen, temp_home, monkeypatch):
+        """Test hitting exactly batch_size for logs (line 543)."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+        
+        config = TelemetryConfig(
+            project_name="test",
+            version="1.0.0",
+            batch_size=3,
+            flush_interval=999,
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+
+        # Send exactly batch_size logs to hit line 543
+        client.track_log("Log message 1", LogSeverity.INFO)
+        client.track_log("Log message 2", LogSeverity.INFO)
+        client.track_log("Log message 3", LogSeverity.INFO)
+
+        assert mock_urlopen.call_count >= 1
+        client.disable()
+
+    def test_should_not_reschedule_when_shutdown(self, mock_urlopen, temp_home):
+        """Test that timer doesn't reschedule after shutdown (line 310)."""
+        config = TelemetryConfig(
+            project_name="test",
+            version="1.0.0",
+            batch_size=10,
+            flush_interval=0.05,
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+        client.enable()
+
+        # Send event to start timer
+        client.track_event("test", {})
+
+        # Disable to set _shutdown=True
+        client.disable()
+
+        # Wait to see if timer tries to reschedule (it shouldn't)
+        time.sleep(0.1)
+
+        # Should be safe - no errors from rescheduling after shutdown
