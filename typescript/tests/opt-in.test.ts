@@ -292,6 +292,22 @@ describe('TelemetryOptIn', () => {
       const supportsColor = (TelemetryOptIn as any).supportsColor();
       expect(supportsColor).toBe(false);
     });
+
+    it('should test colorize with color support enabled', () => {
+      // Set up environment to support colors
+      process.env.FORCE_COLOR = '1';
+      const colorize = (TelemetryOptIn as any).colorize.bind(TelemetryOptIn);
+      const result = colorize('test', '31');
+      expect(result).toBe('\x1b[31mtest\x1b[0m');
+    });
+
+    it('should test colorize without color support', () => {
+      // Disable color support
+      process.env.NO_COLOR = '1';
+      const colorize = (TelemetryOptIn as any).colorize.bind(TelemetryOptIn);
+      const result = colorize('test', '31');
+      expect(result).toBe('test');
+    });
   });
 
   describe('Interactive Environment Detection', () => {

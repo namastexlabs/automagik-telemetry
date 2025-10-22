@@ -14,23 +14,30 @@ from typing import Optional
 class TelemetryOptIn:
     """
     First-run experience for all Automagik tools.
-    
+
     Shows a friendly opt-in prompt once per user, stores their decision,
     and respects their choice across all Automagik projects.
     """
 
-    PREFERENCE_FILE = Path.home() / ".automagik" / "telemetry_preference"
-    OPT_OUT_FILE = Path.home() / ".automagik-no-telemetry"
+    @classmethod
+    def _get_preference_file(cls) -> Path:
+        """Get the preference file path (lazy evaluation for testability)."""
+        return Path.home() / ".automagik" / "telemetry_preference"
+
+    @classmethod
+    def _get_opt_out_file(cls) -> Path:
+        """Get the opt-out file path (lazy evaluation for testability)."""
+        return Path.home() / ".automagik-no-telemetry"
 
     @classmethod
     def has_user_decided(cls) -> bool:
         """Check if user has already made a telemetry decision."""
         # Check preference file
-        if cls.PREFERENCE_FILE.exists():
+        if cls._get_preference_file().exists():
             return True
-        
+
         # Check opt-out file
-        if cls.OPT_OUT_FILE.exists():
+        if cls._get_opt_out_file().exists():
             return True
         
         # Check environment variable (explicit decision)
@@ -43,18 +50,19 @@ class TelemetryOptIn:
     def get_user_preference(cls) -> Optional[bool]:
         """
         Get stored user preference.
-        
+
         Returns:
             True if opted-in, False if opted-out, None if not decided
         """
         # Check opt-out file first (takes precedence)
-        if cls.OPT_OUT_FILE.exists():
+        if cls._get_opt_out_file().exists():
             return False
-        
+
         # Check preference file
-        if cls.PREFERENCE_FILE.exists():
+        preference_file = cls._get_preference_file()
+        if preference_file.exists():
             try:
-                content = cls.PREFERENCE_FILE.read_text().strip().lower()
+                content = preference_file.read_text().strip().lower()
                 return content in ("true", "yes", "1", "enabled")
             except Exception:
                 pass
@@ -70,26 +78,29 @@ class TelemetryOptIn:
     def save_preference(cls, enabled: bool) -> None:
         """
         Save user's telemetry preference.
-        
+
         Args:
             enabled: True to enable telemetry, False to disable
         """
         try:
+            preference_file = cls._get_preference_file()
+            opt_out_file = cls._get_opt_out_file()
+
             if enabled:
                 # Remove opt-out file if exists
-                if cls.OPT_OUT_FILE.exists():
-                    cls.OPT_OUT_FILE.unlink()
-                
+                if opt_out_file.exists():
+                    opt_out_file.unlink()
+
                 # Save preference
-                cls.PREFERENCE_FILE.parent.mkdir(parents=True, exist_ok=True)
-                cls.PREFERENCE_FILE.write_text("enabled")
+                preference_file.parent.mkdir(parents=True, exist_ok=True)
+                preference_file.write_text("enabled")
             else:
                 # Create opt-out file
-                cls.OPT_OUT_FILE.touch()
-                
+                opt_out_file.touch()
+
                 # Remove preference file if exists
-                if cls.PREFERENCE_FILE.exists():
-                    cls.PREFERENCE_FILE.unlink()
+                if preference_file.exists():
+                    preference_file.unlink()
         except Exception:
             # Silent failure - don't break the app
             pass

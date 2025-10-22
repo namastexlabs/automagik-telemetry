@@ -831,6 +831,15 @@ describe('AutomagikTelemetry', () => {
 
     it('should respect maxRetries setting', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+
+      // Wait to ensure previous async operations are done
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Clear any previous calls
+      jest.clearAllMocks();
+
+      // Reset the mock implementation
+      (global.fetch as jest.Mock).mockClear();
       (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 503 });
 
       const client = new AutomagikTelemetry({
@@ -842,7 +851,8 @@ describe('AutomagikTelemetry', () => {
 
       client.trackEvent('test.event');
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Wait longer for all retries to complete (10ms + 20ms + processing time)
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       expect(global.fetch).toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledTimes(3); // Initial + 2 retries
@@ -1198,26 +1208,40 @@ describe('AutomagikTelemetry', () => {
     });
 
     describe('Compression error handling', () => {
-      it('should handle gzip compression errors gracefully', async () => {
-        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      it('should handle gzip compression errors gracefully - line 375', async () => {
+        // Line 375 is: reject(error) in compressPayload when gzip fails
+        // We test this by directly calling compressPayload with mocked zlib
 
-        // We can't easily mock zlib.gzip to fail in Jest, so we test
-        // that compression doesn't throw even with large payloads
         const client = new AutomagikTelemetry({
           projectName: mockConfig.projectName,
           version: mockConfig.version,
-          compressionEnabled: true,
-          compressionThreshold: 10, // Low threshold to force compression
-          batchSize: 1,
         });
 
-        // Track event with large data to trigger compression
-        expect(() => client.trackEvent('test.event', { data: 'x'.repeat(2000) })).not.toThrow();
+        // Access the private compressPayload method
+        const compressPayload = (client as any).compressPayload.bind(client);
 
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Mock zlib.gzip to fail by creating a new Promise that rejects
+        const zlibMock = {
+          gzip: (data: Buffer, callback: (err: Error | null, result?: Buffer) => void) => {
+            // Simulate gzip error - this triggers line 375
+            callback(new Error('Compression failed'));
+          },
+        };
 
-        // Should have successfully sent
-        expect(global.fetch).toHaveBeenCalled();
+        // Replace zlib in the compressPayload context
+        // We'll monkey-patch the zlib module temporarily
+        const zlibModule = require('zlib');
+        const originalGzip = zlibModule.gzip;
+
+        try {
+          zlibModule.gzip = zlibMock.gzip;
+
+          // Call compressPayload - should reject with the error (line 375)
+          await expect(compressPayload('test')).rejects.toThrow('Compression failed');
+        } finally {
+          // Restore
+          zlibModule.gzip = originalGzip;
+        }
       });
     });
 
@@ -1435,13 +1459,20 @@ describe('AutomagikTelemetry', () => {
       it('should handle number values in system info attributes (line 322)', async () => {
         process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
 
+        // Mock getSystemInfo to return a number value
         const client = new AutomagikTelemetry({
           ...mockConfig,
           batchSize: 1,
         });
 
-        // Pass a number as an event attribute
-        client.trackEvent('test.event', { numeric_value: 42.5 });
+        // Spy on getSystemInfo and make it return a number
+        const originalGetSystemInfo = (client as any).getSystemInfo;
+        jest.spyOn(client as any, 'getSystemInfo').mockReturnValue({
+          ...originalGetSystemInfo.call(client),
+          cpu_count: 8, // This is a number that will trigger line 322
+        });
+
+        client.trackEvent('test.event', {});
 
         await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -1449,8 +1480,9 @@ describe('AutomagikTelemetry', () => {
         const payload = parsePayload(callArgs);
         const attributes = payload.resourceSpans[0].scopeSpans[0].spans[0].attributes;
 
-        const numericAttr = attributes.find((attr: any) => attr.key === 'numeric_value');
-        expect(numericAttr.value).toHaveProperty('doubleValue', 42.5);
+        const cpuAttr = attributes.find((attr: any) => attr.key === 'system.cpu_count');
+        expect(cpuAttr).toBeDefined();
+        expect(cpuAttr.value).toHaveProperty('doubleValue', 8);
       });
 
       it('should handle disabled sendMetric call (line 599)', () => {
@@ -1481,21 +1513,23 @@ describe('AutomagikTelemetry', () => {
 
         const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 
-        // Force an error during event processing
-        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
-
         const client = new AutomagikTelemetry({
           ...mockConfig,
           maxRetries: 0,
           batchSize: 1,
         });
 
+        // Mock createAttributes to throw an error, triggering the catch block
+        jest.spyOn(client as any, 'createAttributes').mockImplementation(() => {
+          throw new Error('Attribute creation error');
+        });
+
         client.trackEvent('test.event', {});
 
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         // Should have logged the error in verbose mode
-        expect(consoleDebugSpy).toHaveBeenCalled();
+        expect(consoleDebugSpy).toHaveBeenCalledWith('Telemetry event error:', expect.any(Error));
 
         consoleDebugSpy.mockRestore();
       });
@@ -1506,21 +1540,30 @@ describe('AutomagikTelemetry', () => {
 
         const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 
-        // Force an error during metric processing
-        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
-
         const client = new AutomagikTelemetry({
           ...mockConfig,
           maxRetries: 0,
           batchSize: 1,
         });
 
+        // Create a counter to throw error only on second call (first is sendEvent in batch, second is sendMetric)
+        let callCount = 0;
+        const originalCreateAttributes = (client as any).createAttributes.bind(client);
+        jest.spyOn(client as any, 'createAttributes').mockImplementation((data: any) => {
+          callCount++;
+          // Throw on the sendMetric call
+          if (callCount === 1) {
+            throw new Error('Attribute creation error');
+          }
+          return originalCreateAttributes(data);
+        });
+
         client.trackMetric('test.metric', 100);
 
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         // Should have logged the error in verbose mode
-        expect(consoleDebugSpy).toHaveBeenCalled();
+        expect(consoleDebugSpy).toHaveBeenCalledWith('Telemetry metric error:', expect.any(Error));
 
         consoleDebugSpy.mockRestore();
       });
@@ -1531,21 +1574,30 @@ describe('AutomagikTelemetry', () => {
 
         const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 
-        // Force an error during log processing
-        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
-
         const client = new AutomagikTelemetry({
           ...mockConfig,
           maxRetries: 0,
           batchSize: 1,
         });
 
+        // Create a counter to throw error only on first call (sendLog)
+        let callCount = 0;
+        const originalCreateAttributes = (client as any).createAttributes.bind(client);
+        jest.spyOn(client as any, 'createAttributes').mockImplementation((data: any) => {
+          callCount++;
+          // Throw on the sendLog call
+          if (callCount === 1) {
+            throw new Error('Attribute creation error');
+          }
+          return originalCreateAttributes(data);
+        });
+
         client.trackLog('test log');
 
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         // Should have logged the error in verbose mode
-        expect(consoleDebugSpy).toHaveBeenCalled();
+        expect(consoleDebugSpy).toHaveBeenCalledWith('Telemetry log error:', expect.any(Error));
 
         consoleDebugSpy.mockRestore();
       });

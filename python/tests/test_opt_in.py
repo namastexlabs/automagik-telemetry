@@ -545,3 +545,56 @@ class TestErrorHandling:
         with patch("pathlib.Path.touch", side_effect=PermissionError):
             # Should not raise exception
             TelemetryOptIn.save_preference(False)
+
+
+class TestAdditionalEdgeCases:
+    """Test additional edge cases for complete coverage."""
+
+    def test_should_handle_env_var_false_values(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that false environment variable values are handled correctly."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "false")
+        assert TelemetryOptIn.get_user_preference() is False
+
+    def test_should_handle_env_var_zero_value(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that '0' environment variable value is handled correctly."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "0")
+        assert TelemetryOptIn.get_user_preference() is False
+
+    def test_should_handle_whitespace_in_preference_file(
+        self, temp_home: Path, automagik_dir: Path, clean_env: None
+    ) -> None:
+        """Test that whitespace in preference file is handled correctly."""
+        pref_file = automagik_dir / "telemetry_preference"
+        pref_file.write_text("  enabled  \n")
+        assert TelemetryOptIn.get_user_preference() is True
+
+    def test_should_handle_stdout_without_isatty_method(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test color support when stdout doesn't have isatty method."""
+        mock_stdout = Mock(spec=[])  # No isatty method
+        monkeypatch.setattr("sys.stdout", mock_stdout)
+
+        assert TelemetryOptIn._supports_color() is False
+
+    def test_prompt_user_returns_existing_opt_out_preference(
+        self, temp_home: Path, opt_out_file: Path, clean_env: None
+    ) -> None:
+        """Test that prompt_user returns False when opt-out file exists."""
+        with patch("builtins.input") as mock_input:
+            result = TelemetryOptIn.prompt_user("test-project")
+
+            # Should return existing preference without prompting
+            mock_input.assert_not_called()
+            assert result is False
+
+    def test_get_user_preference_env_var_takes_precedence_over_nothing(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that environment variable is checked when no files exist."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+        assert TelemetryOptIn.get_user_preference() is True

@@ -28,7 +28,8 @@ const DEFAULT_CONFIG: Required<PrivacyConfig> = {
 };
 
 // PII detection patterns
-const PATTERNS = {
+// Exported for testing purposes to allow mocking
+export const PATTERNS = {
   // Phone: matches international formats like +1-555-555-5555, (555) 555-5555, 555.555.5555
   phone: /(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(\+?[0-9]{1,3}[-.\s]?)?(\([0-9]{2,4}\)|[0-9]{2,4})[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{4}/g,
 

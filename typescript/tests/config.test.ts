@@ -186,7 +186,7 @@ describe('Config Module', () => {
     it('should throw for invalid endpoint URL', () => {
       const invalidConfig = { ...baseConfig, endpoint: 'not-a-url' };
       expect(() => validateConfig(invalidConfig)).toThrow(
-        'TelemetryConfig: endpoint must be a valid URL'
+        'TelemetryConfig: endpoint must be a valid URL (got: not-a-url)'
       );
     });
 
@@ -456,6 +456,38 @@ describe('Config Module', () => {
       expect(config.timeout).toBe(15000);
       expect(config.enabled).toBe(true);
       expect(config.verbose).toBe(true);
+    });
+
+    it('should throw TypeError with helpful message for malformed URL', () => {
+      // Mock URL constructor to throw TypeError
+      const originalURL = global.URL;
+      global.URL = jest.fn().mockImplementation(() => {
+        throw new TypeError('Invalid URL');
+      }) as any;
+
+      const invalidConfig = { ...baseConfig, endpoint: 'totally-invalid-url' };
+
+      expect(() => validateConfig(invalidConfig)).toThrow(
+        'TelemetryConfig: endpoint must be a valid URL (got: totally-invalid-url)'
+      );
+
+      // Restore original URL
+      global.URL = originalURL;
+    });
+
+    it('should rethrow non-TypeError errors from URL constructor', () => {
+      // Mock URL constructor to throw a non-TypeError
+      const originalURL = global.URL;
+      global.URL = jest.fn().mockImplementation(() => {
+        throw new Error('Some other error');
+      }) as any;
+
+      const invalidConfig = { ...baseConfig, endpoint: 'test' };
+
+      expect(() => validateConfig(invalidConfig)).toThrow('Some other error');
+
+      // Restore original URL
+      global.URL = originalURL;
     });
   });
 

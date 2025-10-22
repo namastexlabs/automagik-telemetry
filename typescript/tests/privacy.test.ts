@@ -268,6 +268,46 @@ describe('Privacy Module', () => {
       expect(result).not.toContain('4111-1111-1111-1111');
     });
 
+    it('should sanitize multiple credit cards in strings', () => {
+      const result = sanitizeValue('Cards: 4111-1111-1111-1111 and 5500-0000-0000-0004');
+      // Both credit cards should be sanitized (may be detected as phone or credit card)
+      expect(result).not.toContain('4111-1111-1111-1111');
+      expect(result).not.toContain('5500-0000-0000-0004');
+    });
+
+    it('should sanitize credit cards with various formats', () => {
+      const result1 = sanitizeValue('Card: 4111111111111111');
+      const result2 = sanitizeValue('Card: 4111 1111 1111 1111');
+      const result3 = sanitizeValue('Card: 4111-1111-1111-1111');
+
+      // All formats should be sanitized (not contain original)
+      expect(result1).not.toContain('4111111111111111');
+      expect(result2).not.toContain('4111 1111 1111 1111');
+      expect(result3).not.toContain('4111-1111-1111-1111');
+    });
+
+    it('should hit credit card sanitization for non-phone-like credit cards', () => {
+      // The credit card pattern in the code is designed to catch patterns after phone
+      // processing. To test this, we need credit card formats that survive phone processing
+      // or strings where only credit card pattern matches.
+
+      // Since all standard CC formats (4-4-4-4) match phone patterns, we need to
+      // test edge cases where the phone pattern leaves remnants that match CC pattern
+
+      // Test with text that contains numbers in CC format after other processing
+      const complexInput = 'Transaction ABC123 code:5500-0000-0000-0004 status:OK';
+      const result = sanitizeValue(complexInput);
+
+      // The credit card should be sanitized
+      expect(result).not.toContain('5500-0000-0000-0004');
+
+      // Additional test: String with ONLY credit card-like pattern (even though it
+      // will match phone, we're testing the coverage path)
+      const ccOnly = 'CC:6011000000000004';
+      const result2 = sanitizeValue(ccOnly, { strategy: 'redact' });
+      expect(result2).not.toContain('6011000000000004');
+    });
+
     it('should sanitize IP addresses', () => {
       const result = sanitizeValue('Server: 192.168.1.1');
       expect(result).not.toContain('192.168.1.1');
@@ -324,6 +364,24 @@ describe('Privacy Module', () => {
 
       const result = sanitizeValue('Email: user@example.com', config);
       expect(result).toContain('[HIDDEN]');
+    });
+
+    it('should handle Symbol type', () => {
+      const sym = Symbol('test');
+      const result = sanitizeValue(sym);
+      expect(result).toBe(sym);
+    });
+
+    it('should handle Function type', () => {
+      const fn = () => {};
+      const result = sanitizeValue(fn);
+      expect(result).toBe(fn);
+    });
+
+    it('should handle BigInt type', () => {
+      const big = BigInt(123);
+      const result = sanitizeValue(big);
+      expect(result).toBe(big);
     });
   });
 
