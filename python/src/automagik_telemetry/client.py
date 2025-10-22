@@ -519,9 +519,7 @@ class AutomagikTelemetry:
                 "timeUnixNano": timestamp_nano,
                 "attributes": attrs,
             }
-            metric_data = {
-                "histogram": {"dataPoints": [data_point], "aggregationTemporality": 2}
-            }
+            metric_data = {"histogram": {"dataPoints": [data_point], "aggregationTemporality": 2}}
         else:
             logger.debug(f"Unknown metric type: {metric_type}")
             return

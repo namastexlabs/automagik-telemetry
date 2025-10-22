@@ -1,0 +1,65 @@
+# Pre-commit hooks for automagik-telemetry
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Python hooks
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^python/
+      # Run the formatter
+      - id: ruff-format
+        files: ^python/
+
+  # TypeScript/JavaScript hooks
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        files: ^typescript/.*\.(ts|js|json)$
+        exclude: ^typescript/dist/
+
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: detect-private-key
+      - id: check-case-conflict
+
+  # TypeScript type checking
+  - repo: local
+    hooks:
+      - id: typescript-typecheck
+        name: TypeScript type check
+        entry: bash -c 'cd typescript && pnpm exec tsc --noEmit'
+        language: system
+        files: ^typescript/.*\.ts$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: typescript-eslint
+        name: TypeScript ESLint
+        entry: bash -c 'cd typescript && pnpm run lint'
+        language: system
+        files: ^typescript/.*\.ts$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: python-mypy
+        name: Python mypy type check
+        entry: bash -c 'cd python && uv run mypy src'
+        language: system
+        files: ^python/src/.*\.py$
+        pass_filenames: false
+        stages: [pre-commit]
