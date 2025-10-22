@@ -1,5 +1,5 @@
 """
-Comprehensive tests for TelemetryClient.
+Comprehensive tests for AutomagikTelemetry.
 
 Tests cover:
 - Initialization and configuration
@@ -10,6 +10,7 @@ Tests cover:
 - Environment variable handling
 - CI environment detection
 - Silent failure behavior
+- Backwards compatibility with TelemetryClient alias
 """
 
 import json
@@ -21,17 +22,17 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from automagik_telemetry.client import TelemetryClient
+from automagik_telemetry.client import AutomagikTelemetry, TelemetryClient
 
 
-class TestTelemetryClientInitialization:
-    """Test TelemetryClient initialization and configuration."""
+class TestAutomagikTelemetryInitialization:
+    """Test AutomagikTelemetry initialization and configuration."""
 
     def test_should_initialize_with_required_parameters(
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test basic client initialization with required parameters."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -46,7 +47,7 @@ class TestTelemetryClientInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that custom endpoint is used when provided."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0",
             endpoint="https://custom.example.com/traces"
@@ -60,7 +61,7 @@ class TestTelemetryClientInitialization:
         """Test that endpoint is read from environment variable."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://env.example.com/traces")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -71,7 +72,7 @@ class TestTelemetryClientInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that custom organization is used."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0",
             organization="custom-org"
@@ -83,7 +84,7 @@ class TestTelemetryClientInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that custom timeout is used."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0",
             timeout=10
@@ -95,7 +96,7 @@ class TestTelemetryClientInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that session ID is generated on initialization."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -107,7 +108,7 @@ class TestTelemetryClientInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that telemetry is disabled by default (opt-in only)."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -120,12 +121,33 @@ class TestTelemetryClientInitialization:
         """Test that verbose mode is read from environment variable."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
 
         assert client.verbose is True
+
+
+class TestBackwardsCompatibility:
+    """Test backwards compatibility with TelemetryClient alias."""
+
+    def test_telemetry_client_alias_works(
+        self, temp_home: Path, clean_env: None
+    ) -> None:
+        """Test that TelemetryClient alias still works."""
+        # Should be able to use TelemetryClient
+        client = TelemetryClient(
+            project_name="test-project",
+            version="1.0.0"
+        )
+
+        assert client.project_name == "test-project"
+        assert client.project_version == "1.0.0"
+
+    def test_telemetry_client_is_same_class(self) -> None:
+        """Test that TelemetryClient is actually AutomagikTelemetry."""
+        assert TelemetryClient is AutomagikTelemetry
 
 
 class TestUserIdPersistence:
@@ -138,7 +160,7 @@ class TestUserIdPersistence:
         user_id_file = temp_home / ".automagik" / "user_id"
         assert not user_id_file.exists()
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -150,7 +172,7 @@ class TestUserIdPersistence:
         self, temp_home: Path, user_id_file: Path, clean_env: None
     ) -> None:
         """Test that existing user ID is reused."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -166,7 +188,7 @@ class TestUserIdPersistence:
         user_id_path.parent.mkdir(parents=True, exist_ok=True)
         user_id_path.mkdir()
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -180,7 +202,7 @@ class TestUserIdPersistence:
     ) -> None:
         """Test graceful handling of user ID file write errors."""
         with patch("pathlib.Path.write_text", side_effect=PermissionError):
-            client = TelemetryClient(
+            client = AutomagikTelemetry(
                 project_name="test-project",
                 version="1.0.0"
             )
@@ -199,7 +221,7 @@ class TestTelemetryEnabled:
         """Test enabling via environment variable."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -213,7 +235,7 @@ class TestTelemetryEnabled:
         """Test that various truthy values are accepted."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", value)
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -224,7 +246,7 @@ class TestTelemetryEnabled:
         self, temp_home: Path, opt_out_file: Path, clean_env: None
     ) -> None:
         """Test that opt-out file disables telemetry."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -238,7 +260,7 @@ class TestTelemetryEnabled:
         """Test that telemetry is disabled in CI environments."""
         monkeypatch.setenv(ci_var, "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -252,7 +274,7 @@ class TestTelemetryEnabled:
         """Test that telemetry is disabled in development environments."""
         monkeypatch.setenv("ENVIRONMENT", env_value)
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -267,7 +289,7 @@ class TestEventTracking:
         self, temp_home: Path, clean_env: None, mock_urlopen: Mock
     ) -> None:
         """Test that events are not sent when telemetry is disabled."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -283,7 +305,7 @@ class TestEventTracking:
         """Test that events are sent when telemetry is enabled."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -299,7 +321,7 @@ class TestEventTracking:
         """Test that OTLP payload is correctly formatted."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -347,7 +369,7 @@ class TestEventTracking:
         """Test that system information is included in attributes."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -376,7 +398,7 @@ class TestEventTracking:
         """Test that different attribute types are correctly encoded."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -415,7 +437,7 @@ class TestEventTracking:
         """Test that long strings are truncated to prevent payload bloat."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -445,7 +467,7 @@ class TestErrorTracking:
         """Test tracking an error with exception details."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -478,7 +500,7 @@ class TestErrorTracking:
         """Test that long error messages are truncated."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -510,7 +532,7 @@ class TestMetricTracking:
         """Test tracking a metric with a numeric value."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -542,7 +564,7 @@ class TestEnableDisable:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test enabling telemetry."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -557,7 +579,7 @@ class TestEnableDisable:
         self, temp_home: Path, opt_out_file: Path, clean_env: None
     ) -> None:
         """Test that opt-out file is removed when enabling."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -572,7 +594,7 @@ class TestEnableDisable:
         """Test disabling telemetry."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -589,7 +611,7 @@ class TestEnableDisable:
         """Test that opt-out file is created when disabling."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -605,7 +627,7 @@ class TestEnableDisable:
         """Test is_enabled() method."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -624,7 +646,7 @@ class TestStatusInfo:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test get_status() returns complete information."""
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -655,7 +677,7 @@ class TestSilentFailure:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         with patch("urllib.request.urlopen", side_effect=URLError("Network error")):
-            client = TelemetryClient(
+            client = AutomagikTelemetry(
                 project_name="test-project",
                 version="1.0.0"
             )
@@ -670,7 +692,7 @@ class TestSilentFailure:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         with patch("urllib.request.urlopen", side_effect=HTTPError("url", 500, "Server error", {}, None)):
-            client = TelemetryClient(
+            client = AutomagikTelemetry(
                 project_name="test-project",
                 version="1.0.0"
             )
@@ -685,7 +707,7 @@ class TestSilentFailure:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         with patch("urllib.request.urlopen", side_effect=TimeoutError("Request timed out")):
-            client = TelemetryClient(
+            client = AutomagikTelemetry(
                 project_name="test-project",
                 version="1.0.0"
             )
@@ -700,7 +722,7 @@ class TestSilentFailure:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         with patch("urllib.request.urlopen", side_effect=Exception("Unexpected error")):
-            client = TelemetryClient(
+            client = AutomagikTelemetry(
                 project_name="test-project",
                 version="1.0.0"
             )
@@ -719,7 +741,7 @@ class TestVerboseMode:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )
@@ -736,7 +758,7 @@ class TestVerboseMode:
         """Test that events are not printed when verbose mode is off."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
+        client = AutomagikTelemetry(
             project_name="test-project",
             version="1.0.0"
         )

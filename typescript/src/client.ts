@@ -122,9 +122,9 @@ export enum MetricType {
  *
  * @example
  * ```typescript
- * import { TelemetryClient, StandardEvents } from '@automagik/telemetry';
+ * import { AutomagikTelemetry, StandardEvents } from '@automagik/telemetry';
  *
- * const telemetry = new TelemetryClient({
+ * const telemetry = new AutomagikTelemetry({
  *   projectName: 'omni',
  *   version: '1.0.0'
  * });
@@ -134,7 +134,7 @@ export enum MetricType {
  * });
  * ```
  */
-export class TelemetryClient {
+export class AutomagikTelemetry {
   private projectName: string;
   private projectVersion: string;
   private organization: string;
@@ -1020,3 +1020,10 @@ export class TelemetryClient {
     };
   }
 }
+
+/**
+ * Backwards compatibility alias for AutomagikTelemetry.
+ *
+ * @deprecated Use AutomagikTelemetry instead. TelemetryClient will be removed in a future version.
+ */
+export const TelemetryClient = AutomagikTelemetry;

@@ -2,9 +2,17 @@
  * @automagik/telemetry
  *
  * Privacy-first, opt-in telemetry SDK for the Automagik ecosystem
+ *
+ * Note: TelemetryClient is deprecated. Use AutomagikTelemetry instead.
+ * TelemetryClient is maintained as an alias for backwards compatibility.
  */
 
-export { TelemetryClient, LogSeverity, MetricType } from './client';
+export {
+  AutomagikTelemetry,
+  TelemetryClient, // Backwards compatibility alias (deprecated)
+  LogSeverity,
+  MetricType,
+} from './client';
 export { TelemetryOptIn, promptUserIfNeeded, shouldPromptUser } from './opt-in';
 export { StandardEvents } from './schema';
 export type { TelemetryConfig, ValidatedConfig } from './config';

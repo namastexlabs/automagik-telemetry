@@ -4,10 +4,10 @@ Example: Using automagik-telemetry in Automagik Omni
 This shows real-world usage based on the actual Omni implementation.
 """
 
-from automagik_telemetry import TelemetryClient, StandardEvents
+from automagik_telemetry import AutomagikTelemetry, StandardEvents
 
 # Initialize telemetry client once at app startup
-telemetry = TelemetryClient(
+telemetry = AutomagikTelemetry(
     project_name="automagik-omni",
     version="0.2.0"
 )
@@ -140,13 +140,13 @@ if __name__ == "__main__":
     import os
     os.environ["AUTOMAGIK_TELEMETRY_VERBOSE"] = "true"
     os.environ["AUTOMAGIK_TELEMETRY_ENABLED"] = "true"
-    
+
     # Send a test event
-    telemetry_test = TelemetryClient("omni", "0.2.0")
+    telemetry_test = AutomagikTelemetry("omni", "0.2.0")
     telemetry_test.track_event(StandardEvents.FEATURE_USED, {
         "feature_name": "test_example",
         "feature_category": "example"
     })
-    
+
     print("\n✅ If telemetry is enabled, you should see the event above!")
     print("   Check your OTel collector logs to verify it was received.\n")

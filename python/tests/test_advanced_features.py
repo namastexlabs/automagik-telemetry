@@ -220,7 +220,8 @@ class TestLogsExport:
         # Get the request
         call_args = mock_urlopen.call_args
         request = call_args[0][0]
-        payload = json.loads(request.data.decode("utf-8"))
+        decompressed_data = gzip.decompress(request.data)
+        payload = json.loads(decompressed_data.decode("utf-8"))
 
         log_record = payload["resourceLogs"][0]["scopeLogs"][0]["logRecords"][0]
         # Should be truncated to 1000 chars

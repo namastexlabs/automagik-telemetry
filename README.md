@@ -6,6 +6,15 @@
 
 Complete OpenTelemetry setup for automagik-agents with traces and metrics collection.
 
+## 📢 SDK Update Notice
+
+**Class Rename:** The main client class has been renamed from `TelemetryClient` to `AutomagikTelemetry` for clarity and consistency across the Automagik ecosystem.
+
+- **New name:** `AutomagikTelemetry` (recommended)
+- **Old name:** `TelemetryClient` (still works as an alias for backwards compatibility)
+
+No action required - both names work identically. See examples below using the new name.
+
 ## 🎯 Overview
 
 This repository contains:
@@ -210,11 +219,13 @@ curl https://telemetry.namastex.ai/v1/traces
 ### Send Trace (Current Implementation)
 
 ```python
-from src.core.telemetry import TelemetryClient
+from automagik_telemetry import AutomagikTelemetry
 
-client = TelemetryClient()
-client.track_api_request(endpoint="/api/v1/runs", method="POST")
+client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+client.track_event("api.request", {"endpoint": "/api/v1/runs", "method": "POST"})
 ```
+
+**Note:** `TelemetryClient` is still supported as a backwards compatibility alias.
 
 ### Send Metrics (To Implement)
 

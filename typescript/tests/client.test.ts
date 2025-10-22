@@ -1,5 +1,5 @@
 /**
- * Comprehensive tests for TelemetryClient.
+ * Comprehensive tests for AutomagikTelemetry.
  *
  * Tests cover:
  * - Client initialization
@@ -10,19 +10,20 @@
  * - Environment variable handling
  * - CI environment detection
  * - Silent failure behavior
+ * - Backwards compatibility with TelemetryClient alias
  */
 
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { TelemetryClient, TelemetryConfig, LogSeverity, MetricType } from '../src/client';
+import { AutomagikTelemetry, TelemetryClient, TelemetryConfig, LogSeverity, MetricType } from '../src/client';
 
 // Mock file system operations
 jest.mock('fs');
 jest.mock('os');
 
-describe('TelemetryClient', () => {
+describe('AutomagikTelemetry', () => {
   const mockHomedir = '/home/testuser';
   const mockUserIdFile = path.join(mockHomedir, '.automagik', 'user_id');
   const mockOptOutFile = path.join(mockHomedir, '.automagik-no-telemetry');
@@ -53,15 +54,27 @@ describe('TelemetryClient', () => {
     };
   });
 
+  describe('Backwards Compatibility', () => {
+    it('should support TelemetryClient alias', () => {
+      const client = new TelemetryClient(mockConfig);
+      expect(client).toBeDefined();
+      expect(client.isEnabled()).toBe(false);
+    });
+
+    it('should have TelemetryClient as same class', () => {
+      expect(TelemetryClient).toBe(AutomagikTelemetry);
+    });
+  });
+
   describe('Constructor and Initialization', () => {
     it('should initialize with required config', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client).toBeDefined();
       expect(client.isEnabled()).toBe(false); // Disabled by default
     });
 
     it('should use default endpoint when not provided', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
       expect(status.endpoint).toBe('https://telemetry.namastex.ai/v1/traces');
     });
@@ -71,20 +84,20 @@ describe('TelemetryClient', () => {
         ...mockConfig,
         endpoint: 'https://custom.endpoint.com',
       };
-      const client = new TelemetryClient(customConfig);
+      const client = new AutomagikTelemetry(customConfig);
       const status = client.getStatus();
       expect(status.endpoint).toBe('https://custom.endpoint.com/v1/traces');
     });
 
     it('should respect endpoint from environment variable', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENDPOINT = 'https://env.endpoint.com';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
       expect(status.endpoint).toBe('https://env.endpoint.com/v1/traces');
     });
 
     it('should use default organization', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
       expect(status.project_name).toBe('test-project');
     });
@@ -94,7 +107,7 @@ describe('TelemetryClient', () => {
         ...mockConfig,
         organization: 'custom-org',
       };
-      const client = new TelemetryClient(customConfig);
+      const client = new AutomagikTelemetry(customConfig);
       // We need to check this through the status or by checking system behavior
       expect(client).toBeDefined();
     });
@@ -104,7 +117,7 @@ describe('TelemetryClient', () => {
         ...mockConfig,
         timeout: 10, // 10 seconds
       };
-      const client = new TelemetryClient(customConfig);
+      const client = new AutomagikTelemetry(customConfig);
       expect(client).toBeDefined();
     });
   });
@@ -113,7 +126,7 @@ describe('TelemetryClient', () => {
     it('should create new user ID when file does not exist', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
 
       expect(status.user_id).toBeDefined();
@@ -135,7 +148,7 @@ describe('TelemetryClient', () => {
       });
       (fs.readFileSync as jest.Mock).mockReturnValue(existingId);
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
 
       expect(status.user_id).toBe(existingId);
@@ -148,7 +161,7 @@ describe('TelemetryClient', () => {
         throw new Error('Read error');
       });
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
 
       // Should create new ID despite read error
@@ -161,7 +174,7 @@ describe('TelemetryClient', () => {
         throw new Error('mkdir error');
       });
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
 
       // Should still have user ID (in-memory)
@@ -171,31 +184,31 @@ describe('TelemetryClient', () => {
 
   describe('Telemetry Enable/Disable Logic', () => {
     it('should be disabled by default', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
 
     it('should enable when AUTOMAGIK_TELEMETRY_ENABLED=true', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(true);
     });
 
     it('should enable when AUTOMAGIK_TELEMETRY_ENABLED=1', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = '1';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(true);
     });
 
     it('should enable when AUTOMAGIK_TELEMETRY_ENABLED=yes', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'yes';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(true);
     });
 
     it('should enable when AUTOMAGIK_TELEMETRY_ENABLED=on', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'on';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(true);
     });
 
@@ -204,50 +217,50 @@ describe('TelemetryClient', () => {
         return filePath === mockOptOutFile;
       });
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
 
     it('should disable in CI environment (CI)', () => {
       process.env.CI = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
 
     it('should disable in CI environment (GITHUB_ACTIONS)', () => {
       process.env.GITHUB_ACTIONS = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
 
     it('should disable in CI environment (TRAVIS)', () => {
       process.env.TRAVIS = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
 
     it('should disable in CI environment (JENKINS)', () => {
       process.env.JENKINS = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
 
     it('should disable in development environment', () => {
       process.env.ENVIRONMENT = 'development';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
 
     it('should disable in test environment', () => {
       process.env.ENVIRONMENT = 'test';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
     });
   });
 
   describe('Enable/Disable Methods', () => {
     it('should enable telemetry when enable() is called', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
 
       client.enable();
@@ -257,7 +270,7 @@ describe('TelemetryClient', () => {
     it('should remove opt-out file when enable() is called', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       client.enable();
 
       expect(fs.unlinkSync).toHaveBeenCalledWith(mockOptOutFile);
@@ -265,7 +278,7 @@ describe('TelemetryClient', () => {
 
     it('should disable telemetry when disable() is called', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(true);
 
       await client.disable();
@@ -273,7 +286,7 @@ describe('TelemetryClient', () => {
     });
 
     it('should create opt-out file when disable() is called', async () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       await client.disable();
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(mockOptOutFile, '', 'utf-8');
@@ -285,7 +298,7 @@ describe('TelemetryClient', () => {
         throw new Error('Unlink error');
       });
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(() => client.enable()).not.toThrow();
     });
 
@@ -294,14 +307,14 @@ describe('TelemetryClient', () => {
         throw new Error('Write error');
       });
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       await expect(client.disable()).resolves.not.toThrow();
     });
   });
 
   describe('trackEvent', () => {
     it('should not send events when disabled', async () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(false);
 
       client.trackEvent('test.event', { key: 'value' });
@@ -314,7 +327,7 @@ describe('TelemetryClient', () => {
 
     it('should send events when enabled', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client.isEnabled()).toBe(true);
 
       client.trackEvent('test.event', { key: 'value' });
@@ -333,7 +346,7 @@ describe('TelemetryClient', () => {
 
     it('should send OTLP-formatted payload', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       client.trackEvent('test.event', { custom_key: 'custom_value' });
 
@@ -354,7 +367,7 @@ describe('TelemetryClient', () => {
 
     it('should include system information in attributes', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       client.trackEvent('test.event', {});
 
@@ -372,14 +385,14 @@ describe('TelemetryClient', () => {
 
     it('should handle empty attributes', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       expect(() => client.trackEvent('test.event')).not.toThrow();
     });
 
     it('should truncate long string values', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       const longString = 'a'.repeat(1000);
       client.trackEvent('test.event', { long_value: longString });
@@ -396,7 +409,7 @@ describe('TelemetryClient', () => {
 
     it('should handle different attribute types', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       client.trackEvent('test.event', {
         string_value: 'test',
@@ -423,7 +436,7 @@ describe('TelemetryClient', () => {
   describe('trackError', () => {
     it('should track error with message', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       const error = new Error('Test error');
       client.trackError(error);
@@ -444,7 +457,7 @@ describe('TelemetryClient', () => {
 
     it('should include error context', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       const error = new Error('Test error');
       client.trackError(error, { error_code: 'TEST-001', operation: 'test_operation' });
@@ -464,7 +477,7 @@ describe('TelemetryClient', () => {
 
     it('should truncate long error messages', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       const longMessage = 'Error: ' + 'a'.repeat(1000);
       const error = new Error(longMessage);
@@ -484,7 +497,7 @@ describe('TelemetryClient', () => {
   describe('trackMetric', () => {
     it('should track metric with value', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       client.trackMetric('test.metric', 123.45);
 
@@ -501,7 +514,7 @@ describe('TelemetryClient', () => {
 
     it('should include metric attributes', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
 
       client.trackMetric('test.metric', 100, MetricType.GAUGE, {
         operation_type: 'api_request',
@@ -524,7 +537,7 @@ describe('TelemetryClient', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(() => client.trackEvent('test.event')).not.toThrow();
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -537,7 +550,7 @@ describe('TelemetryClient', () => {
         status: 500,
       });
 
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       expect(() => client.trackEvent('test.event')).not.toThrow();
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -552,7 +565,7 @@ describe('TelemetryClient', () => {
           })
       );
 
-      const client = new TelemetryClient({ ...mockConfig, timeout: 1 });
+      const client = new AutomagikTelemetry({ ...mockConfig, timeout: 1 });
       expect(() => client.trackEvent('test.event')).not.toThrow();
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -562,13 +575,13 @@ describe('TelemetryClient', () => {
   describe('Verbose Mode', () => {
     it('should enable verbose mode from environment', () => {
       process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
       expect(status.verbose).toBe(true);
     });
 
     it('should not enable verbose mode by default', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
       expect(status.verbose).toBe(false);
     });
@@ -576,7 +589,7 @@ describe('TelemetryClient', () => {
 
   describe('getStatus', () => {
     it('should return comprehensive status information', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();
 
       expect(status).toHaveProperty('enabled');
@@ -590,7 +603,7 @@ describe('TelemetryClient', () => {
     });
 
     it('should reflect current enabled state', () => {
-      const client = new TelemetryClient(mockConfig);
+      const client = new AutomagikTelemetry(mockConfig);
       let status = client.getStatus();
       expect(status.enabled).toBe(false);
 
@@ -611,7 +624,7 @@ describe('TelemetryClient', () => {
 
     it('should queue events instead of sending immediately', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 10,
       });
@@ -626,7 +639,7 @@ describe('TelemetryClient', () => {
 
     it('should flush when batch size is reached', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 3,
       });
@@ -642,7 +655,7 @@ describe('TelemetryClient', () => {
 
     it('should flush on interval', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         flushInterval: 1000,
         batchSize: 100,
@@ -661,7 +674,7 @@ describe('TelemetryClient', () => {
 
     it('should flush manually when flush() is called', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 100,
       });
@@ -678,7 +691,7 @@ describe('TelemetryClient', () => {
   describe('Compression', () => {
     it('should compress large payloads', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         compressionEnabled: true,
         compressionThreshold: 100, // Low threshold for testing
@@ -697,7 +710,7 @@ describe('TelemetryClient', () => {
 
     it('should not compress small payloads', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         compressionEnabled: true,
         compressionThreshold: 1024,
@@ -715,7 +728,7 @@ describe('TelemetryClient', () => {
 
     it('should respect compression disabled setting', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         compressionEnabled: false,
         batchSize: 1,
@@ -744,7 +757,7 @@ describe('TelemetryClient', () => {
         return Promise.resolve({ ok: true, status: 200 });
       });
 
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         maxRetries: 3,
         retryBackoffBase: 10, // Short backoff for testing
@@ -762,7 +775,7 @@ describe('TelemetryClient', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 400 });
 
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         maxRetries: 3,
         batchSize: 1,
@@ -779,7 +792,7 @@ describe('TelemetryClient', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 503 });
 
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         maxRetries: 2,
         retryBackoffBase: 10,
@@ -797,7 +810,7 @@ describe('TelemetryClient', () => {
   describe('OTLP Metrics', () => {
     it('should send gauge metric', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 1,
       });
@@ -817,7 +830,7 @@ describe('TelemetryClient', () => {
 
     it('should send counter metric', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 1,
       });
@@ -836,7 +849,7 @@ describe('TelemetryClient', () => {
 
     it('should send histogram metric', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 1,
       });
@@ -854,7 +867,7 @@ describe('TelemetryClient', () => {
 
     it('should use metrics endpoint', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 1,
       });
@@ -873,7 +886,7 @@ describe('TelemetryClient', () => {
   describe('OTLP Logs', () => {
     it('should send log with INFO severity', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 1,
       });
@@ -897,7 +910,7 @@ describe('TelemetryClient', () => {
 
     it('should send log with ERROR severity', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 1,
       });
@@ -917,7 +930,7 @@ describe('TelemetryClient', () => {
 
     it('should use logs endpoint', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 1,
       });
@@ -936,7 +949,7 @@ describe('TelemetryClient', () => {
   describe('Custom Endpoints', () => {
     it('should use custom metrics endpoint', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         metricsEndpoint: 'https://custom.endpoint.com/metrics',
         batchSize: 1,
@@ -954,7 +967,7 @@ describe('TelemetryClient', () => {
 
     it('should use custom logs endpoint', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         ...mockConfig,
         logsEndpoint: 'https://custom.endpoint.com/logs',
         batchSize: 1,

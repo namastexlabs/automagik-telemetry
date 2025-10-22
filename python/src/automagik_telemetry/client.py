@@ -78,7 +78,7 @@ class TelemetryConfig:
     logs_endpoint: Optional[str] = None
 
 
-class TelemetryClient:
+class AutomagikTelemetry:
     """
     Privacy-first telemetry client for Automagik projects.
 
@@ -93,10 +93,10 @@ class TelemetryClient:
     - Auto-disables in CI/test environments
 
     Example:
-        >>> from automagik_telemetry import TelemetryClient, StandardEvents
+        >>> from automagik_telemetry import AutomagikTelemetry, StandardEvents
         >>>
         >>> # Simple initialization (backward compatible)
-        >>> telemetry = TelemetryClient(
+        >>> telemetry = AutomagikTelemetry(
         ...     project_name="omni",
         ...     version="1.0.0"
         ... )
@@ -109,7 +109,7 @@ class TelemetryClient:
         ...     batch_size=50,
         ...     compression_enabled=True
         ... )
-        >>> telemetry = TelemetryClient(config=config)
+        >>> telemetry = AutomagikTelemetry(config=config)
         >>>
         >>> telemetry.track_event(StandardEvents.FEATURE_USED, {
         ...     "feature_name": "list_contacts"
@@ -833,9 +833,9 @@ class TelemetryClient:
 
         Example:
             >>> import asyncio
-            >>> from automagik_telemetry import TelemetryClient, StandardEvents
+            >>> from automagik_telemetry import AutomagikTelemetry, StandardEvents
             >>>
-            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>> telemetry = AutomagikTelemetry(project_name="my-app", version="1.0.0")
             >>>
             >>> async def main():
             ...     await telemetry.track_event_async(StandardEvents.FEATURE_USED, {
@@ -863,9 +863,9 @@ class TelemetryClient:
 
         Example:
             >>> import asyncio
-            >>> from automagik_telemetry import TelemetryClient
+            >>> from automagik_telemetry import AutomagikTelemetry
             >>>
-            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>> telemetry = AutomagikTelemetry(project_name="my-app", version="1.0.0")
             >>>
             >>> async def main():
             ...     try:
@@ -901,9 +901,9 @@ class TelemetryClient:
 
         Example:
             >>> import asyncio
-            >>> from automagik_telemetry import TelemetryClient, MetricType
+            >>> from automagik_telemetry import AutomagikTelemetry, MetricType
             >>>
-            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>> telemetry = AutomagikTelemetry(project_name="my-app", version="1.0.0")
             >>>
             >>> async def main():
             ...     await telemetry.track_metric_async(
@@ -936,9 +936,9 @@ class TelemetryClient:
 
         Example:
             >>> import asyncio
-            >>> from automagik_telemetry import TelemetryClient, LogSeverity
+            >>> from automagik_telemetry import AutomagikTelemetry, LogSeverity
             >>>
-            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>> telemetry = AutomagikTelemetry(project_name="my-app", version="1.0.0")
             >>>
             >>> async def main():
             ...     await telemetry.track_log_async(
@@ -961,9 +961,9 @@ class TelemetryClient:
 
         Example:
             >>> import asyncio
-            >>> from automagik_telemetry import TelemetryClient
+            >>> from automagik_telemetry import AutomagikTelemetry
             >>>
-            >>> telemetry = TelemetryClient(project_name="my-app", version="1.0.0")
+            >>> telemetry = AutomagikTelemetry(project_name="my-app", version="1.0.0")
             >>>
             >>> async def main():
             ...     await telemetry.track_event_async("app.startup")
@@ -987,3 +987,9 @@ class TelemetryClient:
         except Exception:
             # Silent failure during cleanup
             pass
+
+
+# Backwards compatibility alias
+# Note: TelemetryClient is deprecated and will be removed in a future version.
+# Please use AutomagikTelemetry instead.
+TelemetryClient = AutomagikTelemetry

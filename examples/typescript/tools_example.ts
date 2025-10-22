@@ -5,10 +5,10 @@
  * integration health, API requests, and performance monitoring.
  */
 
-import { TelemetryClient, StandardEvents, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, StandardEvents, MetricType } from '@automagik/telemetry';
 
 // Initialize telemetry client once at app startup
-const telemetry = new TelemetryClient({
+const telemetry = new AutomagikTelemetry({
   projectName: 'automagik-tools',
   version: '0.5.0',
 });
@@ -353,7 +353,7 @@ if (require.main === module) {
   process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
 
   // Create test client
-  const telemetryTest = new TelemetryClient({
+  const telemetryTest = new AutomagikTelemetry({
     projectName: 'tools',
     version: '0.5.0',
   });

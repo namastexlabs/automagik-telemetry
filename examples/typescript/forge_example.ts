@@ -5,10 +5,10 @@
  * worktree usage, and errors in the Forge AI development environment.
  */
 
-import { TelemetryClient, StandardEvents, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, StandardEvents, MetricType } from '@automagik/telemetry';
 
 // Initialize telemetry client once at app startup
-const telemetry = new TelemetryClient({
+const telemetry = new AutomagikTelemetry({
   projectName: 'automagik-forge',
   version: '1.0.0',
 });
@@ -250,7 +250,7 @@ if (require.main === module) {
   process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
 
   // Create test client
-  const telemetryTest = new TelemetryClient({
+  const telemetryTest = new AutomagikTelemetry({
     projectName: 'forge',
     version: '1.0.0',
   });
