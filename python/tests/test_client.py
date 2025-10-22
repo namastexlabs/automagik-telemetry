@@ -1963,3 +1963,30 @@ class TestTimerAndBatchCoverage:
         time.sleep(0.1)
 
         # Should be safe - no errors from rescheduling after shutdown
+
+
+class TestDestructorCoverage:
+    """Test __del__ destructor for 100% coverage."""
+
+    def test_should_handle_exception_in_destructor(self, mock_urlopen, temp_home, monkeypatch):
+        """Test that __del__ exception handler is executed (lines 987-989)."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+        
+        config = TelemetryConfig(
+            project_name="test",
+            version="1.0.0",
+            batch_size=10,
+        )
+        client = track_client(AutomagikTelemetry(config=config))
+        
+        # Mock flush to raise an exception
+        original_flush = client.flush
+        def broken_flush():
+            raise RuntimeError("Simulated flush error")
+        client.flush = broken_flush
+        
+        # Trigger __del__ by deleting the client
+        # The exception should be caught silently
+        del client
+        
+        # Should not raise exception
