@@ -143,6 +143,12 @@ describe('Privacy Module', () => {
       expect(sanitizePhone('(555) 555-5555', { strategy: 'truncate' })).toBe('XXX-XXX-XXXX');
       expect(sanitizePhone('555.555.5555', { strategy: 'truncate' })).toBe('XXX-XXX-XXXX');
     });
+
+    it('should handle invalid strategy gracefully', () => {
+      // @ts-ignore - testing invalid strategy
+      const result = sanitizePhone('555-555-5555', { strategy: 'invalid' });
+      expect(result).toBe('555-555-5555');
+    });
   });
 
   describe('sanitizeEmail', () => {
@@ -184,6 +190,12 @@ describe('Privacy Module', () => {
         strategy: 'truncate',
       });
       expect(result).toMatch(/^te\*\*\*@subdomain\.example\.com$/);
+    });
+
+    it('should handle invalid strategy gracefully', () => {
+      // @ts-ignore - testing invalid strategy
+      const result = sanitizeEmail('test@example.com', { strategy: 'invalid' });
+      expect(result).toBe('test@example.com');
     });
   });
 

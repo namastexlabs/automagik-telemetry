@@ -12,7 +12,8 @@
  * Or with integration marker: npm test -- --testNamePattern="integration"
  */
 
-import { TelemetryClient, TelemetryConfig, MetricType, LogSeverity } from '../src';
+import { TelemetryClient, MetricType, LogSeverity } from '../src';
+import type { TelemetryConfig } from '../src/client';
 
 // Helper to skip tests in CI unless explicitly enabled
 const isCI = process.env.CI === 'true';
@@ -72,7 +73,7 @@ describeIntegration('Integration Tests', () => {
         const latency = Date.now() - startTime;
 
         // Track request completion
-        client.trackMetric('api.request.latency', latency, { path, method }, MetricType.HISTOGRAM);
+        client.trackMetric('api.request.latency', latency, MetricType.HISTOGRAM, { path, method });
         client.trackEvent('api.request.complete', { path, method, latency });
       };
 
@@ -216,7 +217,7 @@ describeIntegration('Integration Tests', () => {
         client.trackEvent('test.mixed.event', { iteration: i });
 
         // Metric
-        client.trackMetric('test.mixed.counter', i, { iteration: i }, MetricType.COUNTER);
+        client.trackMetric('test.mixed.counter', i, MetricType.COUNTER, { iteration: i });
 
         // Log
         client.trackLog(`Mixed signal iteration ${i}`, LogSeverity.INFO, { iteration: i });
@@ -270,13 +271,13 @@ describeIntegration('Integration Tests', () => {
       console.log('\n=== Testing metrics to OTLP collector ===');
 
       // Gauge
-      client.trackMetric('integration.test.gauge', 42.5, { testType: 'gauge' }, MetricType.GAUGE);
+      client.trackMetric('integration.test.gauge', 42.5, MetricType.GAUGE, { testType: 'gauge' });
 
       // Counter
-      client.trackMetric('integration.test.counter', 100, { testType: 'counter' }, MetricType.COUNTER);
+      client.trackMetric('integration.test.counter', 100, MetricType.COUNTER, { testType: 'counter' });
 
       // Histogram
-      client.trackMetric('integration.test.histogram', 123.45, { testType: 'histogram' }, MetricType.HISTOGRAM);
+      client.trackMetric('integration.test.histogram', 123.45, MetricType.HISTOGRAM, { testType: 'histogram' });
 
       await client.flush();
       await sleep(500);
@@ -312,7 +313,7 @@ describeIntegration('Integration Tests', () => {
       client.trackEvent('integration.test.all_signals', { signalType: 'trace', step: 1 });
 
       // Metric
-      client.trackMetric('integration.test.all_signals', 456.78, { signalType: 'metric', step: 2 }, MetricType.GAUGE);
+      client.trackMetric('integration.test.all_signals', 456.78, MetricType.GAUGE, { signalType: 'metric', step: 2 });
 
       // Log
       client.trackLog('All signals test completed', LogSeverity.INFO, { signalType: 'log', step: 3 });

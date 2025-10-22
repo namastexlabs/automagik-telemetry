@@ -528,4 +528,5 @@ describe('TelemetryOptIn', () => {
       });
     });
   });
+
 });

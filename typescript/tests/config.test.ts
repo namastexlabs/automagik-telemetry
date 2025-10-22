@@ -195,6 +195,13 @@ describe('Config Module', () => {
       );
     });
 
+    it('should throw for websocket protocol', () => {
+      const invalidConfig = { ...baseConfig, endpoint: 'ws://example.com' };
+      expect(() => validateConfig(invalidConfig)).toThrow(
+        'TelemetryConfig: endpoint must use http or https protocol'
+      );
+    });
+
     it('should accept valid HTTP endpoint', () => {
       const validConfig = { ...baseConfig, endpoint: 'http://localhost:8080/traces' };
       expect(() => validateConfig(validConfig)).not.toThrow();
