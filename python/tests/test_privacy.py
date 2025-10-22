@@ -15,7 +15,6 @@ Tests cover:
 - Recursive sanitization (nested objects and arrays)
 """
 
-
 from automagik_telemetry.privacy import (
     DEFAULT_CONFIG,
     SENSITIVE_KEYS,

@@ -21,9 +21,12 @@ wheels/
 *.egg
 .pytest_cache/
 .coverage
+coverage.json
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+.venv/
+venv/
 
 # TypeScript
 node_modules/

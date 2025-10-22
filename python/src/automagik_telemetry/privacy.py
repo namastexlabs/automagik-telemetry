@@ -178,14 +178,15 @@ def sanitize_email(value: str, config: PrivacyConfig | None = None) -> str:
         return Patterns.EMAIL.sub(cfg.redaction_text, value)
     elif cfg.strategy == "truncate":
 
-        def truncate_email(match: re.Match) -> str:
+        def truncate_email(match: re.Match[str]) -> str:
             email = match.group(0)
             if "@" in email:
                 user, domain = email.split("@", 1)
                 return f"{user[:2]}***@{domain}"
             return email
 
-        return Patterns.EMAIL.sub(truncate_email, value)
+        result: str = Patterns.EMAIL.sub(truncate_email, value)
+        return result
     else:
         return value
 
@@ -357,6 +358,6 @@ def sanitize_telemetry_data(
     sanitized = redact_sensitive_keys(data, SENSITIVE_KEYS, config)
 
     # Then apply pattern-based sanitization
-    sanitized = sanitize_value(sanitized, config)
+    result: dict[str, Any] = sanitize_value(sanitized, config)  # type: ignore[assignment]
 
-    return sanitized
+    return result

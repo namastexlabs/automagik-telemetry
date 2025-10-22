@@ -11,7 +11,6 @@ Tests cover:
 - Timeout validation
 """
 
-
 import pytest
 
 from automagik_telemetry.config import (

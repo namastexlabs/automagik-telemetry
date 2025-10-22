@@ -168,12 +168,13 @@ class AutomagikTelemetry:
         )
 
         # Ensure base endpoint doesn't have trailing slash
-        base_endpoint = base_endpoint.rstrip("/")
+        if base_endpoint:
+            base_endpoint = base_endpoint.rstrip("/")
 
         # Set specific endpoints
         # Check if endpoint already has a path component (ends with /traces, /v1/traces, etc.)
         # This handles backward compatibility where users might pass full endpoints
-        if (
+        if base_endpoint and (
             base_endpoint.endswith("/traces")
             or base_endpoint.endswith("/metrics")
             or base_endpoint.endswith("/logs")
@@ -194,9 +195,10 @@ class AutomagikTelemetry:
                 self.logs_endpoint = self.config.logs_endpoint or f"{base_for_others}/logs"
         else:
             # New format - just base URL
-            self.endpoint = f"{base_endpoint}/v1/traces"
-            self.metrics_endpoint = self.config.metrics_endpoint or f"{base_endpoint}/v1/metrics"
-            self.logs_endpoint = self.config.logs_endpoint or f"{base_endpoint}/v1/logs"
+            base_url = base_endpoint or "https://telemetry.namastex.ai"
+            self.endpoint = f"{base_url}/v1/traces"
+            self.metrics_endpoint = self.config.metrics_endpoint or f"{base_url}/v1/metrics"
+            self.logs_endpoint = self.config.logs_endpoint or f"{base_url}/v1/logs"
 
         # User & session IDs
         self.user_id = self._get_or_create_user_id()
@@ -487,6 +489,7 @@ class AutomagikTelemetry:
         attrs = self._create_attributes(attributes or {}, include_system=False)
 
         # Create data point based on metric type
+        metric_data: dict[str, Any]
         if metric_type == MetricType.GAUGE:
             data_point = {
                 "asDouble": value,
@@ -516,7 +519,9 @@ class AutomagikTelemetry:
                 "timeUnixNano": timestamp_nano,
                 "attributes": attrs,
             }
-            metric_data = {"histogram": {"dataPoints": [data_point], "aggregationTemporality": 2}}
+            metric_data = {
+                "histogram": {"dataPoints": [data_point], "aggregationTemporality": 2}
+            }
         else:
             logger.debug(f"Unknown metric type: {metric_type}")
             return

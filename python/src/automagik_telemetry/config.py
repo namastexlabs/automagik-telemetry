@@ -63,7 +63,7 @@ class ValidatedConfig:
 
 
 # Default configuration values
-DEFAULT_CONFIG = {
+DEFAULT_CONFIG: dict[str, str | int | bool] = {
     "endpoint": "https://telemetry.namastex.ai/v1/traces",
     "organization": "namastex",
     "timeout": 5000,  # milliseconds
@@ -191,17 +191,17 @@ def merge_config(user_config: TelemetryConfig) -> ValidatedConfig:
     return ValidatedConfig(
         project_name=user_config.project_name,
         version=user_config.version,
-        endpoint=(user_config.endpoint or env_config.endpoint or DEFAULT_CONFIG["endpoint"]),
-        organization=(user_config.organization or DEFAULT_CONFIG["organization"]),
-        timeout=(user_config.timeout or env_config.timeout or DEFAULT_CONFIG["timeout"]),
-        enabled=(
+        endpoint=str(user_config.endpoint or env_config.endpoint or DEFAULT_CONFIG["endpoint"]),
+        organization=str(user_config.organization or DEFAULT_CONFIG["organization"]),
+        timeout=int(user_config.timeout or env_config.timeout or DEFAULT_CONFIG["timeout"]),
+        enabled=bool(
             user_config.enabled
             if user_config.enabled is not None
             else (
                 env_config.enabled if env_config.enabled is not None else DEFAULT_CONFIG["enabled"]
             )
         ),
-        verbose=(
+        verbose=bool(
             user_config.verbose
             if user_config.verbose is not None
             else (
