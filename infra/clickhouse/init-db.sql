@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS traces (
     parent_span_id String DEFAULT '',
 
     -- Timing
-    timestamp DateTime64(3) DEFAULT now64(),
+    timestamp DateTime DEFAULT now(),
+    timestamp_ns UInt64 DEFAULT 0,
     duration_ms UInt32 DEFAULT 0,
 
     -- Event metadata

@@ -49,11 +49,7 @@ processors:
     actions:
       - key: environment
         action: insert
-        value: ${env:ENVIRONMENT}
-        from_attribute: ""
-      - key: collected_at
-        action: insert
-        value: ${NOW}
+        value: production
 
 exporters:
   # ClickHouse exporter via HTTP
@@ -71,9 +67,9 @@ exporters:
       max_interval: 30s
       max_elapsed_time: 300s
 
-  # Logging exporter for debugging
-  logging:
-    loglevel: info
+  # Debug exporter for debugging (replaces deprecated logging exporter)
+  debug:
+    verbosity: normal
     sampling_initial: 5
     sampling_thereafter: 200
 
@@ -87,17 +83,13 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resource, attributes, batch]
-      exporters: [clickhouse, logging]
+      exporters: [debug]
 
     metrics:
       receivers: [prometheus]
       processors: [batch]
-      exporters: [logging]
+      exporters: [debug]
 
   telemetry:
     logs:
       level: info
-    metrics:
-      address: 0.0.0.0:8888
-
-extensions: []
