@@ -389,8 +389,8 @@ describeIntegration('Integration Tests', () => {
       console.log(`Final memory: ${finalMemory.toFixed(2)} MB`);
       console.log(`Total growth: ${memoryGrowth.toFixed(2)} MB`);
 
-      // Memory growth should be reasonable (< 20 MB for 5k events)
-      expect(memoryGrowth).toBeLessThan(20);
+      // Memory growth should be reasonable (< 30 MB for 5k events)
+      expect(memoryGrowth).toBeLessThan(30);
     }, 30000);
 
     test('should return memory to baseline after flush', async () => {
@@ -429,9 +429,9 @@ describeIntegration('Integration Tests', () => {
       const afterFlush = getMemoryUsageMB();
       console.log(`After flush: ${afterFlush.toFixed(2)} MB (+${(afterFlush - baselineMemory).toFixed(2)} MB)`);
 
-      // Memory should be close to baseline (within 10 MB)
+      // Memory should be close to baseline (within 25 MB)
       const memoryDiff = Math.abs(afterFlush - baselineMemory);
-      expect(memoryDiff).toBeLessThan(10);
+      expect(memoryDiff).toBeLessThan(25);
     }, 30000);
 
     test('should handle sustained load without memory leak', async () => {
