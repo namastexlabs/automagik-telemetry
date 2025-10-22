@@ -174,11 +174,13 @@ export function validateConfig(config: TelemetryConfig): void {
         );
       }
     } catch (error) {
-      if (error instanceof TypeError) {
+      // Handle URL parsing errors (TypeError with "Invalid URL" message)
+      if (error instanceof TypeError && error.message.includes("Invalid URL")) {
         throw new Error(
           `TelemetryConfig: endpoint must be a valid URL (got: ${config.endpoint})`,
         );
       }
+      // Re-throw protocol errors and unknown errors
       throw error;
     }
   }
