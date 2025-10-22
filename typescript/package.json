@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "jest --coverage",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write src",
     "prepublishOnly": "pnpm build"

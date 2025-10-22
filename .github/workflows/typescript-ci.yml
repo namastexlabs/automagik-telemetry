@@ -60,7 +60,7 @@ jobs:
       - name: Run jest tests with coverage
         run: |
           cd typescript
-          pnpm run test -- --coverage
+          pnpm run test
 
       - name: Upload coverage HTML report
         uses: actions/upload-artifact@v4
