@@ -67,8 +67,8 @@ describe('Privacy Module', () => {
     });
 
     it('should detect API keys', () => {
-      expect(detectPII('sk_test_FAKE_KEY_NOT_REAL_12345678')).toBe(true);
-      expect(detectPII('sk_test_MOCK_KEY_FOR_TESTING_ONLY')).toBe(true);
+      expect(detectPII('sk_test_fake1234567890abcdefghijklmnop')).toBe(true);
+      expect(detectPII('sk_test_fake0987654321zyxwvutsrqponmlk')).toBe(true);
       expect(detectPII('Bearer abcdefghijklmnopqrstuvwxyz123456')).toBe(true);
       expect(detectPII('api_key_abcdefghijklmnopqrstuvwxyz123456')).toBe(true);
     });
@@ -246,7 +246,7 @@ describe('Privacy Module', () => {
     });
 
     it('should sanitize API keys in strings', () => {
-      const result = sanitizeValue('Token: sk_test_FAKE_KEY_NOT_REAL_12345678');
+      const result = sanitizeValue('Token: sk_test_fake1234567890abcdefghijklmnop');
       expect(result).toMatch(/\[REDACTED\]/);
     });
 
@@ -447,7 +447,7 @@ describe('Privacy Module', () => {
             phone: '+1-555-555-5555',
           },
         },
-        api_key: 'sk_test_FAKE_KEY_NOT_REAL_12345678',
+        api_key: 'sk_test_fake1234567890abcdefghijklmnop',
         message: 'Error at /home/user/project',
       };
 
@@ -482,7 +482,7 @@ describe('Privacy Module', () => {
         email: 'user@example.com',
         phone: '+1-555-555-5555',
         credit_card: '4111-1111-1111-1111',
-        api_key: 'sk_test_FAKE_KEY_NOT_REAL_12345678',
+        api_key: 'sk_test_fake1234567890abcdefghijklmnop',
         ip: '192.168.1.1',
         path: '/home/username/project',
       };
@@ -544,7 +544,7 @@ describe('Privacy Module', () => {
         metadata: {
           ip_address: '192.168.1.100',
           user_agent: 'Mozilla/5.0',
-          api_token: 'Bearer sk_test_FAKE_KEY_NOT_REAL_12345678',
+          api_token: 'Bearer sk_test_fake1234567890abcdefghijklmnop',
         },
         error: {
           message: 'File not found at /home/username/project/config.json',
@@ -574,7 +574,7 @@ describe('Privacy Module', () => {
     it('should handle multiple sanitization strategies in one payload', () => {
       const payload = {
         contact: 'Call me at +1-555-555-5555 or email user@example.com',
-        secret_key: 'sk_test_FAKE_KEY_NOT_REAL_12345678',
+        secret_key: 'sk_test_fake1234567890abcdefghijklmnop',
         credit_card: '4111-1111-1111-1111',
       };
 

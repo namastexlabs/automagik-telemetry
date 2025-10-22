@@ -4,7 +4,12 @@ Automagik Telemetry SDK
 Privacy-first, opt-in telemetry for the Automagik ecosystem.
 """
 
-from automagik_telemetry.client import TelemetryClient
+from automagik_telemetry.client import (
+    TelemetryClient,
+    TelemetryConfig as ClientTelemetryConfig,
+    MetricType,
+    LogSeverity,
+)
 from automagik_telemetry.config import (
     TelemetryConfig,
     ValidatedConfig,
@@ -34,9 +39,12 @@ from automagik_telemetry.privacy import (
 )
 from automagik_telemetry.schema import StandardEvents
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "TelemetryClient",
+    "ClientTelemetryConfig",
+    "MetricType",
+    "LogSeverity",
     "StandardEvents",
     "TelemetryOptIn",
     "prompt_user_if_needed",

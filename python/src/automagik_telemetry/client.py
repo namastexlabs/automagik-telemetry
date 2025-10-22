@@ -5,40 +5,111 @@ Based on battle-tested code from automagik-omni and automagik-spark.
 Uses only Python standard library - no external dependencies.
 """
 
+import gzip
 import json
 import logging
 import os
 import platform
 import sys
+import threading
 import time
 import uuid
+from collections import deque
+from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
 
 
+class MetricType(Enum):
+    """OTLP metric types."""
+    GAUGE = "gauge"
+    COUNTER = "counter"
+    HISTOGRAM = "histogram"
+
+
+class LogSeverity(Enum):
+    """OTLP log severity levels."""
+    TRACE = 1
+    DEBUG = 5
+    INFO = 9
+    WARN = 13
+    ERROR = 17
+    FATAL = 21
+
+
+@dataclass
+class TelemetryConfig:
+    """
+    Configuration for telemetry client.
+
+    Attributes:
+        project_name: Name of the Automagik project
+        version: Version of the project
+        endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
+        organization: Organization name (default: namastex)
+        timeout: HTTP timeout in seconds (default: 5)
+        batch_size: Number of events to batch before sending (default: 1 for immediate send)
+        flush_interval: Seconds between automatic flushes (default: 5.0)
+        compression_enabled: Enable gzip compression (default: True)
+        compression_threshold: Minimum payload size for compression in bytes (default: 1024)
+        max_retries: Maximum number of retry attempts (default: 3)
+        retry_backoff_base: Base backoff time in seconds (default: 1.0)
+        metrics_endpoint: Custom endpoint for metrics (defaults to /v1/metrics)
+        logs_endpoint: Custom endpoint for logs (defaults to /v1/logs)
+    """
+    project_name: str
+    version: str
+    endpoint: Optional[str] = None
+    organization: str = "namastex"
+    timeout: int = 5
+    batch_size: int = 1  # Default to immediate send for backward compatibility
+    flush_interval: float = 5.0
+    compression_enabled: bool = True
+    compression_threshold: int = 1024
+    max_retries: int = 3
+    retry_backoff_base: float = 1.0
+    metrics_endpoint: Optional[str] = None
+    logs_endpoint: Optional[str] = None
+
+
 class TelemetryClient:
     """
     Privacy-first telemetry client for Automagik projects.
-    
+
     Features:
     - Disabled by default - users must explicitly opt-in
     - Uses only stdlib - no external dependencies
-    - Sends OTLP-compatible traces
+    - Sends OTLP-compatible traces, metrics, and logs
+    - Batch processing with configurable flush intervals
+    - Automatic gzip compression for large payloads
+    - Retry logic with exponential backoff
     - Silent failures - never crashes your app
     - Auto-disables in CI/test environments
-    
+
     Example:
         >>> from automagik_telemetry import TelemetryClient, StandardEvents
-        >>> 
+        >>>
+        >>> # Simple initialization (backward compatible)
         >>> telemetry = TelemetryClient(
         ...     project_name="omni",
         ...     version="1.0.0"
         ... )
-        >>> 
+        >>>
+        >>> # Advanced initialization with custom config
+        >>> from automagik_telemetry import TelemetryConfig
+        >>> config = TelemetryConfig(
+        ...     project_name="omni",
+        ...     version="1.0.0",
+        ...     batch_size=50,
+        ...     compression_enabled=True
+        ... )
+        >>> telemetry = TelemetryClient(config=config)
+        >>>
         >>> telemetry.track_event(StandardEvents.FEATURE_USED, {
         ...     "feature_name": "list_contacts"
         ... })
@@ -46,42 +117,98 @@ class TelemetryClient:
 
     def __init__(
         self,
-        project_name: str,
-        version: str,
+        project_name: Optional[str] = None,
+        version: Optional[str] = None,
         endpoint: Optional[str] = None,
         organization: str = "namastex",
         timeout: int = 5,
+        config: Optional[TelemetryConfig] = None,
     ):
         """
         Initialize telemetry client.
-        
+
         Args:
             project_name: Name of the Automagik project (omni, hive, forge, etc.)
             version: Version of the project
             endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
             organization: Organization name (default: namastex)
             timeout: HTTP timeout in seconds (default: 5)
+            config: TelemetryConfig instance for advanced configuration (overrides individual params)
         """
-        self.project_name = project_name
-        self.project_version = version
-        self.organization = organization
-        self.timeout = timeout
-        
-        # Allow custom endpoint for self-hosting
-        self.endpoint = endpoint or os.getenv(
+        # Support both old and new initialization styles
+        if config is not None:
+            self.config = config
+        else:
+            if project_name is None or version is None:
+                raise ValueError("Either 'config' or both 'project_name' and 'version' must be provided")
+            self.config = TelemetryConfig(
+                project_name=project_name,
+                version=version,
+                endpoint=endpoint,
+                organization=organization,
+                timeout=timeout,
+            )
+
+        # Convenience properties for backward compatibility
+        self.project_name = self.config.project_name
+        self.project_version = self.config.version
+        self.organization = self.config.organization
+        self.timeout = self.config.timeout
+
+        # Set up endpoints
+        base_endpoint = self.config.endpoint or os.getenv(
             "AUTOMAGIK_TELEMETRY_ENDPOINT",
-            "https://telemetry.namastex.ai/v1/traces"
+            "https://telemetry.namastex.ai/v1/traces"  # Legacy default includes /v1/traces
         )
-        
+
+        # Ensure base endpoint doesn't have trailing slash
+        base_endpoint = base_endpoint.rstrip("/")
+
+        # Set specific endpoints
+        # Check if endpoint already has a path component (ends with /traces, /v1/traces, etc.)
+        # This handles backward compatibility where users might pass full endpoints
+        if base_endpoint.endswith("/traces") or base_endpoint.endswith("/metrics") or base_endpoint.endswith("/logs"):
+            # Endpoint already includes path - use as-is
+            self.endpoint = base_endpoint
+            # Extract base for other endpoints
+            if "/v1/" in base_endpoint:
+                base_for_others = base_endpoint.rsplit("/v1/", 1)[0]
+                self.metrics_endpoint = self.config.metrics_endpoint or f"{base_for_others}/v1/metrics"
+                self.logs_endpoint = self.config.logs_endpoint or f"{base_for_others}/v1/logs"
+            else:
+                # Custom endpoint without /v1/ - just replace the last path component
+                base_for_others = base_endpoint.rsplit("/", 1)[0]
+                self.metrics_endpoint = self.config.metrics_endpoint or f"{base_for_others}/metrics"
+                self.logs_endpoint = self.config.logs_endpoint or f"{base_for_others}/logs"
+        else:
+            # New format - just base URL
+            self.endpoint = f"{base_endpoint}/v1/traces"
+            self.metrics_endpoint = self.config.metrics_endpoint or f"{base_endpoint}/v1/metrics"
+            self.logs_endpoint = self.config.logs_endpoint or f"{base_endpoint}/v1/logs"
+
         # User & session IDs
         self.user_id = self._get_or_create_user_id()
         self.session_id = str(uuid.uuid4())
-        
+
         # Enable/disable check
         self.enabled = self._is_telemetry_enabled()
-        
+
         # Verbose mode (print events to console)
         self.verbose = os.getenv("AUTOMAGIK_TELEMETRY_VERBOSE", "false").lower() == "true"
+
+        # Batch processing queues
+        self._trace_queue: deque = deque()
+        self._metric_queue: deque = deque()
+        self._log_queue: deque = deque()
+        self._queue_lock = threading.Lock()
+
+        # Background flush timer
+        self._flush_timer: Optional[threading.Timer] = None
+        self._shutdown = False
+
+        # Start flush timer if batching is enabled
+        if self.config.batch_size > 1:
+            self._schedule_flush()
 
     def _get_or_create_user_id(self) -> str:
         """Generate or retrieve anonymous user identifier."""
@@ -146,21 +273,22 @@ class TelemetryClient:
             "organization": self.organization,
         }
 
-    def _create_attributes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _create_attributes(self, data: Dict[str, Any], include_system: bool = True) -> List[Dict[str, Any]]:
         """Convert data to OTLP attribute format with type safety."""
         attributes = []
 
         # Add system information
-        system_info = self._get_system_info()
-        for key, value in system_info.items():
-            if isinstance(value, bool):
-                attributes.append({"key": f"system.{key}", "value": {"boolValue": value}})
-            elif isinstance(value, (int, float)):
-                attributes.append(
-                    {"key": f"system.{key}", "value": {"doubleValue": float(value)}}
-                )
-            else:
-                attributes.append({"key": f"system.{key}", "value": {"stringValue": str(value)}})
+        if include_system:
+            system_info = self._get_system_info()
+            for key, value in system_info.items():
+                if isinstance(value, bool):
+                    attributes.append({"key": f"system.{key}", "value": {"boolValue": value}})
+                elif isinstance(value, (int, float)):
+                    attributes.append(
+                        {"key": f"system.{key}", "value": {"doubleValue": float(value)}}
+                    )
+                else:
+                    attributes.append({"key": f"system.{key}", "value": {"stringValue": str(value)}})
 
         # Add event data
         for key, value in data.items():
@@ -175,100 +303,333 @@ class TelemetryClient:
 
         return attributes
 
-    def _send_event(self, event_type: str, data: Dict[str, Any]) -> None:
-        """Send telemetry event to the endpoint (internal method)."""
+    def _schedule_flush(self) -> None:
+        """Schedule automatic flush after flush_interval."""
+        if self._shutdown:
+            return
+
+        def flush_and_reschedule() -> None:
+            if not self._shutdown:
+                self.flush()
+                self._schedule_flush()
+
+        self._flush_timer = threading.Timer(self.config.flush_interval, flush_and_reschedule)
+        self._flush_timer.daemon = True
+        self._flush_timer.start()
+
+    def _compress_payload(self, payload: bytes) -> bytes:
+        """Compress payload using gzip if it exceeds threshold."""
+        if (
+            self.config.compression_enabled
+            and len(payload) >= self.config.compression_threshold
+        ):
+            return gzip.compress(payload)
+        return payload
+
+    def _send_with_retry(
+        self, endpoint: str, payload: Dict[str, Any], signal_type: str = "trace"
+    ) -> None:
+        """Send payload with retry logic and exponential backoff."""
         if not self.enabled:
-            return  # Silent no-op when disabled
+            return
 
         try:
-            # Generate trace and span IDs
-            trace_id = f"{uuid.uuid4().hex}{uuid.uuid4().hex}"  # 32 chars
-            span_id = f"{uuid.uuid4().hex[:16]}"  # 16 chars
+            # Serialize payload
+            payload_bytes = json.dumps(payload).encode("utf-8")
 
-            # Create OTLP-compatible payload
-            payload = {
-                "resourceSpans": [
-                    {
-                        "resource": {
-                            "attributes": [
-                                {
-                                    "key": "service.name",
-                                    "value": {"stringValue": self.project_name},
-                                },
-                                {
-                                    "key": "service.version",
-                                    "value": {"stringValue": self.project_version},
-                                },
-                                {
-                                    "key": "service.organization",
-                                    "value": {"stringValue": self.organization},
-                                },
-                                {
-                                    "key": "user.id",
-                                    "value": {"stringValue": self.user_id},
-                                },
-                                {
-                                    "key": "session.id",
-                                    "value": {"stringValue": self.session_id},
-                                },
-                                {
-                                    "key": "telemetry.sdk.name",
-                                    "value": {"stringValue": "automagik-telemetry"},
-                                },
-                                {
-                                    "key": "telemetry.sdk.version",
-                                    "value": {"stringValue": "0.1.0"},
-                                },
-                            ]
-                        },
-                        "scopeSpans": [
-                            {
-                                "scope": {
-                                    "name": f"{self.project_name}.telemetry",
-                                    "version": self.project_version,
-                                },
-                                "spans": [
-                                    {
-                                        "traceId": trace_id,
-                                        "spanId": span_id,
-                                        "name": event_type,
-                                        "kind": "SPAN_KIND_INTERNAL",
-                                        "startTimeUnixNano": int(time.time() * 1_000_000_000),
-                                        "endTimeUnixNano": int(time.time() * 1_000_000_000),
-                                        "attributes": self._create_attributes(data),
-                                        "status": {"code": "STATUS_CODE_OK"},
-                                    }
-                                ],
-                            }
-                        ],
-                    }
-                ]
-            }
+            # Compress if needed
+            original_size = len(payload_bytes)
+            payload_bytes = self._compress_payload(payload_bytes)
+            compressed = len(payload_bytes) < original_size
 
-            # Verbose mode: print event to console
+            # Prepare headers
+            headers = {"Content-Type": "application/json"}
+            if compressed:
+                headers["Content-Encoding"] = "gzip"
+
+            # Verbose mode logging
             if self.verbose:
-                print(f"\n[Telemetry] Sending event: {event_type}")
-                print(f"  Project: {self.project_name}")
-                print(f"  Data: {json.dumps(data, indent=2)}")
-                print(f"  Endpoint: {self.endpoint}\n")
+                print(f"\n[Telemetry] Sending {signal_type}")
+                print(f"  Endpoint: {endpoint}")
+                print(f"  Size: {len(payload_bytes)} bytes (compressed: {compressed})")
+                print(f"  Payload preview: {json.dumps(payload, indent=2)[:200]}...\n")
 
-            # Send HTTP request
-            request = Request(
-                self.endpoint,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-            )
+            # Retry loop with exponential backoff
+            last_exception = None
+            for attempt in range(self.config.max_retries + 1):
+                try:
+                    request = Request(endpoint, data=payload_bytes, headers=headers)
 
-            with urlopen(request, timeout=self.timeout) as response:
-                if response.status != 200:
-                    logger.debug(f"Telemetry event failed with status {response.status}")
+                    with urlopen(request, timeout=self.timeout) as response:
+                        if response.status == 200:
+                            return  # Success
+                        elif response.status >= 500:
+                            # Server error - retry
+                            last_exception = Exception(f"Server error: {response.status}")
+                        else:
+                            # Client error - don't retry
+                            logger.debug(f"Telemetry {signal_type} failed with status {response.status}")
+                            return
 
-        except (URLError, HTTPError, TimeoutError) as e:
-            # Log only in debug mode, never crash the application
-            logger.debug(f"Telemetry network error: {e}")
+                except (URLError, HTTPError, TimeoutError) as e:
+                    last_exception = e
+                    # Check if we should retry
+                    if isinstance(e, HTTPError) and e.code < 500:
+                        # Client error - don't retry
+                        logger.debug(f"Telemetry {signal_type} failed: {e}")
+                        return
+
+                # Wait before retry (exponential backoff)
+                if attempt < self.config.max_retries:
+                    backoff_time = self.config.retry_backoff_base * (2 ** attempt)
+                    time.sleep(backoff_time)
+
+            # All retries exhausted
+            if last_exception:
+                logger.debug(f"Telemetry {signal_type} failed after {self.config.max_retries} retries: {last_exception}")
+
         except Exception as e:
             # Log any other errors in debug mode
-            logger.debug(f"Telemetry event error: {e}")
+            logger.debug(f"Telemetry {signal_type} error: {e}")
+
+    def _get_resource_attributes(self) -> List[Dict[str, Any]]:
+        """Get common resource attributes for OTLP payloads."""
+        return [
+            {
+                "key": "service.name",
+                "value": {"stringValue": self.project_name},
+            },
+            {
+                "key": "service.version",
+                "value": {"stringValue": self.project_version},
+            },
+            {
+                "key": "service.organization",
+                "value": {"stringValue": self.organization},
+            },
+            {
+                "key": "user.id",
+                "value": {"stringValue": self.user_id},
+            },
+            {
+                "key": "session.id",
+                "value": {"stringValue": self.session_id},
+            },
+            {
+                "key": "telemetry.sdk.name",
+                "value": {"stringValue": "automagik-telemetry"},
+            },
+            {
+                "key": "telemetry.sdk.version",
+                "value": {"stringValue": "0.2.0"},
+            },
+        ]
+
+    def _send_trace(self, event_type: str, data: Dict[str, Any]) -> None:
+        """Send trace (span) using OTLP traces format."""
+        if not self.enabled:
+            return
+
+        # Generate trace and span IDs
+        trace_id = f"{uuid.uuid4().hex}{uuid.uuid4().hex}"  # 32 chars
+        span_id = f"{uuid.uuid4().hex[:16]}"  # 16 chars
+
+        # Create OTLP-compatible payload
+        span = {
+            "traceId": trace_id,
+            "spanId": span_id,
+            "name": event_type,
+            "kind": "SPAN_KIND_INTERNAL",
+            "startTimeUnixNano": int(time.time() * 1_000_000_000),
+            "endTimeUnixNano": int(time.time() * 1_000_000_000),
+            "attributes": self._create_attributes(data),
+            "status": {"code": "STATUS_CODE_OK"},
+        }
+
+        # Queue or send immediately
+        if self.config.batch_size > 1:
+            with self._queue_lock:
+                self._trace_queue.append(span)
+                if len(self._trace_queue) >= self.config.batch_size:
+                    self._flush_traces()
+        else:
+            self._flush_traces([span])
+
+    def _send_metric(
+        self,
+        metric_name: str,
+        value: float,
+        metric_type: MetricType = MetricType.GAUGE,
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Send metric using OTLP metrics format."""
+        if not self.enabled:
+            return
+
+        timestamp_nano = int(time.time() * 1_000_000_000)
+        attrs = self._create_attributes(attributes or {}, include_system=False)
+
+        # Create data point based on metric type
+        if metric_type == MetricType.GAUGE:
+            data_point = {
+                "asDouble": value,
+                "timeUnixNano": timestamp_nano,
+                "attributes": attrs,
+            }
+            metric_data = {"gauge": {"dataPoints": [data_point]}}
+        elif metric_type == MetricType.COUNTER:
+            data_point = {
+                "asDouble": value,
+                "startTimeUnixNano": timestamp_nano,
+                "timeUnixNano": timestamp_nano,
+                "attributes": attrs,
+            }
+            metric_data = {"sum": {"dataPoints": [data_point], "isMonotonic": True, "aggregationTemporality": 2}}
+        elif metric_type == MetricType.HISTOGRAM:
+            data_point = {
+                "count": 1,
+                "sum": value,
+                "startTimeUnixNano": timestamp_nano,
+                "timeUnixNano": timestamp_nano,
+                "attributes": attrs,
+            }
+            metric_data = {"histogram": {"dataPoints": [data_point], "aggregationTemporality": 2}}
+        else:
+            logger.debug(f"Unknown metric type: {metric_type}")
+            return
+
+        metric = {
+            "name": metric_name,
+            "description": "",
+            **metric_data,
+        }
+
+        # Queue or send immediately
+        if self.config.batch_size > 1:
+            with self._queue_lock:
+                self._metric_queue.append(metric)
+                if len(self._metric_queue) >= self.config.batch_size:
+                    self._flush_metrics()
+        else:
+            self._flush_metrics([metric])
+
+    def _send_log(
+        self,
+        message: str,
+        severity: LogSeverity = LogSeverity.INFO,
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Send log using OTLP logs format."""
+        if not self.enabled:
+            return
+
+        timestamp_nano = int(time.time() * 1_000_000_000)
+        attrs = self._create_attributes(attributes or {}, include_system=False)
+
+        log_record = {
+            "timeUnixNano": timestamp_nano,
+            "severityNumber": severity.value,
+            "severityText": severity.name,
+            "body": {"stringValue": message[:1000]},  # Truncate long messages
+            "attributes": attrs,
+        }
+
+        # Queue or send immediately
+        if self.config.batch_size > 1:
+            with self._queue_lock:
+                self._log_queue.append(log_record)
+                if len(self._log_queue) >= self.config.batch_size:
+                    self._flush_logs()
+        else:
+            self._flush_logs([log_record])
+
+    def _flush_traces(self, spans: Optional[List[Dict[str, Any]]] = None) -> None:
+        """Flush trace queue to endpoint."""
+        if spans is None:
+            with self._queue_lock:
+                if not self._trace_queue:
+                    return
+                spans = list(self._trace_queue)
+                self._trace_queue.clear()
+
+        payload = {
+            "resourceSpans": [
+                {
+                    "resource": {"attributes": self._get_resource_attributes()},
+                    "scopeSpans": [
+                        {
+                            "scope": {
+                                "name": f"{self.project_name}.telemetry",
+                                "version": self.project_version,
+                            },
+                            "spans": spans,
+                        }
+                    ],
+                }
+            ]
+        }
+
+        self._send_with_retry(self.endpoint, payload, "trace")
+
+    def _flush_metrics(self, metrics: Optional[List[Dict[str, Any]]] = None) -> None:
+        """Flush metric queue to endpoint."""
+        if metrics is None:
+            with self._queue_lock:
+                if not self._metric_queue:
+                    return
+                metrics = list(self._metric_queue)
+                self._metric_queue.clear()
+
+        payload = {
+            "resourceMetrics": [
+                {
+                    "resource": {"attributes": self._get_resource_attributes()},
+                    "scopeMetrics": [
+                        {
+                            "scope": {
+                                "name": f"{self.project_name}.telemetry",
+                                "version": self.project_version,
+                            },
+                            "metrics": metrics,
+                        }
+                    ],
+                }
+            ]
+        }
+
+        self._send_with_retry(self.metrics_endpoint, payload, "metric")
+
+    def _flush_logs(self, log_records: Optional[List[Dict[str, Any]]] = None) -> None:
+        """Flush log queue to endpoint."""
+        if log_records is None:
+            with self._queue_lock:
+                if not self._log_queue:
+                    return
+                log_records = list(self._log_queue)
+                self._log_queue.clear()
+
+        payload = {
+            "resourceLogs": [
+                {
+                    "resource": {"attributes": self._get_resource_attributes()},
+                    "scopeLogs": [
+                        {
+                            "scope": {
+                                "name": f"{self.project_name}.telemetry",
+                                "version": self.project_version,
+                            },
+                            "logRecords": log_records,
+                        }
+                    ],
+                }
+            ]
+        }
+
+        self._send_with_retry(self.logs_endpoint, payload, "log")
+
+    def _send_event(self, event_type: str, data: Dict[str, Any]) -> None:
+        """Send telemetry event (legacy method - uses traces)."""
+        self._send_trace(event_type, data)
 
     # === Public API ===
 
@@ -313,24 +674,96 @@ class TelemetryClient:
         self._send_event("automagik.error", data)
 
     def track_metric(
-        self, metric_name: str, value: float, attributes: Optional[Dict[str, Any]] = None
+        self,
+        metric_name: str,
+        value: float,
+        attributes: Optional[Dict[str, Any]] = None,
+        metric_type: Union[MetricType, str] = MetricType.GAUGE,
     ) -> None:
         """
-        Track a numeric metric.
-        
+        Track a numeric metric using OTLP metrics format.
+
         Args:
             metric_name: Metric name
             value: Metric value
-            attributes: Metric attributes
-            
+            attributes: Metric attributes (for backward compatibility, can be 3rd positional arg)
+            metric_type: Type of metric (gauge, counter, or histogram)
+
         Example:
-            >>> telemetry.track_metric(StandardEvents.OPERATION_LATENCY, {
-            ...     "operation_type": "api_request",
-            ...     "duration_ms": 123
-            ... })
+            >>> # Old style (backward compatible)
+            >>> telemetry.track_metric("api.latency", 123.45, {"endpoint": "/v1/contacts"})
+            >>>
+            >>> # New style with metric type
+            >>> from automagik_telemetry import MetricType
+            >>> telemetry.track_metric(
+            ...     "api.latency",
+            ...     123.45,
+            ...     metric_type=MetricType.HISTOGRAM,
+            ...     attributes={"endpoint": "/v1/contacts"}
+            ... )
         """
-        data = {"value": value, **(attributes or {})}
-        self._send_event(metric_name, data)
+        # Handle backward compatibility: if attributes is a dict, use old behavior
+        # The old API signature was: track_metric(name, value, attributes)
+        # Now it's: track_metric(name, value, attributes, metric_type)
+
+        # Convert string to enum if needed
+        if isinstance(metric_type, str):
+            try:
+                metric_type = MetricType(metric_type.lower())
+            except ValueError:
+                metric_type = MetricType.GAUGE
+
+        self._send_metric(metric_name, value, metric_type, attributes)
+
+    def track_log(
+        self,
+        message: str,
+        severity: Union[LogSeverity, str] = LogSeverity.INFO,
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Track a log message using OTLP logs format.
+
+        Args:
+            message: Log message
+            severity: Log severity level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+            attributes: Additional log attributes
+
+        Example:
+            >>> from automagik_telemetry import LogSeverity
+            >>> telemetry.track_log(
+            ...     "User authentication successful",
+            ...     severity=LogSeverity.INFO,
+            ...     attributes={"user_id": "anonymous-uuid"}
+            ... )
+        """
+        # Convert string to enum if needed
+        if isinstance(severity, str):
+            try:
+                severity = LogSeverity[severity.upper()]
+            except KeyError:
+                severity = LogSeverity.INFO
+
+        self._send_log(message, severity, attributes)
+
+    def flush(self) -> None:
+        """
+        Manually flush all queued events to the telemetry endpoint.
+
+        This is useful when you want to ensure all events are sent before
+        the application exits or at specific checkpoints.
+
+        Example:
+            >>> telemetry.track_event("app.shutdown")
+            >>> telemetry.flush()  # Ensure event is sent before exit
+        """
+        if not self.enabled:
+            return
+
+        # Flush all queues
+        self._flush_traces()
+        self._flush_metrics()
+        self._flush_logs()
 
     # === Control Methods ===
 
@@ -361,6 +794,13 @@ class TelemetryClient:
 
     def get_status(self) -> Dict[str, Any]:
         """Get telemetry status information."""
+        with self._queue_lock:
+            queue_sizes = {
+                "traces": len(self._trace_queue),
+                "metrics": len(self._metric_queue),
+                "logs": len(self._log_queue),
+            }
+
         return {
             "enabled": self.enabled,
             "user_id": self.user_id,
@@ -368,7 +808,27 @@ class TelemetryClient:
             "project_name": self.project_name,
             "project_version": self.project_version,
             "endpoint": self.endpoint,
+            "metrics_endpoint": self.metrics_endpoint,
+            "logs_endpoint": self.logs_endpoint,
             "opt_out_file_exists": (Path.home() / ".automagik-no-telemetry").exists(),
             "env_var": os.getenv("AUTOMAGIK_TELEMETRY_ENABLED"),
             "verbose": self.verbose,
+            "batch_size": self.config.batch_size,
+            "compression_enabled": self.config.compression_enabled,
+            "queue_sizes": queue_sizes,
         }
+
+    def __del__(self) -> None:
+        """Cleanup: flush queued events and stop background timer."""
+        try:
+            self._shutdown = True
+
+            # Cancel flush timer
+            if self._flush_timer is not None:
+                self._flush_timer.cancel()
+
+            # Flush all remaining events
+            self.flush()
+        except Exception:
+            # Silent failure during cleanup
+            pass
