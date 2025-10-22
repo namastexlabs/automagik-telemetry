@@ -2,7 +2,6 @@
 
 [![Python SDK CI](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/python-ci.yml/badge.svg)](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/python-ci.yml)
 [![TypeScript SDK CI](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/typescript-ci.yml/badge.svg)](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/typescript-ci.yml)
-[![codecov](https://codecov.io/gh/namastexlabs/automagik-telemetry/branch/main/graph/badge.svg)](https://codecov.io/gh/namastexlabs/automagik-telemetry)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Complete OpenTelemetry setup for automagik-agents with traces and metrics collection.

@@ -60,17 +60,22 @@ jobs:
       - name: Run jest tests with coverage
         run: |
           cd typescript
-          pnpm run test -- --coverage --coverageReporters=xml --coverageReporters=text
+          pnpm run test -- --coverage
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v4
         if: matrix.node-version == '20'
         with:
-          files: ./typescript/coverage/coverage-final.json
-          flags: typescript
-          name: typescript-node-${{ matrix.node-version }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          name: typescript-coverage-report
+          path: typescript/coverage/
+          retention-days: 30
+
+      - name: Coverage summary comment
+        uses: davelosert/vitest-coverage-report-action@v2
+        if: github.event_name == 'pull_request' && matrix.node-version == '20'
+        with:
+          working-directory: typescript
+          vite-config-path: jest.config.js
 
   lint-format:
     name: Lint and Format Check

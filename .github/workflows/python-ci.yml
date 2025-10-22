@@ -50,17 +50,23 @@ jobs:
       - name: Run pytest with coverage
         run: |
           cd python
-          pytest --cov=automagik_telemetry --cov-report=xml --cov-report=term-missing
+          pytest --cov=automagik_telemetry --cov-report=html --cov-report=term-missing
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v4
         if: matrix.python-version == '3.12'
         with:
-          files: ./python/coverage.xml
-          flags: python
-          name: python-${{ matrix.python-version }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          name: python-coverage-report
+          path: python/htmlcov/
+          retention-days: 30
+
+      - name: Coverage comment on PR
+        uses: py-cov-action/python-coverage-comment-action@v3
+        if: github.event_name == 'pull_request' && matrix.python-version == '3.12'
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 90
+          MINIMUM_ORANGE: 80
 
   lint-format:
     name: Lint and Format Check
