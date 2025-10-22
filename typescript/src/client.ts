@@ -1,55 +1,509 @@
 /**
- * Telemetry client implementation - TODO: Implement in #1
+ * Production-ready telemetry client implementation.
+ *
+ * Based on battle-tested code from automagik-omni and automagik-spark.
+ * Uses only Node.js standard library - no external dependencies.
  */
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as crypto from 'crypto';
+
+/**
+ * Configuration interface for TelemetryClient.
+ */
 export interface TelemetryConfig {
+  /** Name of the Automagik project (omni, hive, forge, etc.) */
   projectName: string;
+  /** Version of the project */
   version: string;
+  /** Custom telemetry endpoint (defaults to telemetry.namastex.ai) */
+  endpoint?: string;
+  /** Organization name (default: namastex) */
+  organization?: string;
+  /** HTTP timeout in seconds (default: 5) */
+  timeout?: number;
+}
+
+/**
+ * OTLP attribute value types.
+ */
+interface OTLPAttributeValue {
+  stringValue?: string;
+  boolValue?: boolean;
+  intValue?: number;
+  doubleValue?: number;
+}
+
+/**
+ * OTLP attribute structure.
+ */
+interface OTLPAttribute {
+  key: string;
+  value: OTLPAttributeValue;
+}
+
+/**
+ * System information structure.
+ */
+interface SystemInfo {
+  os: string;
+  os_version: string;
+  node_version: string;
+  architecture: string;
+  is_docker: boolean;
+  project_name: string;
+  project_version: string;
+  organization: string;
 }
 
 /**
  * Privacy-first telemetry client for Automagik projects.
- * 
- * Disabled by default - users must explicitly opt-in.
+ *
+ * Features:
+ * - Disabled by default - users must explicitly opt-in
+ * - Uses only stdlib - no external dependencies
+ * - Sends OTLP-compatible traces
+ * - Silent failures - never crashes your app
+ * - Auto-disables in CI/test environments
+ *
+ * @example
+ * ```typescript
+ * import { TelemetryClient, StandardEvents } from '@automagik/telemetry';
+ *
+ * const telemetry = new TelemetryClient({
+ *   projectName: 'omni',
+ *   version: '1.0.0'
+ * });
+ *
+ * telemetry.trackEvent(StandardEvents.FEATURE_USED, {
+ *   feature_name: 'list_contacts'
+ * });
+ * ```
  */
 export class TelemetryClient {
   private projectName: string;
-  private version: string;
+  private projectVersion: string;
+  private organization: string;
+  private timeout: number;
+  private endpoint: string;
+  private userId: string;
+  private sessionId: string;
+  private enabled: boolean;
+  private verbose: boolean;
 
+  /**
+   * Initialize telemetry client.
+   *
+   * @param config - Configuration options
+   */
   constructor(config: TelemetryConfig) {
     this.projectName = config.projectName;
-    this.version = config.version;
-    // TODO: Implement initialization logic in #1
+    this.projectVersion = config.version;
+    this.organization = config.organization || 'namastex';
+    this.timeout = (config.timeout || 5) * 1000; // Convert to milliseconds
+
+    // Allow custom endpoint for self-hosting
+    this.endpoint =
+      config.endpoint ||
+      process.env.AUTOMAGIK_TELEMETRY_ENDPOINT ||
+      'https://telemetry.namastex.ai/v1/traces';
+
+    // User & session IDs
+    this.userId = this.getOrCreateUserId();
+    this.sessionId = crypto.randomUUID();
+
+    // Enable/disable check
+    this.enabled = this.isTelemetryEnabled();
+
+    // Verbose mode (print events to console)
+    this.verbose = process.env.AUTOMAGIK_TELEMETRY_VERBOSE?.toLowerCase() === 'true';
   }
 
   /**
+   * Generate or retrieve anonymous user identifier.
+   *
+   * @returns Persistent anonymous user ID
+   */
+  private getOrCreateUserId(): string {
+    const userIdFile = path.join(os.homedir(), '.automagik', 'user_id');
+
+    // Try to read existing ID
+    if (fs.existsSync(userIdFile)) {
+      try {
+        return fs.readFileSync(userIdFile, 'utf-8').trim();
+      } catch (error) {
+        // Continue to create new ID if read fails
+      }
+    }
+
+    // Create new anonymous UUID
+    const userId = crypto.randomUUID();
+    try {
+      const dir = path.dirname(userIdFile);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(userIdFile, userId, 'utf-8');
+    } catch (error) {
+      // Continue with in-memory ID if file creation fails
+    }
+
+    return userId;
+  }
+
+  /**
+   * Check if telemetry is enabled based on various opt-out mechanisms.
+   *
+   * @returns True if telemetry should be enabled
+   */
+  private isTelemetryEnabled(): boolean {
+    // Explicit enable/disable via environment variable
+    const envVar = process.env.AUTOMAGIK_TELEMETRY_ENABLED;
+    if (envVar !== undefined) {
+      return ['true', '1', 'yes', 'on'].includes(envVar.toLowerCase());
+    }
+
+    // Check for opt-out file
+    const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
+    if (fs.existsSync(optOutFile)) {
+      return false;
+    }
+
+    // Auto-disable in CI/testing environments
+    const ciEnvironments = [
+      'CI',
+      'GITHUB_ACTIONS',
+      'TRAVIS',
+      'JENKINS',
+      'GITLAB_CI',
+      'CIRCLECI',
+    ];
+    if (ciEnvironments.some((varName) => process.env[varName])) {
+      return false;
+    }
+
+    // Check for development indicators
+    const environment = process.env.ENVIRONMENT;
+    if (environment && ['development', 'dev', 'test', 'testing'].includes(environment)) {
+      return false;
+    }
+
+    // Default: disabled (opt-in only)
+    return false;
+  }
+
+  /**
+   * Collect basic system information (no PII).
+   *
+   * @returns System information object
+   */
+  private getSystemInfo(): SystemInfo {
+    return {
+      os: os.platform(),
+      os_version: os.release(),
+      node_version: process.version,
+      architecture: os.arch(),
+      is_docker: fs.existsSync('/.dockerenv'),
+      project_name: this.projectName,
+      project_version: this.projectVersion,
+      organization: this.organization,
+    };
+  }
+
+  /**
+   * Convert data to OTLP attribute format with type safety.
+   *
+   * @param data - Event data to convert
+   * @returns OTLP-formatted attributes
+   */
+  private createAttributes(data: Record<string, any>): OTLPAttribute[] {
+    const attributes: OTLPAttribute[] = [];
+
+    // Add system information
+    const systemInfo = this.getSystemInfo();
+    for (const [key, value] of Object.entries(systemInfo)) {
+      if (typeof value === 'boolean') {
+        attributes.push({ key: `system.${key}`, value: { boolValue: value } });
+      } else if (typeof value === 'number') {
+        attributes.push({ key: `system.${key}`, value: { doubleValue: value } });
+      } else {
+        attributes.push({ key: `system.${key}`, value: { stringValue: String(value) } });
+      }
+    }
+
+    // Add event data
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === 'boolean') {
+        attributes.push({ key, value: { boolValue: value } });
+      } else if (typeof value === 'number') {
+        attributes.push({ key, value: { doubleValue: value } });
+      } else {
+        // Truncate long strings to prevent payload bloat
+        const sanitizedValue = String(value).slice(0, 500);
+        attributes.push({ key, value: { stringValue: sanitizedValue } });
+      }
+    }
+
+    return attributes;
+  }
+
+  /**
+   * Send telemetry event to the endpoint (internal method).
+   *
+   * @param eventType - Event type name
+   * @param data - Event data
+   */
+  private async sendEvent(eventType: string, data: Record<string, any>): Promise<void> {
+    if (!this.enabled) {
+      return; // Silent no-op when disabled
+    }
+
+    try {
+      // Generate trace and span IDs (32 and 16 hex chars respectively)
+      const traceId = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+      const spanId = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+
+      // Get current time in nanoseconds
+      const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
+
+      // Create OTLP-compatible payload
+      const payload = {
+        resourceSpans: [
+          {
+            resource: {
+              attributes: [
+                {
+                  key: 'service.name',
+                  value: { stringValue: this.projectName },
+                },
+                {
+                  key: 'service.version',
+                  value: { stringValue: this.projectVersion },
+                },
+                {
+                  key: 'service.organization',
+                  value: { stringValue: this.organization },
+                },
+                {
+                  key: 'user.id',
+                  value: { stringValue: this.userId },
+                },
+                {
+                  key: 'session.id',
+                  value: { stringValue: this.sessionId },
+                },
+                {
+                  key: 'telemetry.sdk.name',
+                  value: { stringValue: 'automagik-telemetry' },
+                },
+                {
+                  key: 'telemetry.sdk.version',
+                  value: { stringValue: '0.1.0' },
+                },
+              ],
+            },
+            scopeSpans: [
+              {
+                scope: {
+                  name: `${this.projectName}.telemetry`,
+                  version: this.projectVersion,
+                },
+                spans: [
+                  {
+                    traceId: traceId,
+                    spanId: spanId,
+                    name: eventType,
+                    kind: 'SPAN_KIND_INTERNAL',
+                    startTimeUnixNano: timeNano.toString(),
+                    endTimeUnixNano: timeNano.toString(),
+                    attributes: this.createAttributes(data),
+                    status: { code: 'STATUS_CODE_OK' },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      // Verbose mode: print event to console
+      if (this.verbose) {
+        console.log(`\n[Telemetry] Sending event: ${eventType}`);
+        console.log(`  Project: ${this.projectName}`);
+        console.log(`  Data: ${JSON.stringify(data, null, 2)}`);
+        console.log(`  Endpoint: ${this.endpoint}\n`);
+      }
+
+      // Send HTTP request using native fetch (Node.js 18+)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      try {
+        const response = await fetch(this.endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.status !== 200) {
+          // Log only in debug mode, never crash the application
+          if (this.verbose) {
+            console.debug(`Telemetry event failed with status ${response.status}`);
+          }
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    } catch (error) {
+      // Log any errors in debug mode only
+      if (this.verbose) {
+        console.debug(`Telemetry event error:`, error);
+      }
+      // Silent failure - never crash the application
+    }
+  }
+
+  // === Public API ===
+
+  /**
    * Track a telemetry event.
-   * 
+   *
    * @param eventName - Event name (use StandardEvents constants)
    * @param attributes - Event attributes (automatically sanitized for privacy)
+   *
+   * @example
+   * ```typescript
+   * telemetry.trackEvent(StandardEvents.FEATURE_USED, {
+   *   feature_name: 'list_contacts',
+   *   feature_category: 'api_endpoint'
+   * });
+   * ```
    */
   trackEvent(eventName: string, attributes?: Record<string, any>): void {
-    // TODO: Implement in #1
+    this.sendEvent(eventName, attributes || {}).catch(() => {
+      // Silent failure
+    });
   }
 
   /**
    * Track an error with context.
-   * 
+   *
    * @param error - The error that occurred
    * @param context - Additional context about the error
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   riskyOperation();
+   * } catch (error) {
+   *   telemetry.trackError(error as Error, {
+   *     error_code: 'OMNI-1001',
+   *     operation: 'message_send'
+   *   });
+   * }
+   * ```
    */
   trackError(error: Error, context?: Record<string, any>): void {
-    // TODO: Implement in #1
+    const data = {
+      error_type: error.name,
+      error_message: error.message.slice(0, 500), // Truncate long errors
+      ...(context || {}),
+    };
+    this.sendEvent('automagik.error', data).catch(() => {
+      // Silent failure
+    });
   }
 
   /**
    * Track a numeric metric.
-   * 
+   *
    * @param metricName - Metric name
    * @param value - Metric value
    * @param attributes - Metric attributes
+   *
+   * @example
+   * ```typescript
+   * telemetry.trackMetric(StandardEvents.OPERATION_LATENCY, 123, {
+   *   operation_type: 'api_request',
+   *   duration_ms: 123
+   * });
+   * ```
    */
   trackMetric(metricName: string, value: number, attributes?: Record<string, any>): void {
-    // TODO: Implement in #1
+    const data = { value, ...(attributes || {}) };
+    this.sendEvent(metricName, data).catch(() => {
+      // Silent failure
+    });
+  }
+
+  // === Control Methods ===
+
+  /**
+   * Enable telemetry and save preference.
+   * Removes the opt-out file if it exists.
+   */
+  enable(): void {
+    this.enabled = true;
+    // Remove opt-out file if it exists
+    const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
+    if (fs.existsSync(optOutFile)) {
+      try {
+        fs.unlinkSync(optOutFile);
+      } catch (error) {
+        // Silent failure
+      }
+    }
+  }
+
+  /**
+   * Disable telemetry permanently.
+   * Creates an opt-out file in the user's home directory.
+   */
+  disable(): void {
+    this.enabled = false;
+    // Create opt-out file
+    try {
+      const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
+      fs.writeFileSync(optOutFile, '', 'utf-8');
+    } catch (error) {
+      // Silent failure
+    }
+  }
+
+  /**
+   * Check if telemetry is enabled.
+   *
+   * @returns True if telemetry is currently enabled
+   */
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /**
+   * Get telemetry status information.
+   *
+   * @returns Status object with configuration and state
+   */
+  getStatus(): Record<string, any> {
+    const optOutFile = path.join(os.homedir(), '.automagik-no-telemetry');
+    return {
+      enabled: this.enabled,
+      user_id: this.userId,
+      session_id: this.sessionId,
+      project_name: this.projectName,
+      project_version: this.projectVersion,
+      endpoint: this.endpoint,
+      opt_out_file_exists: fs.existsSync(optOutFile),
+      env_var: process.env.AUTOMAGIK_TELEMETRY_ENABLED,
+      verbose: this.verbose,
+    };
   }
 }

@@ -1,494 +1,288 @@
-<p align="center">
-  <img src=".github/images/telemetry-logo.svg" alt="Automagik Telemetry Logo" width="400">
-</p>
-<h2 align="center">Privacy-First, Opt-In Telemetry for the Automagik Ecosystem</h2>
+# OpenTelemetry Telemetry System
 
-<p align="center">
-  <strong>🎯 Understand Your Users While Respecting Their Privacy</strong><br>
-  Standardized telemetry SDKs for all Automagik projects with transparency,<br>
-  user control, and self-hosting built-in from day one
-</p>
+[![Python SDK CI](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/python-ci.yml/badge.svg)](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/python-ci.yml)
+[![TypeScript SDK CI](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/typescript-ci.yml/badge.svg)](https://github.com/namastexlabs/automagik-telemetry/actions/workflows/typescript-ci.yml)
+[![codecov](https://codecov.io/gh/namastexlabs/automagik-telemetry/branch/main/graph/badge.svg)](https://codecov.io/gh/namastexlabs/automagik-telemetry)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<p align="center">
-  <a href="https://github.com/namastexlabs/automagik-telemetry/actions"><img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/namastexlabs/automagik-telemetry/test.yml?branch=main&style=flat-square" /></a>
-  <a href="https://github.com/namastexlabs/automagik-telemetry/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/namastexlabs/automagik-telemetry?style=flat-square&color=00D9FF" /></a>
-  <a href="https://discord.gg/xcW8c7fF3R"><img alt="Discord" src="https://img.shields.io/discord/1095114867012292758?style=flat-square&color=00D9FF&label=discord" /></a>
-  <a href="https://github.com/orgs/namastexlabs/projects/9/views/1?filterQuery=project%3Atelemetry"><img alt="Roadmap" src="https://img.shields.io/badge/📍_roadmap-view_initiatives-5319E7?style=flat-square" /></a>
-</p>
+Complete OpenTelemetry setup for automagik-agents with traces and metrics collection.
 
-<p align="center">
-  <a href="#-what-is-automagik-telemetry">What is Telemetry?</a> •
-  <a href="#-key-features">Features</a> •
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-privacy--control">Privacy</a> •
-  <a href="https://github.com/orgs/namastexlabs/projects/9/views/1?filterQuery=project%3Atelemetry">Roadmap</a> •
-  <a href="#-contributing">Contributing</a>
-</p>
+## 🎯 Overview
 
----
+This repository contains:
+- ✅ **Production OpenTelemetry Collector** running on LXC container 155
+- ✅ **Prometheus Integration** for metrics storage and querying
+- ✅ **Cloudflare Tunnel** for secure HTTPS access
+- ✅ **Development Tools** for local testing and debugging
 
-## 🚀 What is Automagik Telemetry?
+## 🚀 Quick Start
 
-**Automagik Telemetry** provides standardized, privacy-first telemetry SDKs for all Automagik projects (Omni, Hive, Forge, Tools, Genie, Spark). It enables data-driven development while respecting user privacy and maintaining open-source transparency.
-
-### 💔 The Problem: Flying Blind vs. Privacy Invasion
-
-Building open-source tools creates a dilemma:
-
-- 🕶️ **No telemetry** = Flying blind, can't prioritize features, fix bugs users actually encounter
-- 👁️ **Traditional telemetry** = Privacy nightmares, users don't trust you, compliance headaches
-- 🤷 **Half-baked solutions** = Inconsistent across projects, no transparency, hard to self-host
-
-**The result?** Either you don't know how users actually use your tool, or you collect data in ways that violate their trust.
-
-### ✨ The Automagik Telemetry Solution
-
-**Privacy-first by design, transparent by default, controllable by users:**
-
-```mermaid
-graph LR
-    A[User Opts In] -->|Explicit Consent| B[Telemetry Client]
-    B -->|Anonymous Data| C[Your Endpoint]
-    B -->|Transparent| D[--telemetry-verbose]
-    C -->|Or Self-Host| E[Your Infrastructure]
-
-    style B fill:#00D9FF,stroke:#0099CC,stroke-width:3px,color:#000
-```
-
-**What you get:**
-- ✅ **Disabled by default** - Users must explicitly opt-in
-- 🔒 **No PII collected** - Phone numbers, emails, messages never sent
-- 🔍 **Transparent** - Users can see exactly what's sent
-- 🏠 **Self-hostable** - Run your own telemetry infrastructure
-- 📊 **Actionable insights** - Feature usage, error rates, performance metrics
-- 🛠️ **Easy integration** - 5 lines of code to add to any project
-
-### 🌟 The Vision: Ethical Data-Driven Development
-
-Imagine building features based on real usage data, fixing bugs users actually encounter, all while maintaining their complete trust:
-
-> *"I know users love the Discord integration but struggle with WhatsApp - and they trust me with this data because I've been transparent from day one"*
-
-**Today:** Privacy-first telemetry for Automagik projects
-**Tomorrow:** The gold standard for open-source telemetry that respects users
-
----
-
-## 🌟 Key Features
-
-### ✅ Production-Ready Today
-
-- **🔐 Privacy-First Design**: Disabled by default, no PII collected, anonymous by design
-- **📦 Dual SDKs**: Python and TypeScript SDKs for the entire Automagik ecosystem
-- **🔍 Complete Transparency**: `--telemetry-verbose` flag shows exactly what's sent
-- **🏠 Self-Hostable**: Run your own OpenTelemetry infrastructure
-- **📊 Pre-Built Dashboards**: Grafana templates for instant insights
-- **🚫 Auto-Disabled in CI**: Respects CI environments and development mode
-- **🎯 Standardized Events**: Consistent schema across all projects
-- **⚡ Zero Performance Impact**: Async by default, fire-and-forget
-
-### 📦 Supported Projects
-
-| Project | SDK | Status | Events Tracked |
-|---------|-----|--------|----------------|
-| **Automagik Omni** | Python | ✅ Ready | Message volume, channel health, error rates |
-| **Automagik Hive** | Python | ✅ Ready | Agent usage, workflow execution, RAG performance |
-| **Automagik Spark** | Python | ✅ Ready | Job scheduling, execution metrics, failures |
-| **Automagik Genie** | Python | ✅ Ready | Command usage, template updates, MCP calls |
-| **Automagik Forge** | TypeScript | ✅ Ready | Task execution, agent performance, worktree usage |
-| **Automagik Tools** | TypeScript | ✅ Ready | Tool invocations, MCP usage, integration health |
-
----
-
-## 🔒 Privacy & Control
-
-### Privacy-First Design
-
-- **Disabled by default** - Users must explicitly opt-in
-- **No PII collected** - Phone numbers, emails, messages are never sent
-- **Anonymous by default** - User IDs are hashed with SHA-256
-- **Transparent** - `--telemetry-verbose` flag shows exactly what's sent before sending
-- **Self-hostable** - Run your own telemetry infrastructure
-- **Open source** - Audit every line of code
-
-### What We Collect
-
-✅ **Safe to collect:**
-- Feature usage (which commands/APIs are used)
-- Error rates (anonymous error codes and categories)
-- Performance metrics (latency, response times)
-- System info (OS, Python/Node version)
-- Aggregated counts (number of agents, tasks, messages)
-
-❌ **Never collected:**
-- Message content
-- User credentials or API keys
-- Phone numbers or email addresses (unless hashed)
-- File contents or business logic
-- Personal identifiable information (PII)
-- IP addresses (stripped at collection)
-
-### User Control
-
-**Opt-in prompt on first run:**
-```
-Help Improve Automagik! 🚀
-
-Enable anonymous telemetry to help us improve? [y/N]: _
-
-You can:
-  • See what's sent: --telemetry-verbose
-  • Disable anytime: AUTOMAGIK_TELEMETRY_ENABLED=false
-  • Self-host: https://docs.automagik.ai/telemetry/self-hosting
-```
-
-**Disable globally:**
-```bash
-export AUTOMAGIK_TELEMETRY_ENABLED=false
-```
-
-**Disable per-command:**
-```bash
-AUTOMAGIK_TELEMETRY_ENABLED=false omni instance list
-```
-
-**Create permanent opt-out:**
-```bash
-touch ~/.automagik-no-telemetry
-```
-
-**Auto-disabled in:**
-- CI environments (GitHub Actions, GitLab CI, Jenkins, etc.)
-- Development mode (`ENVIRONMENT=dev`)
-- Test environments
-- Docker containers (unless explicitly enabled)
-
----
-
-## 📦 Quick Start
-
-### Prerequisites
-
-- **Python 3.12+** (for Python SDK)
-- **Node.js 18+** (for TypeScript SDK)
-- (Optional) **Docker** for self-hosting infrastructure
-
-### Installation
-
-#### Python SDK
+### Test the System
 
 ```bash
-# Install via uv (recommended)
-uv add automagik-telemetry
+# Run the test script
+python3 test_telemetry_local.py
 
-# Or install via pip
-pip install automagik-telemetry
+# Expected output: 4/4 tests passed ✅
 ```
 
-#### TypeScript SDK
+### Check Results
 
 ```bash
-# Install via pnpm (recommended)
-pnpm add @automagik/telemetry
+# Query Prometheus for test metrics (wait 30s after sending)
+curl -s "http://192.168.112.122:9090/api/v1/label/__name__/values" | jq -r '.data[] | select(. | test("test_"))'
 
-# Or install via npm
-npm install @automagik/telemetry
+# Should return:
+# - test_api_requests_total
+# - test_memory_usage_mb_MB
+# - test_response_time_ms_milliseconds_*
 ```
 
-### Python Usage
-
-```python
-from automagik_telemetry import TelemetryClient, StandardEvents
-
-# Initialize once at startup (disabled by default)
-telemetry = TelemetryClient(
-    project_name="omni",
-    version="1.0.0"
-)
-
-# Track feature usage
-telemetry.track_event(StandardEvents.FEATURE_USED, {
-    "feature_name": "list_contacts",
-    "feature_category": "api_endpoint"
-})
-
-# Track errors with context
-telemetry.track_error(error, {
-    "error_code": "OMNI-1001",
-    "operation": "message_send"
-})
-
-# Track performance
-telemetry.track_metric(StandardEvents.OPERATION_LATENCY, {
-    "operation_type": "api_request",
-    "duration_ms": 123
-})
-```
-
-### TypeScript Usage
-
-```typescript
-import { TelemetryClient, StandardEvents } from '@automagik/telemetry';
-
-// Initialize
-const telemetry = new TelemetryClient({
-  projectName: 'forge',
-  version: '1.0.0'
-});
-
-// Track events
-telemetry.trackEvent(StandardEvents.FEATURE_USED, {
-  feature_name: 'workflow_execution',
-  feature_category: 'orchestration'
-});
-
-// Track errors
-telemetry.trackError(error, {
-  error_code: 'FORGE-2001',
-  context: 'task_execution'
-});
-
-// Track performance
-telemetry.trackMetric(StandardEvents.OPERATION_LATENCY, {
-  operation_type: 'git_worktree_create',
-  duration_ms: 456
-});
-```
-
----
-
-## 🏗️ Repository Structure
+## 📡 System Architecture
 
 ```
-automagik-telemetry/
-├── python/              # Python SDK
-│   ├── src/
-│   │   └── automagik_telemetry/
-│   │       ├── __init__.py
-│   │       ├── client.py
-│   │       ├── config.py
-│   │       ├── opt_in.py
-│   │       ├── privacy.py
-│   │       └── schema.py
-│   ├── tests/
-│   ├── pyproject.toml
-│   └── README.md
-│
-├── typescript/          # TypeScript SDK
-│   ├── src/
-│   │   ├── client.ts
-│   │   ├── config.ts
-│   │   ├── opt-in.ts
-│   │   ├── privacy.ts
-│   │   └── schema.ts
-│   ├── tests/
-│   ├── package.json
-│   └── README.md
-│
-├── docs/
-│   ├── IMPLEMENTATION_GUIDE.md    # For maintainers
-│   ├── SELF_HOSTING.md            # For users
-│   ├── PRIVACY_POLICY.md          # Legal/transparency
-│   ├── EVENT_SCHEMA.md            # Standard events reference
-│   └── FAQ.md
-│
-├── examples/
-│   ├── python/
-│   │   ├── omni_example.py
-│   │   ├── hive_example.py
-│   │   └── spark_example.py
-│   └── typescript/
-│       ├── forge_example.ts
-│       └── tools_example.ts
-│
-├── dashboards/          # Grafana dashboard templates
-│   ├── overview.json
-│   ├── errors.json
-│   └── performance.json
-│
-├── infra/               # Self-hosting configs
-│   ├── docker-compose.yml
-│   ├── otel-config.yaml
-│   └── prometheus.yml
-│
-└── README.md
+Application → OTLP/HTTP → OTel Collector → Prometheus → Grafana
+                              ↓
+                          Debug Logs
 ```
 
----
+### Components
 
-## 🌐 Self-Hosting
-
-Don't want to send data to `telemetry.namastex.ai`? No problem!
-
-```bash
-# Clone this repo
-git clone https://github.com/namastexlabs/automagik-telemetry
-cd automagik-telemetry/infra
-
-# Start your own telemetry stack (OpenTelemetry + Prometheus + Grafana)
-docker-compose up -d
-
-# Point your tools to your server
-export AUTOMAGIK_TELEMETRY_ENDPOINT=http://localhost:4318
-```
-
-**What you get:**
-- OpenTelemetry Collector (receives telemetry data)
-- Prometheus (stores time-series metrics)
-- Grafana (visualizes data with pre-built dashboards)
-- Complete data ownership
-
-See [Self-Hosting Guide](docs/SELF_HOSTING.md) for detailed instructions.
-
----
-
-## 📊 Dashboards
-
-Pre-built Grafana dashboards available in [`dashboards/`](dashboards/):
-
-- **Overview Dashboard** - System health, message volume, error rates across all projects
-- **Error Dashboard** - Error breakdown by type, timeline, trends, and severity
-- **Performance Dashboard** - Latency p50/p95/p99, slow operations, resource usage
-
-Import into your Grafana instance or view at https://telemetry.namastex.ai (coming soon)
-
----
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **OTel Collector** | Container 155 (192.168.112.155) | Receives and processes telemetry |
+| **Prometheus** | Container 122 (192.168.112.122:9090) | Stores metrics |
+| **Grafana** | Container 122 (192.168.112.122:3000) | Visualizes metrics |
+| **Cloudflare Tunnel** | telemetry.namastex.ai | Secure HTTPS access |
 
 ## 📚 Documentation
 
-- **[Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)** - For maintainers adding telemetry to Automagik projects
-- **[Self-Hosting Guide](docs/SELF_HOSTING.md)** - Run your own telemetry infrastructure
-- **[Privacy Policy](docs/PRIVACY_POLICY.md)** - What we collect and why
-- **[Event Schema](docs/EVENT_SCHEMA.md)** - Standardized events reference
-- **[FAQ](docs/FAQ.md)** - Common questions
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Command cheat sheet, endpoints, common patterns
+- **[TELEMETRY_DEVELOPMENT_GUIDE.md](TELEMETRY_DEVELOPMENT_GUIDE.md)** - Complete development guide with:
+  - Architecture deep dive
+  - Local development setup
+  - Adding metrics to automagik-agents
+  - Testing strategies
+  - Debugging guide
+  - Performance considerations
 
----
+## 🔧 Development Setup
 
-## 🛠️ Development
+### Option 1: Use Production Collector (Recommended)
 
-### Python SDK
-
-```bash
-cd python
-uv sync
-uv run pytest
-uv run ruff check src tests
-uv run mypy src
+```python
+# Already configured in automagik-agents
+endpoint = "https://telemetry.namastex.ai"
 ```
 
-### TypeScript SDK
+### Option 2: Local Collector
 
 ```bash
-cd typescript
-pnpm install
-pnpm test
-pnpm lint
-pnpm build
+# Run local OTel Collector with Docker
+docker run -p 4318:4318 -p 4317:4317 \
+  otel/opentelemetry-collector-contrib:0.128.0
 ```
 
-### Contributing Guidelines
+## 🧪 Testing Tools
 
-We welcome contributions! Here's how to get started:
+### Python Test Script
 
-1. **Fork** the repository
-2. **Clone** your fork locally
-3. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-4. **Make** your changes
-5. **Test** thoroughly: `make test`
-6. **Commit** with conventional commits: `feat: add new privacy filter`
-7. **Push** to your fork: `git push origin feature/amazing-feature`
-8. **Open** a Pull Request with clear description
+```bash
+# Test against production
+python3 test_telemetry_local.py
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+# Test against local collector
+python3 test_telemetry_local.py http://localhost:4318
+```
 
----
+### Bash Test Script
 
-## 🗺️ Roadmap
+```bash
+# Send sample traces and metrics
+bash test_telemetry_health.sh
 
-### Completed ✅
-- [x] Privacy-first design principles
-- [x] Python SDK structure
-- [x] TypeScript SDK structure
-- [x] Standardized event schema
-- [x] Self-hosting documentation
-- [x] Grafana dashboard templates
+# Test custom endpoint
+bash test_telemetry_health.sh http://localhost:4318
+```
 
-### Next Up 🚀 (Q4 2025)
-- [ ] **Python SDK v1.0** - Production-ready Python implementation
-- [ ] **TypeScript SDK v1.0** - Production-ready TypeScript implementation
-- [ ] **Integration with Omni** - First production deployment
-- [ ] **Integration with Hive** - Multi-agent telemetry
-- [ ] **Integration with Forge** - Task execution tracking
-- [ ] **Public dashboard** - View community metrics at telemetry.namastex.ai
+## 📊 Current Status
 
-### Future Vision 🌟 (2026+)
-- [ ] **Real-time alerting** - Get notified about spikes in errors or performance issues
-- [ ] **Custom event types** - Define your own telemetry events
-- [ ] **Multi-tenant support** - Separate metrics for different teams/customers
-- [ ] **Advanced privacy controls** - Granular control over what gets collected
-- [ ] **Mobile SDKs** - iOS and Android support
-- [ ] **Browser extension** - Telemetry for web-based tools
+### ✅ Working
 
----
+- Traces collection from automagik-agents
+- Metrics collection (tested with test script)
+- Prometheus remote write integration
+- Debug logging to journald
+- Health check endpoint
+- Cloudflare HTTPS tunnel
+
+### ⚠️ To Implement
+
+- **Metrics in automagik-agents**: Currently only sends traces
+  - See `TELEMETRY_DEVELOPMENT_GUIDE.md` → "Adding Metrics Support"
+  - Implementation example provided in guide
+
+## 🔐 Configuration
+
+### Endpoints
+
+```bash
+# Production (HTTPS via Cloudflare)
+TRACES:  https://telemetry.namastex.ai/v1/traces
+METRICS: https://telemetry.namastex.ai/v1/metrics
+HEALTH:  https://telemetry.namastex.ai/health
+
+# Direct (HTTP)
+TRACES:  http://192.168.112.155:4318/v1/traces
+METRICS: http://192.168.112.155:4318/v1/metrics
+HEALTH:  http://192.168.112.155:13133/health
+```
+
+### Environment Variables
+
+```bash
+# Disable telemetry
+export AUTOMAGIK_OMNI_DISABLE_TELEMETRY=true
+
+# Development mode (auto-disables)
+export ENVIRONMENT=development
+```
+
+## 🐛 Debugging
+
+### Check Collector
+
+```bash
+ssh root@dl380-g10
+
+# Service status
+pct exec 155 -- systemctl status otelcol-contrib
+
+# Live logs
+pct exec 155 -- journalctl -u otelcol-contrib -f
+
+# Recent logs
+pct exec 155 -- journalctl -u otelcol-contrib -n 100 --no-pager
+```
+
+### Check Prometheus
+
+```bash
+# List metrics
+curl -s "http://192.168.112.122:9090/api/v1/label/__name__/values" | jq
+
+# Query metric
+curl -s 'http://192.168.112.122:9090/api/v1/query?query=test_api_requests_total' | jq
+```
+
+### Verify Connectivity
+
+```bash
+# Health check
+curl https://telemetry.namastex.ai/health
+
+# Test endpoint (should return 405 on GET)
+curl https://telemetry.namastex.ai/v1/traces
+```
+
+## 📦 Files
+
+### Documentation
+- `README.md` - This file (overview)
+- `QUICK_REFERENCE.md` - Command cheat sheet
+- `TELEMETRY_DEVELOPMENT_GUIDE.md` - Complete developer guide
+
+### Testing Scripts
+- `test_telemetry_local.py` - Python test script (traces + metrics)
+- `test_telemetry_health.sh` - Bash test script (OTLP payloads)
+
+### Management Scripts
+- `view_telemetry_logs.sh` - View collector logs
+- `secure_telemetry.sh` - Add basic auth (not active)
+- `add_telemetry_hostname.sh` - Cloudflare tunnel config
+
+### Configuration
+- `otel-prometheus-config.yaml` - Active collector config
+- `otel-grafana-config.yaml` - Config template with Tempo/Loki
+- `otelcol-health-config.yaml` - Minimal health check config
+
+## 🎓 Usage Examples
+
+### Send Trace (Current Implementation)
+
+```python
+from src.core.telemetry import TelemetryClient
+
+client = TelemetryClient()
+client.track_api_request(endpoint="/api/v1/runs", method="POST")
+```
+
+### Send Metrics (To Implement)
+
+```python
+# Counter
+client.track_counter("api.requests", value=1, attributes={
+    "endpoint": "/api/v1/runs",
+    "status": 200
+})
+
+# Gauge
+client.track_gauge("system.memory_mb", value=512.5)
+
+# Histogram
+client.track_histogram("api.response_time_ms", value=125.3)
+```
+
+See `TELEMETRY_DEVELOPMENT_GUIDE.md` for complete implementation details.
+
+## 🚨 Common Issues
+
+### No Metrics in Prometheus
+
+**Cause**: Application not sending metrics (only traces)
+
+**Solution**: Implement metrics in `automagik-omni/src/core/telemetry.py`
+
+See guide → "Adding Metrics Support"
+
+### Connection Refused
+
+**Solutions**:
+1. Check collector is running: `pct exec 155 -- systemctl status otelcol-contrib`
+2. Restart if needed: `pct exec 155 -- systemctl restart otelcol-contrib`
+3. Verify endpoints are correct
+
+### Data Not Appearing
+
+**Check**:
+1. Wait 15-30 seconds for batching
+2. Check collector logs for errors
+3. Verify Prometheus is receiving data
 
 ## 🤝 Contributing
 
-We love contributions! Here's how to get started:
+When adding telemetry to your application:
 
-1. **Discuss First**: Open an issue before starting work
-2. **Align with Roadmap**: Ensure changes fit our vision
-3. **Follow Standards**: Match existing code patterns
-4. **Test Thoroughly**: Include tests for new features
-5. **Document Well**: Update docs with your changes
-6. **Respect Privacy**: Never add PII collection without discussion
+1. **Always use async sending** (already in TelemetryClient)
+2. **Add meaningful attributes** for filtering
+3. **Use appropriate metric types**:
+   - Counter: Things that only go up (requests, errors)
+   - Gauge: Things that go up/down (memory, connections)
+   - Histogram: Distributions (response times, sizes)
+4. **Test locally first** with `test_telemetry_local.py`
+5. **Check Prometheus** to verify data is arriving
 
-**Areas where we need help:**
-- [ ] Python SDK implementation (#1)
-- [ ] TypeScript SDK implementation (#1)
-- [ ] Additional privacy sanitization patterns
-- [ ] Dashboard improvements
-- [ ] Documentation translations
+## 📞 Support
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
----
-
-## 🙏 Acknowledgments
-
-Special thanks to:
-
-- **OpenTelemetry Team** - For the excellent observability framework
-- **Prometheus & Grafana** - For powerful metrics and visualization
-- **Automagik Community** - Early adopters and contributors
-- **Privacy Advocates** - For keeping us honest and transparent
+1. Check `QUICK_REFERENCE.md` for common commands
+2. Review `TELEMETRY_DEVELOPMENT_GUIDE.md` for detailed info
+3. Check collector logs: `pct exec 155 -- journalctl -u otelcol-contrib -f`
+4. Test connectivity: `curl https://telemetry.namastex.ai/health`
 
 ---
 
-## 📄 License
+**Last Updated**: 2025-10-21
 
-MIT License - see [LICENSE](LICENSE) file for details.
+**Version**: OpenTelemetry Collector 0.128.0
 
----
-
-## 🔗 Links
-
-- **GitHub**: [github.com/namastexlabs/automagik-telemetry](https://github.com/namastexlabs/automagik-telemetry)
-- **Discord**: [discord.gg/xcW8c7fF3R](https://discord.gg/xcW8c7fF3R)
-- **Twitter**: [@namastexlabs](https://twitter.com/namastexlabs)
-- **Documentation**: [docs.automagik.ai/telemetry](https://docs.automagik.ai/telemetry)
-- **Privacy Questions**: privacy@namastex.ai
-
----
-
-<p align="center">
-  <strong>🚀 Understand your users without compromising their privacy</strong><br>
-  <strong>The ethical way to build data-driven open-source tools</strong><br><br>
-  <a href="https://github.com/namastexlabs/automagik-telemetry">Star us on GitHub</a> •
-  <a href="https://discord.gg/xcW8c7fF3R">Join our Discord</a>
-</p>
-
-<p align="center">
-  Made with ❤️ by <a href="https://namastex.ai">Namastex Labs</a><br>
-  <em>AI that elevates human potential, not replaces it</em>
-</p>
-<a href="https://deepwiki.com/namastexlabs/automagik-telemetry"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+**Status**: ✅ Production Ready (traces + metrics infrastructure)
