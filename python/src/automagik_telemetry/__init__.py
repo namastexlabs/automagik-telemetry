@@ -9,20 +9,22 @@ TelemetryClient is maintained as an alias for backwards compatibility.
 
 from automagik_telemetry.client import (
     AutomagikTelemetry,
-    TelemetryClient,  # Backwards compatibility alias
-    TelemetryConfig as ClientTelemetryConfig,
-    MetricType,
     LogSeverity,
+    MetricType,
+    TelemetryClient,  # Backwards compatibility alias
+)
+from automagik_telemetry.client import (
+    TelemetryConfig as ClientTelemetryConfig,
 )
 from automagik_telemetry.config import (
+    DEFAULT_CONFIG,
+    ENV_VARS,
     TelemetryConfig,
     ValidatedConfig,
     create_config,
     load_config_from_env,
     merge_config,
     validate_config,
-    DEFAULT_CONFIG,
-    ENV_VARS,
 )
 from automagik_telemetry.opt_in import (
     TelemetryOptIn,
@@ -30,8 +32,8 @@ from automagik_telemetry.opt_in import (
     should_prompt_user,
 )
 from automagik_telemetry.privacy import (
-    PrivacyConfig,
     SENSITIVE_KEYS,
+    PrivacyConfig,
     detect_pii,
     hash_value,
     redact_sensitive_keys,

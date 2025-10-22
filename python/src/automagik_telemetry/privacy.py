@@ -7,8 +7,8 @@ including phone numbers, emails, API keys, and other sensitive data.
 
 import hashlib
 import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Literal
 
 # Type alias for sanitization strategies
 SanitizationStrategy = Literal["hash", "redact", "truncate"]
@@ -24,6 +24,7 @@ class PrivacyConfig:
         max_string_length: Maximum length for strings before truncation
         redaction_text: Text to use when redacting sensitive data
     """
+
     strategy: SanitizationStrategy = "hash"
     max_string_length: int = 1000
     redaction_text: str = "[REDACTED]"
@@ -49,7 +50,7 @@ class Patterns:
     # API keys: patterns like xxx-xxx-xxx, sk_live_xxx, Bearer xxx
     API_KEY = re.compile(
         r"\b(sk_live_|sk_test_|pk_live_|pk_test_|Bearer\s+|api[_-]?key[_-]?)[a-zA-Z0-9_-]{20,}\b",
-        re.IGNORECASE
+        re.IGNORECASE,
     )
 
     # Credit card: basic pattern (not perfect, but catches most)
@@ -60,8 +61,7 @@ class Patterns:
 
     # File paths with user info (Unix and Windows)
     USER_PATH = re.compile(
-        r"/(?:home|Users)/[a-zA-Z0-9_-]+|[A-Z]:\\Users\\[a-zA-Z0-9_-]+",
-        re.IGNORECASE
+        r"/(?:home|Users)/[a-zA-Z0-9_-]+|[A-Z]:\\Users\\[a-zA-Z0-9_-]+", re.IGNORECASE
     )
 
 
@@ -80,7 +80,7 @@ def hash_value(value: str) -> str:
         >>> hash_value('sensitive-data')
         'sha256:a1b2c3d4...'
     """
-    hash_obj = hashlib.sha256(value.encode('utf-8'))
+    hash_obj = hashlib.sha256(value.encode("utf-8"))
     hash_hex = hash_obj.hexdigest()
     return f"sha256:{hash_hex[:16]}"
 
@@ -116,7 +116,7 @@ def detect_pii(value: str) -> bool:
     return any(pattern.search(value) for pattern in patterns)
 
 
-def sanitize_phone(value: str, config: Optional[PrivacyConfig] = None) -> str:
+def sanitize_phone(value: str, config: PrivacyConfig | None = None) -> str:
     """
     Sanitize a phone number.
 
@@ -148,7 +148,7 @@ def sanitize_phone(value: str, config: Optional[PrivacyConfig] = None) -> str:
         return value
 
 
-def sanitize_email(value: str, config: Optional[PrivacyConfig] = None) -> str:
+def sanitize_email(value: str, config: PrivacyConfig | None = None) -> str:
     """
     Sanitize an email address.
 
@@ -177,12 +177,14 @@ def sanitize_email(value: str, config: Optional[PrivacyConfig] = None) -> str:
     elif cfg.strategy == "redact":
         return Patterns.EMAIL.sub(cfg.redaction_text, value)
     elif cfg.strategy == "truncate":
+
         def truncate_email(match: re.Match) -> str:
             email = match.group(0)
             if "@" in email:
                 user, domain = email.split("@", 1)
                 return f"{user[:2]}***@{domain}"
             return email
+
         return Patterns.EMAIL.sub(truncate_email, value)
     else:
         return value
@@ -205,10 +207,10 @@ def truncate_string(value: str, max_length: int) -> str:
     """
     if len(value) <= max_length:
         return value
-    return f"{value[:max_length - 3]}..."
+    return f"{value[: max_length - 3]}..."
 
 
-def sanitize_value(value: Any, config: Optional[PrivacyConfig] = None) -> Any:
+def sanitize_value(value: Any, config: PrivacyConfig | None = None) -> Any:
     """
     Auto-sanitize a value based on PII detection.
     Handles strings, numbers, objects, and arrays recursively.
@@ -273,10 +275,8 @@ def sanitize_value(value: Any, config: Optional[PrivacyConfig] = None) -> Any:
 
 
 def redact_sensitive_keys(
-    obj: Dict[str, Any],
-    keys: List[str],
-    config: Optional[PrivacyConfig] = None
-) -> Dict[str, Any]:
+    obj: dict[str, Any], keys: list[str], config: PrivacyConfig | None = None
+) -> dict[str, Any]:
     """
     Redact specific keys from an object.
     Useful for known sensitive fields like 'password', 'token', etc.
@@ -295,7 +295,7 @@ def redact_sensitive_keys(
         {'username': 'john', 'password': '[REDACTED]', 'token': '[REDACTED]'}
     """
     cfg = config or DEFAULT_CONFIG
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     for key, value in obj.items():
         # Check if key matches any sensitive key (case-insensitive substring match)
@@ -329,9 +329,8 @@ SENSITIVE_KEYS = [
 
 
 def sanitize_telemetry_data(
-    data: Dict[str, Any],
-    config: Optional[PrivacyConfig] = None
-) -> Dict[str, Any]:
+    data: dict[str, Any], config: PrivacyConfig | None = None
+) -> dict[str, Any]:
     """
     Sanitize telemetry data before sending.
     Combines multiple sanitization strategies for comprehensive privacy protection.

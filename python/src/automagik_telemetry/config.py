@@ -7,7 +7,6 @@ sensible defaults, and validation.
 
 import os
 from dataclasses import dataclass
-from typing import Optional
 from urllib.parse import urlparse
 
 
@@ -39,11 +38,11 @@ class TelemetryConfig:
 
     project_name: str
     version: str
-    endpoint: Optional[str] = None
-    organization: Optional[str] = None
-    timeout: Optional[int] = None
-    enabled: Optional[bool] = None
-    verbose: Optional[bool] = None
+    endpoint: str | None = None
+    organization: str | None = None
+    timeout: int | None = None
+    enabled: bool | None = None
+    verbose: bool | None = None
 
 
 @dataclass
@@ -192,36 +191,21 @@ def merge_config(user_config: TelemetryConfig) -> ValidatedConfig:
     return ValidatedConfig(
         project_name=user_config.project_name,
         version=user_config.version,
-        endpoint=(
-            user_config.endpoint
-            or env_config.endpoint
-            or DEFAULT_CONFIG["endpoint"]
-        ),
-        organization=(
-            user_config.organization
-            or DEFAULT_CONFIG["organization"]
-        ),
-        timeout=(
-            user_config.timeout
-            or env_config.timeout
-            or DEFAULT_CONFIG["timeout"]
-        ),
+        endpoint=(user_config.endpoint or env_config.endpoint or DEFAULT_CONFIG["endpoint"]),
+        organization=(user_config.organization or DEFAULT_CONFIG["organization"]),
+        timeout=(user_config.timeout or env_config.timeout or DEFAULT_CONFIG["timeout"]),
         enabled=(
             user_config.enabled
             if user_config.enabled is not None
             else (
-                env_config.enabled
-                if env_config.enabled is not None
-                else DEFAULT_CONFIG["enabled"]
+                env_config.enabled if env_config.enabled is not None else DEFAULT_CONFIG["enabled"]
             )
         ),
         verbose=(
             user_config.verbose
             if user_config.verbose is not None
             else (
-                env_config.verbose
-                if env_config.verbose is not None
-                else DEFAULT_CONFIG["verbose"]
+                env_config.verbose if env_config.verbose is not None else DEFAULT_CONFIG["verbose"]
             )
         ),
     )
@@ -256,9 +240,7 @@ def validate_config(config: TelemetryConfig) -> None:
         try:
             parsed = urlparse(config.endpoint)
             if parsed.scheme not in ("http", "https"):
-                raise ValueError(
-                    "TelemetryConfig: endpoint must use http or https protocol"
-                )
+                raise ValueError("TelemetryConfig: endpoint must use http or https protocol")
             if not parsed.netloc:
                 raise ValueError(
                     f"TelemetryConfig: endpoint must be a valid URL (got: {config.endpoint})"

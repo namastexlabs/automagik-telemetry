@@ -8,8 +8,6 @@ These tests can be skipped in CI with pytest -m "not performance".
 import os
 import statistics
 import time
-from pathlib import Path
-from typing import List
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -49,7 +47,7 @@ def disabled_client():
         yield client
 
 
-def calculate_stats(timings: List[float]) -> dict:
+def calculate_stats(timings: list[float]) -> dict:
     """Calculate timing statistics."""
     sorted_timings = sorted(timings)
     n = len(sorted_timings)
@@ -223,18 +221,18 @@ def test_attribute_serialization_performance(performance_client):
     timings = []
 
     # Large but realistic attribute set
-    large_attributes = {
-        f"attribute_{i}": f"value_{i}" for i in range(50)
-    }
-    large_attributes.update({
-        "feature_name": "complex_operation",
-        "user_id": "anon-12345",
-        "session_duration": 3600,
-        "items_processed": 1000,
-        "success_rate": 0.95,
-        "error_count": 5,
-        "warning_count": 12,
-    })
+    large_attributes = {f"attribute_{i}": f"value_{i}" for i in range(50)}
+    large_attributes.update(
+        {
+            "feature_name": "complex_operation",
+            "user_id": "anon-12345",
+            "session_duration": 3600,
+            "items_processed": 1000,
+            "success_rate": 0.95,
+            "error_count": 5,
+            "warning_count": 12,
+        }
+    )
 
     # Warmup
     for _ in range(10):
@@ -333,7 +331,9 @@ def test_payload_size_impact():
             print(f"{'Size':<10} {'Mean':<10} {'P95':<10} {'P99':<10}")
             print(f"{'-' * 60}")
             for size, stats in results.items():
-                print(f"{size:<10} {stats['mean']:<10.3f} {stats['p95']:<10.3f} {stats['p99']:<10.3f}")
+                print(
+                    f"{size:<10} {stats['mean']:<10.3f} {stats['p95']:<10.3f} {stats['p99']:<10.3f}"
+                )
             print(f"{'=' * 60}\n")
 
             # Even large payloads should be reasonable
@@ -350,7 +350,6 @@ def test_memory_usage_no_leaks(disabled_client):
     gc.collect()
 
     # Track initial memory
-    import sys
     import tracemalloc
 
     tracemalloc.start()
@@ -365,7 +364,7 @@ def test_memory_usage_no_leaks(disabled_client):
                 "iteration": i,
                 "data": f"test_data_{i}",
                 "value": i * 1.5,
-            }
+            },
         )
 
     # Force garbage collection
@@ -373,7 +372,7 @@ def test_memory_usage_no_leaks(disabled_client):
 
     # Check final memory
     snapshot2 = tracemalloc.take_snapshot()
-    top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+    top_stats = snapshot2.compare_to(snapshot1, "lineno")
 
     total_diff = sum(stat.size_diff for stat in top_stats)
     bytes_per_event = total_diff / event_count
@@ -382,7 +381,7 @@ def test_memory_usage_no_leaks(disabled_client):
     print("Memory Usage Test (Disabled Client)")
     print(f"{'=' * 60}")
     print(f"  Events tracked:    {event_count:,}")
-    print(f"  Total memory diff: {total_diff:,} bytes ({total_diff/1024:.2f} KB)")
+    print(f"  Total memory diff: {total_diff:,} bytes ({total_diff / 1024:.2f} KB)")
     print(f"  Per event:         {bytes_per_event:.2f} bytes")
     print(f"{'=' * 60}\n")
 

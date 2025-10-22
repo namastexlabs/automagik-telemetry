@@ -16,10 +16,10 @@ import threading
 import time
 import uuid
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 class MetricType(Enum):
     """OTLP metric types."""
+
     GAUGE = "gauge"
     COUNTER = "counter"
     HISTOGRAM = "histogram"
@@ -35,6 +36,7 @@ class MetricType(Enum):
 
 class LogSeverity(Enum):
     """OTLP log severity levels."""
+
     TRACE = 1
     DEBUG = 5
     INFO = 9
@@ -63,9 +65,10 @@ class TelemetryConfig:
         metrics_endpoint: Custom endpoint for metrics (defaults to /v1/metrics)
         logs_endpoint: Custom endpoint for logs (defaults to /v1/logs)
     """
+
     project_name: str
     version: str
-    endpoint: Optional[str] = None
+    endpoint: str | None = None
     organization: str = "namastex"
     timeout: int = 5
     batch_size: int = 1  # Default to immediate send for backward compatibility
@@ -74,8 +77,8 @@ class TelemetryConfig:
     compression_threshold: int = 1024
     max_retries: int = 3
     retry_backoff_base: float = 1.0
-    metrics_endpoint: Optional[str] = None
-    logs_endpoint: Optional[str] = None
+    metrics_endpoint: str | None = None
+    logs_endpoint: str | None = None
 
 
 class AutomagikTelemetry:
@@ -118,12 +121,12 @@ class AutomagikTelemetry:
 
     def __init__(
         self,
-        project_name: Optional[str] = None,
-        version: Optional[str] = None,
-        endpoint: Optional[str] = None,
+        project_name: str | None = None,
+        version: str | None = None,
+        endpoint: str | None = None,
         organization: str = "namastex",
         timeout: int = 5,
-        config: Optional[TelemetryConfig] = None,
+        config: TelemetryConfig | None = None,
     ):
         """
         Initialize telemetry client.
@@ -141,7 +144,9 @@ class AutomagikTelemetry:
             self.config = config
         else:
             if project_name is None or version is None:
-                raise ValueError("Either 'config' or both 'project_name' and 'version' must be provided")
+                raise ValueError(
+                    "Either 'config' or both 'project_name' and 'version' must be provided"
+                )
             self.config = TelemetryConfig(
                 project_name=project_name,
                 version=version,
@@ -159,7 +164,7 @@ class AutomagikTelemetry:
         # Set up endpoints
         base_endpoint = self.config.endpoint or os.getenv(
             "AUTOMAGIK_TELEMETRY_ENDPOINT",
-            "https://telemetry.namastex.ai/v1/traces"  # Legacy default includes /v1/traces
+            "https://telemetry.namastex.ai/v1/traces",  # Legacy default includes /v1/traces
         )
 
         # Ensure base endpoint doesn't have trailing slash
@@ -168,13 +173,19 @@ class AutomagikTelemetry:
         # Set specific endpoints
         # Check if endpoint already has a path component (ends with /traces, /v1/traces, etc.)
         # This handles backward compatibility where users might pass full endpoints
-        if base_endpoint.endswith("/traces") or base_endpoint.endswith("/metrics") or base_endpoint.endswith("/logs"):
+        if (
+            base_endpoint.endswith("/traces")
+            or base_endpoint.endswith("/metrics")
+            or base_endpoint.endswith("/logs")
+        ):
             # Endpoint already includes path - use as-is
             self.endpoint = base_endpoint
             # Extract base for other endpoints
             if "/v1/" in base_endpoint:
                 base_for_others = base_endpoint.rsplit("/v1/", 1)[0]
-                self.metrics_endpoint = self.config.metrics_endpoint or f"{base_for_others}/v1/metrics"
+                self.metrics_endpoint = (
+                    self.config.metrics_endpoint or f"{base_for_others}/v1/metrics"
+                )
                 self.logs_endpoint = self.config.logs_endpoint or f"{base_for_others}/v1/logs"
             else:
                 # Custom endpoint without /v1/ - just replace the last path component
@@ -204,7 +215,7 @@ class AutomagikTelemetry:
         self._queue_lock = threading.Lock()
 
         # Background flush timer
-        self._flush_timer: Optional[threading.Timer] = None
+        self._flush_timer: threading.Timer | None = None
         self._shutdown = False
 
         # Start flush timer if batching is enabled
@@ -237,7 +248,7 @@ class AutomagikTelemetry:
         env_var = os.getenv("AUTOMAGIK_TELEMETRY_ENABLED")
         if env_var is not None:
             return env_var.lower() in ("true", "1", "yes", "on")
-        
+
         # Check for opt-out file
         if (Path.home() / ".automagik-no-telemetry").exists():
             return False
@@ -261,7 +272,7 @@ class AutomagikTelemetry:
         # Default: disabled (opt-in only)
         return False
 
-    def _get_system_info(self) -> Dict[str, Any]:
+    def _get_system_info(self) -> dict[str, Any]:
         """Collect basic system information (no PII)."""
         return {
             "os": platform.system(),
@@ -274,7 +285,9 @@ class AutomagikTelemetry:
             "organization": self.organization,
         }
 
-    def _create_attributes(self, data: Dict[str, Any], include_system: bool = True) -> List[Dict[str, Any]]:
+    def _create_attributes(
+        self, data: dict[str, Any], include_system: bool = True
+    ) -> list[dict[str, Any]]:
         """Convert data to OTLP attribute format with type safety."""
         attributes = []
 
@@ -289,7 +302,9 @@ class AutomagikTelemetry:
                         {"key": f"system.{key}", "value": {"doubleValue": float(value)}}
                     )
                 else:
-                    attributes.append({"key": f"system.{key}", "value": {"stringValue": str(value)}})
+                    attributes.append(
+                        {"key": f"system.{key}", "value": {"stringValue": str(value)}}
+                    )
 
         # Add event data
         for key, value in data.items():
@@ -320,15 +335,12 @@ class AutomagikTelemetry:
 
     def _compress_payload(self, payload: bytes) -> bytes:
         """Compress payload using gzip if it exceeds threshold."""
-        if (
-            self.config.compression_enabled
-            and len(payload) >= self.config.compression_threshold
-        ):
+        if self.config.compression_enabled and len(payload) >= self.config.compression_threshold:
             return gzip.compress(payload)
         return payload
 
     def _send_with_retry(
-        self, endpoint: str, payload: Dict[str, Any], signal_type: str = "trace"
+        self, endpoint: str, payload: dict[str, Any], signal_type: str = "trace"
     ) -> None:
         """Send payload with retry logic and exponential backoff."""
         if not self.enabled:
@@ -369,7 +381,9 @@ class AutomagikTelemetry:
                             last_exception = Exception(f"Server error: {response.status}")
                         else:
                             # Client error - don't retry
-                            logger.debug(f"Telemetry {signal_type} failed with status {response.status}")
+                            logger.debug(
+                                f"Telemetry {signal_type} failed with status {response.status}"
+                            )
                             return
 
                 except (URLError, HTTPError, TimeoutError) as e:
@@ -382,18 +396,20 @@ class AutomagikTelemetry:
 
                 # Wait before retry (exponential backoff)
                 if attempt < self.config.max_retries:
-                    backoff_time = self.config.retry_backoff_base * (2 ** attempt)
+                    backoff_time = self.config.retry_backoff_base * (2**attempt)
                     time.sleep(backoff_time)
 
             # All retries exhausted
             if last_exception:
-                logger.debug(f"Telemetry {signal_type} failed after {self.config.max_retries} retries: {last_exception}")
+                logger.debug(
+                    f"Telemetry {signal_type} failed after {self.config.max_retries} retries: {last_exception}"
+                )
 
         except Exception as e:
             # Log any other errors in debug mode
             logger.debug(f"Telemetry {signal_type} error: {e}")
 
-    def _get_resource_attributes(self) -> List[Dict[str, Any]]:
+    def _get_resource_attributes(self) -> list[dict[str, Any]]:
         """Get common resource attributes for OTLP payloads."""
         return [
             {
@@ -426,7 +442,7 @@ class AutomagikTelemetry:
             },
         ]
 
-    def _send_trace(self, event_type: str, data: Dict[str, Any]) -> None:
+    def _send_trace(self, event_type: str, data: dict[str, Any]) -> None:
         """Send trace (span) using OTLP traces format."""
         if not self.enabled:
             return
@@ -461,7 +477,7 @@ class AutomagikTelemetry:
         metric_name: str,
         value: float,
         metric_type: MetricType = MetricType.GAUGE,
-        attributes: Optional[Dict[str, Any]] = None,
+        attributes: dict[str, Any] | None = None,
     ) -> None:
         """Send metric using OTLP metrics format."""
         if not self.enabled:
@@ -485,7 +501,13 @@ class AutomagikTelemetry:
                 "timeUnixNano": timestamp_nano,
                 "attributes": attrs,
             }
-            metric_data = {"sum": {"dataPoints": [data_point], "isMonotonic": True, "aggregationTemporality": 2}}
+            metric_data = {
+                "sum": {
+                    "dataPoints": [data_point],
+                    "isMonotonic": True,
+                    "aggregationTemporality": 2,
+                }
+            }
         elif metric_type == MetricType.HISTOGRAM:
             data_point = {
                 "count": 1,
@@ -518,7 +540,7 @@ class AutomagikTelemetry:
         self,
         message: str,
         severity: LogSeverity = LogSeverity.INFO,
-        attributes: Optional[Dict[str, Any]] = None,
+        attributes: dict[str, Any] | None = None,
     ) -> None:
         """Send log using OTLP logs format."""
         if not self.enabled:
@@ -544,7 +566,7 @@ class AutomagikTelemetry:
         else:
             self._flush_logs([log_record])
 
-    def _flush_traces(self, spans: Optional[List[Dict[str, Any]]] = None) -> None:
+    def _flush_traces(self, spans: list[dict[str, Any]] | None = None) -> None:
         """Flush trace queue to endpoint."""
         if spans is None:
             with self._queue_lock:
@@ -572,7 +594,7 @@ class AutomagikTelemetry:
 
         self._send_with_retry(self.endpoint, payload, "trace")
 
-    def _flush_metrics(self, metrics: Optional[List[Dict[str, Any]]] = None) -> None:
+    def _flush_metrics(self, metrics: list[dict[str, Any]] | None = None) -> None:
         """Flush metric queue to endpoint."""
         if metrics is None:
             with self._queue_lock:
@@ -600,7 +622,7 @@ class AutomagikTelemetry:
 
         self._send_with_retry(self.metrics_endpoint, payload, "metric")
 
-    def _flush_logs(self, log_records: Optional[List[Dict[str, Any]]] = None) -> None:
+    def _flush_logs(self, log_records: list[dict[str, Any]] | None = None) -> None:
         """Flush log queue to endpoint."""
         if log_records is None:
             with self._queue_lock:
@@ -628,20 +650,20 @@ class AutomagikTelemetry:
 
         self._send_with_retry(self.logs_endpoint, payload, "log")
 
-    def _send_event(self, event_type: str, data: Dict[str, Any]) -> None:
+    def _send_event(self, event_type: str, data: dict[str, Any]) -> None:
         """Send telemetry event (legacy method - uses traces)."""
         self._send_trace(event_type, data)
 
     # === Public API ===
 
-    def track_event(self, event_name: str, attributes: Optional[Dict[str, Any]] = None) -> None:
+    def track_event(self, event_name: str, attributes: dict[str, Any] | None = None) -> None:
         """
         Track a telemetry event.
-        
+
         Args:
             event_name: Event name (use StandardEvents constants)
             attributes: Event attributes (automatically sanitized for privacy)
-            
+
         Example:
             >>> telemetry.track_event(StandardEvents.FEATURE_USED, {
             ...     "feature_name": "list_contacts",
@@ -650,14 +672,14 @@ class AutomagikTelemetry:
         """
         self._send_event(event_name, attributes or {})
 
-    def track_error(self, error: Exception, context: Optional[Dict[str, Any]] = None) -> None:
+    def track_error(self, error: Exception, context: dict[str, Any] | None = None) -> None:
         """
         Track an error with context.
-        
+
         Args:
             error: The exception that occurred
             context: Additional context about the error
-            
+
         Example:
             >>> try:
             ...     risky_operation()
@@ -678,8 +700,8 @@ class AutomagikTelemetry:
         self,
         metric_name: str,
         value: float,
-        metric_type: Union[MetricType, str] = MetricType.GAUGE,
-        attributes: Optional[Dict[str, Any]] = None,
+        metric_type: MetricType | str = MetricType.GAUGE,
+        attributes: dict[str, Any] | None = None,
     ) -> None:
         """
         Track a numeric metric using OTLP metrics format.
@@ -714,8 +736,8 @@ class AutomagikTelemetry:
     def track_log(
         self,
         message: str,
-        severity: Union[LogSeverity, str] = LogSeverity.INFO,
-        attributes: Optional[Dict[str, Any]] = None,
+        severity: LogSeverity | str = LogSeverity.INFO,
+        attributes: dict[str, Any] | None = None,
     ) -> None:
         """
         Track a log message using OTLP logs format.
@@ -788,7 +810,7 @@ class AutomagikTelemetry:
         """Check if telemetry is enabled."""
         return self.enabled
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get telemetry status information."""
         with self._queue_lock:
             queue_sizes = {
@@ -817,9 +839,7 @@ class AutomagikTelemetry:
     # === Async API Methods ===
 
     async def track_event_async(
-        self,
-        event_name: str,
-        attributes: Optional[Dict[str, Any]] = None
+        self, event_name: str, attributes: dict[str, Any] | None = None
     ) -> None:
         """
         Async version of track_event for use in async contexts.
@@ -847,9 +867,7 @@ class AutomagikTelemetry:
         await asyncio.to_thread(self.track_event, event_name, attributes)
 
     async def track_error_async(
-        self,
-        error: Exception,
-        context: Optional[Dict[str, Any]] = None
+        self, error: Exception, context: dict[str, Any] | None = None
     ) -> None:
         """
         Async version of track_error for use in async contexts.
@@ -884,8 +902,8 @@ class AutomagikTelemetry:
         self,
         metric_name: str,
         value: float,
-        metric_type: Union[MetricType, str] = MetricType.GAUGE,
-        attributes: Optional[Dict[str, Any]] = None
+        metric_type: MetricType | str = MetricType.GAUGE,
+        attributes: dict[str, Any] | None = None,
     ) -> None:
         """
         Async version of track_metric for use in async contexts.
@@ -920,8 +938,8 @@ class AutomagikTelemetry:
     async def track_log_async(
         self,
         message: str,
-        severity: Union[LogSeverity, str] = LogSeverity.INFO,
-        attributes: Optional[Dict[str, Any]] = None
+        severity: LogSeverity | str = LogSeverity.INFO,
+        attributes: dict[str, Any] | None = None,
     ) -> None:
         """
         Async version of track_log for use in async contexts.

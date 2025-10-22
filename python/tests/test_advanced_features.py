@@ -11,19 +11,17 @@ Tests cover:
 
 import gzip
 import json
-import time
 from pathlib import Path
-from typing import Any, Dict
 from unittest.mock import Mock, patch
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 
 import pytest
 
 from automagik_telemetry.client import (
+    LogSeverity,
+    MetricType,
     TelemetryClient,
     TelemetryConfig,
-    MetricType,
-    LogSeverity,
 )
 
 
@@ -36,16 +34,10 @@ class TestMetricsExport:
         """Test sending a gauge metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        client = TelemetryClient(project_name="test-project", version="1.0.0")
 
         client.track_metric(
-            "cpu.usage",
-            75.5,
-            metric_type=MetricType.GAUGE,
-            attributes={"host": "server1"}
+            "cpu.usage", 75.5, metric_type=MetricType.GAUGE, attributes={"host": "server1"}
         )
 
         # Should make HTTP request when enabled
@@ -80,16 +72,13 @@ class TestMetricsExport:
         """Test sending a counter metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        client = TelemetryClient(project_name="test-project", version="1.0.0")
 
         client.track_metric(
             "requests.total",
             1000,
             metric_type=MetricType.COUNTER,
-            attributes={"endpoint": "/api/users"}
+            attributes={"endpoint": "/api/users"},
         )
 
         # Get the request
@@ -108,16 +97,13 @@ class TestMetricsExport:
         """Test sending a histogram metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        client = TelemetryClient(project_name="test-project", version="1.0.0")
 
         client.track_metric(
             "request.duration",
             145.3,
             metric_type=MetricType.HISTOGRAM,
-            attributes={"status_code": "200"}
+            attributes={"status_code": "200"},
         )
 
         # Get the request
@@ -140,15 +126,12 @@ class TestLogsExport:
         """Test sending an INFO level log."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        client = TelemetryClient(project_name="test-project", version="1.0.0")
 
         client.track_log(
             "User logged in successfully",
             severity=LogSeverity.INFO,
-            attributes={"user_type": "admin"}
+            attributes={"user_type": "admin"},
         )
 
         # Should make HTTP request
@@ -183,15 +166,12 @@ class TestLogsExport:
         """Test sending an ERROR level log."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        client = TelemetryClient(project_name="test-project", version="1.0.0")
 
         client.track_log(
             "Database connection failed",
             severity=LogSeverity.ERROR,
-            attributes={"error_code": "DB_001"}
+            attributes={"error_code": "DB_001"},
         )
 
         # Get the request
@@ -209,10 +189,7 @@ class TestLogsExport:
         """Test that long log messages are truncated."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        client = TelemetryClient(project_name="test-project", version="1.0.0")
 
         long_message = "x" * 2000
         client.track_log(long_message)
@@ -237,11 +214,7 @@ class TestBatchProcessing:
         """Test batching multiple traces."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            batch_size=3
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=3)
         client = TelemetryClient(config=config)
 
         # Send 2 events - should not trigger send yet
@@ -270,7 +243,7 @@ class TestBatchProcessing:
         config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
-            batch_size=10  # Won't auto-flush with just 2 events
+            batch_size=10,  # Won't auto-flush with just 2 events
         )
         client = TelemetryClient(config=config)
 
@@ -304,7 +277,7 @@ class TestCompression:
             project_name="test-project",
             version="1.0.0",
             compression_enabled=True,
-            compression_threshold=100  # Low threshold for testing
+            compression_threshold=100,  # Low threshold for testing
         )
         client = TelemetryClient(config=config)
 
@@ -337,7 +310,7 @@ class TestCompression:
             project_name="test-project",
             version="1.0.0",
             compression_enabled=True,
-            compression_threshold=5000  # High threshold
+            compression_threshold=5000,  # High threshold
         )
         client = TelemetryClient(config=config)
 
@@ -364,7 +337,7 @@ class TestCompression:
             project_name="test-project",
             version="1.0.0",
             compression_enabled=False,
-            compression_threshold=1  # Even with low threshold, should not compress
+            compression_threshold=1,  # Even with low threshold, should not compress
         )
         client = TelemetryClient(config=config)
 
@@ -391,7 +364,7 @@ class TestRetryLogic:
             project_name="test-project",
             version="1.0.0",
             max_retries=2,
-            retry_backoff_base=0.01  # Fast retries for testing
+            retry_backoff_base=0.01,  # Fast retries for testing
         )
         client = TelemetryClient(config=config)
 
@@ -413,15 +386,13 @@ class TestRetryLogic:
         """Test not retrying on 4xx client errors."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            max_retries=3
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", max_retries=3)
         client = TelemetryClient(config=config)
 
         # Mock HTTPError with 400 status
-        with patch("urllib.request.urlopen", side_effect=HTTPError("url", 400, "Bad Request", {}, None)) as mock_urlopen:
+        with patch(
+            "urllib.request.urlopen", side_effect=HTTPError("url", 400, "Bad Request", {}, None)
+        ) as mock_urlopen:
             client.track_event("test.event")
 
             # Should not retry on client error
@@ -434,10 +405,7 @@ class TestRetryLogic:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            max_retries=3,
-            retry_backoff_base=0.1
+            project_name="test-project", version="1.0.0", max_retries=3, retry_backoff_base=0.1
         )
         client = TelemetryClient(config=config)
 
@@ -475,7 +443,7 @@ class TestCleanup:
         config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
-            batch_size=10  # Won't auto-flush
+            batch_size=10,  # Won't auto-flush
         )
         client = TelemetryClient(config=config)
 

@@ -10,16 +10,12 @@ Tests sustained high load scenarios to verify:
 
 import gc
 import os
-import sys
 import threading
 import time
-from collections import deque
-from typing import Dict, List
 
 import pytest
 
-from automagik_telemetry import TelemetryClient, TelemetryConfig, MetricType
-
+from automagik_telemetry import MetricType, TelemetryClient, TelemetryConfig
 
 # Mark as integration test and add timeout
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(120)]
@@ -55,10 +51,13 @@ def test_burst_events(high_throughput_client: TelemetryClient) -> None:
     start = time.time()
 
     for i in range(num_events):
-        high_throughput_client.track_event("test.burst", {
-            "event_number": i,
-            "category": f"category_{i % 10}",
-        })
+        high_throughput_client.track_event(
+            "test.burst",
+            {
+                "event_number": i,
+                "category": f"category_{i % 10}",
+            },
+        )
 
     duration = time.time() - start
 
@@ -82,14 +81,17 @@ def test_sustained_throughput(high_throughput_client: TelemetryClient) -> None:
     target_rate = 1000  # events per second
     total_events = duration_seconds * target_rate
 
-    event_times: List[float] = []
+    event_times: list[float] = []
     start = time.time()
 
     for i in range(total_events):
-        high_throughput_client.track_event("test.sustained", {
-            "event_id": i,
-            "timestamp": time.time(),
-        })
+        high_throughput_client.track_event(
+            "test.sustained",
+            {
+                "event_id": i,
+                "timestamp": time.time(),
+            },
+        )
         event_times.append(time.time())
 
         # Sleep to maintain target rate
@@ -102,7 +104,7 @@ def test_sustained_throughput(high_throughput_client: TelemetryClient) -> None:
 
     duration = time.time() - start
 
-    print(f"\nSustained throughput test:")
+    print("\nSustained throughput test:")
     print(f"  Total events: {total_events}")
     print(f"  Duration: {duration:.3f}s")
     print(f"  Average rate: {total_events / duration:.1f} events/sec")
@@ -125,10 +127,13 @@ def test_concurrent_producers(high_throughput_client: TelemetryClient) -> None:
     def producer_thread(thread_id: int) -> None:
         """Producer thread that generates events."""
         for i in range(events_per_thread):
-            high_throughput_client.track_event("test.concurrent", {
-                "thread_id": thread_id,
-                "event_id": i,
-            })
+            high_throughput_client.track_event(
+                "test.concurrent",
+                {
+                    "thread_id": thread_id,
+                    "event_id": i,
+                },
+            )
 
     # Start all threads
     threads = []
@@ -145,7 +150,7 @@ def test_concurrent_producers(high_throughput_client: TelemetryClient) -> None:
 
     duration = time.time() - start
 
-    print(f"\nConcurrent producers test:")
+    print("\nConcurrent producers test:")
     print(f"  Threads: {num_threads}")
     print(f"  Events per thread: {events_per_thread}")
     print(f"  Total events: {total_events}")
@@ -167,9 +172,12 @@ def test_mixed_signal_types(high_throughput_client: TelemetryClient) -> None:
 
     for i in range(num_iterations):
         # Send trace (event)
-        high_throughput_client.track_event("test.mixed.event", {
-            "iteration": i,
-        })
+        high_throughput_client.track_event(
+            "test.mixed.event",
+            {
+                "iteration": i,
+            },
+        )
 
         # Send metric
         high_throughput_client.track_metric(
@@ -181,6 +189,7 @@ def test_mixed_signal_types(high_throughput_client: TelemetryClient) -> None:
 
         # Send log
         from automagik_telemetry import LogSeverity
+
         high_throughput_client.track_log(
             f"Mixed signal iteration {i}",
             severity=LogSeverity.INFO,
@@ -190,7 +199,7 @@ def test_mixed_signal_types(high_throughput_client: TelemetryClient) -> None:
     duration = time.time() - start
     total_signals = num_iterations * 3  # 3 signal types per iteration
 
-    print(f"\nMixed signal types test:")
+    print("\nMixed signal types test:")
     print(f"  Iterations: {num_iterations}")
     print(f"  Total signals: {total_signals}")
     print(f"  Duration: {duration:.3f}s")
@@ -216,7 +225,7 @@ def test_queue_management(high_throughput_client: TelemetryClient) -> None:
 
     # Queue should not grow unbounded (batch_size = 100)
     # Some events might be queued, but not all 2000
-    total_queued = sum(mid_status['queue_sizes'].values())
+    total_queued = sum(mid_status["queue_sizes"].values())
     assert total_queued < 500  # Much less than 2000
 
     # Flush and verify queue is empty
@@ -226,7 +235,7 @@ def test_queue_management(high_throughput_client: TelemetryClient) -> None:
     print(f"Queue sizes after flush: {final_status['queue_sizes']}")
 
     # Queue should be empty after flush
-    total_queued_final = sum(final_status['queue_sizes'].values())
+    total_queued_final = sum(final_status["queue_sizes"].values())
     assert total_queued_final == 0
 
 
@@ -257,13 +266,16 @@ def test_memory_usage_under_load() -> None:
 
     # Generate sustained load
     num_events = 10000
-    memory_samples: List[float] = []
+    memory_samples: list[float] = []
 
     for i in range(num_events):
-        client.track_event("test.memory", {
-            "event_id": i,
-            "data": "x" * 100,  # Some payload
-        })
+        client.track_event(
+            "test.memory",
+            {
+                "event_id": i,
+                "data": "x" * 100,  # Some payload
+            },
+        )
 
         # Sample memory every 1000 events
         if i % 1000 == 0:
@@ -318,7 +330,7 @@ def test_batch_efficiency(high_throughput_client: TelemetryClient) -> None:
     high_throughput_client.flush()
     large_batch_time = time.time() - start
 
-    print(f"\nBatch efficiency:")
+    print("\nBatch efficiency:")
     print(f"  Small batch (size=1): {small_batch_time:.3f}s")
     print(f"  Large batch (size=100): {large_batch_time:.3f}s")
     print(f"  Speedup: {small_batch_time / large_batch_time:.2f}x")
@@ -364,7 +376,7 @@ def test_compression_efficiency(high_throughput_client: TelemetryClient) -> None
     no_compression_client.flush()
     uncompressed_time = time.time() - start
 
-    print(f"\nCompression efficiency:")
+    print("\nCompression efficiency:")
     print(f"  With compression: {compressed_time:.3f}s")
     print(f"  Without compression: {uncompressed_time:.3f}s")
 

@@ -11,8 +11,6 @@ Tests cover:
 - Timeout validation
 """
 
-import os
-from typing import Any, Dict
 
 import pytest
 
@@ -32,12 +30,16 @@ from automagik_telemetry.config import (
 class TestBooleanParsing:
     """Test boolean environment variable parsing."""
 
-    @pytest.mark.parametrize("value", ["true", "TRUE", "True", "1", "yes", "YES", "Yes", "on", "ON", "On"])
+    @pytest.mark.parametrize(
+        "value", ["true", "TRUE", "True", "1", "yes", "YES", "Yes", "on", "ON", "On"]
+    )
     def test_should_parse_truthy_values(self, value: str) -> None:
         """Test that various truthy values are parsed correctly."""
         assert _parse_boolean_env(value) is True
 
-    @pytest.mark.parametrize("value", ["false", "FALSE", "False", "0", "no", "NO", "No", "off", "OFF", "Off"])
+    @pytest.mark.parametrize(
+        "value", ["false", "FALSE", "False", "0", "no", "NO", "No", "off", "OFF", "Off"]
+    )
     def test_should_parse_falsy_values(self, value: str) -> None:
         """Test that various falsy values are parsed correctly."""
         assert _parse_boolean_env(value) is False
@@ -51,9 +53,7 @@ class TestBooleanParsing:
 class TestLoadConfigFromEnv:
     """Test loading configuration from environment variables."""
 
-    def test_should_load_enabled_from_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_load_enabled_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading enabled flag from environment."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
@@ -61,9 +61,7 @@ class TestLoadConfigFromEnv:
 
         assert config.enabled is True
 
-    def test_should_load_endpoint_from_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_load_endpoint_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading endpoint from environment."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://custom.example.com/traces")
 
@@ -71,9 +69,7 @@ class TestLoadConfigFromEnv:
 
         assert config.endpoint == "https://custom.example.com/traces"
 
-    def test_should_load_verbose_from_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_load_verbose_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading verbose flag from environment."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
 
@@ -81,9 +77,7 @@ class TestLoadConfigFromEnv:
 
         assert config.verbose is True
 
-    def test_should_load_timeout_from_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_load_timeout_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading timeout from environment."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "10000")
 
@@ -91,9 +85,7 @@ class TestLoadConfigFromEnv:
 
         assert config.timeout == 10000
 
-    def test_should_ignore_invalid_timeout(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_ignore_invalid_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that invalid timeout values are ignored."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "invalid")
 
@@ -101,9 +93,7 @@ class TestLoadConfigFromEnv:
 
         assert config.timeout is None
 
-    def test_should_ignore_negative_timeout(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_ignore_negative_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that negative timeout values are ignored."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "-100")
 
@@ -111,9 +101,7 @@ class TestLoadConfigFromEnv:
 
         assert config.timeout is None
 
-    def test_should_return_partial_config(
-        self, clean_env: None
-    ) -> None:
+    def test_should_return_partial_config(self, clean_env: None) -> None:
         """Test that config from env has empty required fields."""
         config = load_config_from_env()
 
@@ -122,9 +110,7 @@ class TestLoadConfigFromEnv:
         assert config.endpoint is None
         assert config.enabled is None
 
-    def test_should_load_all_env_vars_together(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_load_all_env_vars_together(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading all environment variables at once."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://custom.example.com/traces")
@@ -138,9 +124,7 @@ class TestLoadConfigFromEnv:
         assert config.verbose is True
         assert config.timeout == 8000
 
-    def test_should_ignore_zero_timeout_from_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_ignore_zero_timeout_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that zero timeout from environment is ignored."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "0")
 
@@ -148,9 +132,7 @@ class TestLoadConfigFromEnv:
 
         assert config.timeout is None
 
-    def test_should_skip_empty_endpoint(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_skip_empty_endpoint(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that empty endpoint string is skipped."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "")
 
@@ -158,9 +140,7 @@ class TestLoadConfigFromEnv:
 
         assert config.endpoint is None
 
-    def test_should_skip_empty_timeout(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_skip_empty_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that empty timeout string is skipped."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "")
 
@@ -174,61 +154,42 @@ class TestValidateConfig:
 
     def test_should_accept_valid_config(self) -> None:
         """Test that valid configuration passes validation."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
         # Should not raise
         validate_config(config)
 
     def test_should_reject_empty_project_name(self) -> None:
         """Test that empty project name raises error."""
-        config = TelemetryConfig(
-            project_name="",
-            version="1.0.0"
-        )
+        config = TelemetryConfig(project_name="", version="1.0.0")
 
         with pytest.raises(ValueError, match="project_name is required"):
             validate_config(config)
 
     def test_should_reject_whitespace_project_name(self) -> None:
         """Test that whitespace-only project name raises error."""
-        config = TelemetryConfig(
-            project_name="   ",
-            version="1.0.0"
-        )
+        config = TelemetryConfig(project_name="   ", version="1.0.0")
 
         with pytest.raises(ValueError, match="project_name is required"):
             validate_config(config)
 
     def test_should_reject_empty_version(self) -> None:
         """Test that empty version raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version=""
-        )
+        config = TelemetryConfig(project_name="test-project", version="")
 
         with pytest.raises(ValueError, match="version is required"):
             validate_config(config)
 
     def test_should_reject_whitespace_version(self) -> None:
         """Test that whitespace-only version raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="   "
-        )
+        config = TelemetryConfig(project_name="test-project", version="   ")
 
         with pytest.raises(ValueError, match="version is required"):
             validate_config(config)
 
     def test_should_reject_invalid_endpoint_url(self) -> None:
         """Test that invalid endpoint URL raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="not-a-url"
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", endpoint="not-a-url")
 
         with pytest.raises(ValueError, match="endpoint must use http or https"):
             validate_config(config)
@@ -236,9 +197,7 @@ class TestValidateConfig:
     def test_should_reject_endpoint_without_scheme(self) -> None:
         """Test that endpoint without http/https raises error."""
         config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="ftp://example.com/traces"
+            project_name="test-project", version="1.0.0", endpoint="ftp://example.com/traces"
         )
 
         with pytest.raises(ValueError, match="endpoint must use http or https"):
@@ -247,9 +206,7 @@ class TestValidateConfig:
     def test_should_accept_http_endpoint(self) -> None:
         """Test that HTTP endpoint is accepted."""
         config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="http://example.com/traces"
+            project_name="test-project", version="1.0.0", endpoint="http://example.com/traces"
         )
 
         # Should not raise
@@ -258,9 +215,7 @@ class TestValidateConfig:
     def test_should_accept_https_endpoint(self) -> None:
         """Test that HTTPS endpoint is accepted."""
         config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="https://example.com/traces"
+            project_name="test-project", version="1.0.0", endpoint="https://example.com/traces"
         )
 
         # Should not raise
@@ -268,55 +223,35 @@ class TestValidateConfig:
 
     def test_should_reject_zero_timeout(self) -> None:
         """Test that zero timeout raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            timeout=0
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=0)
 
         with pytest.raises(ValueError, match="timeout must be a positive integer"):
             validate_config(config)
 
     def test_should_reject_negative_timeout(self) -> None:
         """Test that negative timeout raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            timeout=-100
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=-100)
 
         with pytest.raises(ValueError, match="timeout must be a positive integer"):
             validate_config(config)
 
     def test_should_reject_excessive_timeout(self) -> None:
         """Test that timeout over 60 seconds raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            timeout=70000
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=70000)
 
         with pytest.raises(ValueError, match="timeout should not exceed 60000ms"):
             validate_config(config)
 
     def test_should_accept_valid_timeout(self) -> None:
         """Test that valid timeout is accepted."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            timeout=5000
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=5000)
 
         # Should not raise
         validate_config(config)
 
     def test_should_reject_empty_organization(self) -> None:
         """Test that empty organization raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            organization="   "
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", organization="   ")
 
         with pytest.raises(ValueError, match="organization cannot be empty"):
             validate_config(config)
@@ -326,7 +261,7 @@ class TestValidateConfig:
         config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
-            timeout="not-an-int"  # type: ignore
+            timeout="not-an-int",  # type: ignore
         )
 
         with pytest.raises(ValueError, match="timeout must be a positive integer"):
@@ -334,22 +269,14 @@ class TestValidateConfig:
 
     def test_should_accept_none_organization(self) -> None:
         """Test that None organization is accepted."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            organization=None
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", organization=None)
 
         # Should not raise
         validate_config(config)
 
     def test_should_reject_endpoint_without_netloc(self) -> None:
         """Test that endpoint without network location raises error."""
-        config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="http://"
-        )
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", endpoint="http://")
 
         with pytest.raises(ValueError, match="endpoint must be a valid URL"):
             validate_config(config)
@@ -357,9 +284,7 @@ class TestValidateConfig:
     def test_should_handle_general_url_parse_error(self) -> None:
         """Test handling of general URL parsing errors."""
         config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="ht!tp://invalid"
+            project_name="test-project", version="1.0.0", endpoint="ht!tp://invalid"
         )
 
         with pytest.raises(ValueError, match="endpoint must use http or https"):
@@ -369,13 +294,10 @@ class TestValidateConfig:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test handling of unexpected exceptions during URL parsing."""
-        from urllib.parse import urlparse
         from unittest.mock import Mock
 
         config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="http://example.com"
+            project_name="test-project", version="1.0.0", endpoint="http://example.com"
         )
 
         # Patch urlparse to raise a non-ValueError exception
@@ -400,7 +322,7 @@ class TestMergeConfig:
             organization="custom-org",
             timeout=8000,
             enabled=True,
-            verbose=True
+            verbose=True,
         )
 
         result = merge_config(user_config)
@@ -413,14 +335,9 @@ class TestMergeConfig:
         assert result.enabled is True
         assert result.verbose is True
 
-    def test_should_use_defaults_for_missing_values(
-        self, clean_env: None
-    ) -> None:
+    def test_should_use_defaults_for_missing_values(self, clean_env: None) -> None:
         """Test that defaults are used for missing optional values."""
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
         result = merge_config(user_config)
 
@@ -430,9 +347,7 @@ class TestMergeConfig:
         assert result.enabled == DEFAULT_CONFIG["enabled"]
         assert result.verbose == DEFAULT_CONFIG["verbose"]
 
-    def test_should_prefer_user_config_over_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_prefer_user_config_over_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that user config takes precedence over environment variables."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://env.example.com/traces")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "false")
@@ -441,7 +356,7 @@ class TestMergeConfig:
             project_name="test-project",
             version="1.0.0",
             endpoint="https://user.example.com/traces",
-            enabled=True
+            enabled=True,
         )
 
         result = merge_config(user_config)
@@ -449,18 +364,13 @@ class TestMergeConfig:
         assert result.endpoint == "https://user.example.com/traces"
         assert result.enabled is True
 
-    def test_should_prefer_env_over_defaults(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_prefer_env_over_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that env vars take precedence over defaults."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://env.example.com/traces")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "7000")
 
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
         result = merge_config(user_config)
 
@@ -468,29 +378,18 @@ class TestMergeConfig:
         assert result.enabled is True
         assert result.timeout == 7000
 
-    def test_should_handle_boolean_merge_correctly(
-        self, clean_env: None
-    ) -> None:
+    def test_should_handle_boolean_merge_correctly(self, clean_env: None) -> None:
         """Test that boolean merging handles None vs False correctly."""
         # enabled=False in user config should override default
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            enabled=False
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0", enabled=False)
 
         result = merge_config(user_config)
 
         assert result.enabled is False
 
-    def test_should_return_validated_config_type(
-        self, clean_env: None
-    ) -> None:
+    def test_should_return_validated_config_type(self, clean_env: None) -> None:
         """Test that merge_config returns ValidatedConfig instance."""
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
         result = merge_config(user_config)
 
@@ -502,47 +401,31 @@ class TestMergeConfig:
         assert result.enabled is not None
         assert result.verbose is not None
 
-    def test_should_merge_env_enabled_over_default(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_merge_env_enabled_over_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that env enabled takes precedence over default when user doesn't specify."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
         result = merge_config(user_config)
 
         assert result.enabled is True
 
-    def test_should_merge_env_verbose_over_default(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_merge_env_verbose_over_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that env verbose takes precedence over default when user doesn't specify."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
 
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
         result = merge_config(user_config)
 
         assert result.verbose is True
 
-    def test_should_handle_user_verbose_false(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_handle_user_verbose_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that explicit False for verbose is respected."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
 
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            verbose=False
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0", verbose=False)
 
         result = merge_config(user_config)
 
@@ -555,10 +438,7 @@ class TestCreateConfig:
 
     def test_should_create_valid_config(self) -> None:
         """Test creating a complete valid configuration."""
-        user_config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0"
-        )
+        user_config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
         result = create_config(user_config)
 
@@ -568,10 +448,7 @@ class TestCreateConfig:
 
     def test_should_validate_before_merging(self) -> None:
         """Test that validation happens before merging."""
-        invalid_config = TelemetryConfig(
-            project_name="",
-            version="1.0.0"
-        )
+        invalid_config = TelemetryConfig(project_name="", version="1.0.0")
 
         with pytest.raises(ValueError, match="project_name is required"):
             create_config(invalid_config)
@@ -579,9 +456,7 @@ class TestCreateConfig:
     def test_should_reject_invalid_endpoint_in_create(self) -> None:
         """Test that invalid endpoint is caught in create_config."""
         config = TelemetryConfig(
-            project_name="test-project",
-            version="1.0.0",
-            endpoint="invalid-url"
+            project_name="test-project", version="1.0.0", endpoint="invalid-url"
         )
 
         with pytest.raises(ValueError, match="endpoint must use http or https"):
@@ -596,7 +471,7 @@ class TestCreateConfig:
             organization="custom-org",
             timeout=10000,
             enabled=True,
-            verbose=False
+            verbose=False,
         )
 
         result = create_config(user_config)
@@ -648,9 +523,7 @@ class TestEnvVars:
 class TestConfigPriority:
     """Test configuration priority (user > env > defaults)."""
 
-    def test_priority_all_three_sources(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_priority_all_three_sources(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test priority when all three sources provide values."""
         # Set environment variables
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://env.example.com/traces")
@@ -660,7 +533,7 @@ class TestConfigPriority:
         user_config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
-            endpoint="https://user.example.com/traces"
+            endpoint="https://user.example.com/traces",
             # timeout not specified - should come from env
             # organization not specified - should come from defaults
         )
@@ -674,16 +547,14 @@ class TestConfigPriority:
         # Default wins for organization
         assert result.organization == DEFAULT_CONFIG["organization"]
 
-    def test_priority_with_explicit_false(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_priority_with_explicit_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that explicit False in user config overrides True in env."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         user_config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
-            enabled=False  # Explicit False
+            enabled=False,  # Explicit False
         )
 
         result = merge_config(user_config)

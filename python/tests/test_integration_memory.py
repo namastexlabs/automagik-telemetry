@@ -9,16 +9,13 @@ Tests long-running scenarios to verify:
 """
 
 import gc
-import os
-import sys
 import threading
 import time
-from typing import List, Dict, Any
+from typing import Any
 
 import pytest
 
-from automagik_telemetry import TelemetryClient, TelemetryConfig, MetricType, LogSeverity
-
+from automagik_telemetry import LogSeverity, MetricType, TelemetryClient, TelemetryConfig
 
 # Mark as integration test with extended timeout
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(300)]
@@ -28,6 +25,7 @@ def get_memory_mb() -> float:
     """Get current memory usage in MB."""
     try:
         import psutil
+
         process = psutil.Process()
         return process.memory_info().rss / 1024 / 1024
     except ImportError:
@@ -77,19 +75,24 @@ def test_no_memory_leak_simple_events(memory_test_client: TelemetryClient) -> No
 
     # Send many events
     num_events = 10000
-    memory_samples: List[float] = []
+    memory_samples: list[float] = []
 
     for i in range(num_events):
-        memory_test_client.track_event("test.memory.simple", {
-            "event_id": i,
-        })
+        memory_test_client.track_event(
+            "test.memory.simple",
+            {
+                "event_id": i,
+            },
+        )
 
         # Sample memory every 1000 events
         if i % 1000 == 0:
             gc.collect()
             current_memory = get_memory_mb()
             memory_samples.append(current_memory)
-            print(f"  After {i:5d} events: {current_memory:.2f} MB (+{current_memory - baseline_memory:.2f} MB)")
+            print(
+                f"  After {i:5d} events: {current_memory:.2f} MB (+{current_memory - baseline_memory:.2f} MB)"
+            )
 
     # Flush all events
     memory_test_client.flush()
@@ -129,10 +132,13 @@ def test_memory_returns_to_baseline_after_flush(memory_test_client: TelemetryCli
     # Generate events
     num_events = 5000
     for i in range(num_events):
-        memory_test_client.track_event("test.memory.baseline", {
-            "event_id": i,
-            "data": "x" * 100,
-        })
+        memory_test_client.track_event(
+            "test.memory.baseline",
+            {
+                "event_id": i,
+                "data": "x" * 100,
+            },
+        )
 
     # Check memory before flush
     gc.collect()
@@ -198,9 +204,8 @@ def test_sustained_load_memory_stability(memory_test_client: TelemetryClient) ->
     # Run for extended period with continuous events
     duration_seconds = 30
     events_per_second = 100
-    total_events = duration_seconds * events_per_second
 
-    memory_samples: List[Dict[str, Any]] = []
+    memory_samples: list[dict[str, Any]] = []
     start_time = time.time()
 
     print(f"\nRunning sustained load for {duration_seconds}s at {events_per_second} events/sec...")
@@ -209,10 +214,13 @@ def test_sustained_load_memory_stability(memory_test_client: TelemetryClient) ->
     while time.time() - start_time < duration_seconds:
         # Send events
         for _ in range(10):  # Batch of 10
-            memory_test_client.track_event("test.memory.sustained", {
-                "event_id": event_count,
-                "timestamp": time.time(),
-            })
+            memory_test_client.track_event(
+                "test.memory.sustained",
+                {
+                    "event_id": event_count,
+                    "timestamp": time.time(),
+                },
+            )
             event_count += 1
 
         # Sample memory every second
@@ -220,11 +228,13 @@ def test_sustained_load_memory_stability(memory_test_client: TelemetryClient) ->
         if int(elapsed) > len(memory_samples):
             gc.collect()
             current_memory = get_memory_mb()
-            memory_samples.append({
-                "time": elapsed,
-                "memory_mb": current_memory,
-                "events": event_count,
-            })
+            memory_samples.append(
+                {
+                    "time": elapsed,
+                    "memory_mb": current_memory,
+                    "events": event_count,
+                }
+            )
             print(f"  {elapsed:.0f}s: {current_memory:.2f} MB, {event_count} events")
 
         # Small sleep to maintain target rate
@@ -432,17 +442,22 @@ def test_queue_memory_bounds(memory_test_client: TelemetryClient) -> None:
     num_events = 5000
 
     for i in range(num_events):
-        client.track_event("test.queue.bounds", {
-            "event_id": i,
-            "data": "x" * 50,
-        })
+        client.track_event(
+            "test.queue.bounds",
+            {
+                "event_id": i,
+                "data": "x" * 50,
+            },
+        )
 
     # Check memory with queued events
     gc.collect()
     queued_memory = get_memory_mb()
     queued_growth = queued_memory - baseline_memory
 
-    print(f"Memory with {num_events} queued events: {queued_memory:.2f} MB (+{queued_growth:.2f} MB)")
+    print(
+        f"Memory with {num_events} queued events: {queued_memory:.2f} MB (+{queued_growth:.2f} MB)"
+    )
 
     # Check queue sizes
     status = client.get_status()

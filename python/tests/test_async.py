@@ -15,20 +15,17 @@ Tests cover:
 import asyncio
 import os
 import time
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-from urllib.request import urlopen
 
 import pytest
 
 from automagik_telemetry import (
+    LogSeverity,
+    MetricType,
+    StandardEvents,
     TelemetryClient,
     TelemetryConfig,
-    MetricType,
-    LogSeverity,
-    StandardEvents,
 )
-
 
 # Mark all tests in this module as asyncio tests
 pytestmark = pytest.mark.asyncio
@@ -79,8 +76,7 @@ class TestAsyncEventTracking:
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
             await enabled_telemetry.track_event_async(
-                StandardEvents.FEATURE_USED,
-                {"feature_name": "async_test"}
+                StandardEvents.FEATURE_USED, {"feature_name": "async_test"}
             )
 
             # Verify request was made
@@ -100,10 +96,7 @@ class TestAsyncEventTracking:
     async def test_track_event_async_disabled(self, disabled_telemetry):
         """Test that async event tracking is a no-op when disabled."""
         with patch("urllib.request.urlopen") as mock_urlopen:
-            await disabled_telemetry.track_event_async(
-                "test.event",
-                {"key": "value"}
-            )
+            await disabled_telemetry.track_event_async("test.event", {"key": "value"})
 
             # Should not make any HTTP requests
             assert not mock_urlopen.called
@@ -146,8 +139,7 @@ class TestAsyncErrorTracking:
 
             error = ValueError("Test error message")
             await enabled_telemetry.track_error_async(
-                error,
-                {"error_code": "TEST-001", "operation": "test_op"}
+                error, {"error_code": "TEST-001", "operation": "test_op"}
             )
 
             assert mock_urlopen.called
@@ -174,10 +166,7 @@ class TestAsyncErrorTracking:
             try:
                 raise ValueError("Test exception")
             except Exception as e:
-                await enabled_telemetry.track_error_async(
-                    e,
-                    {"caught_in": "test_context"}
-                )
+                await enabled_telemetry.track_error_async(e, {"caught_in": "test_context"})
 
             assert mock_urlopen.called
 
@@ -193,10 +182,7 @@ class TestAsyncMetricTracking:
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
             await enabled_telemetry.track_metric_async(
-                "cpu.usage",
-                75.5,
-                MetricType.GAUGE,
-                {"core": "0"}
+                "cpu.usage", 75.5, MetricType.GAUGE, {"core": "0"}
             )
 
             assert mock_urlopen.called
@@ -208,11 +194,7 @@ class TestAsyncMetricTracking:
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
-            await enabled_telemetry.track_metric_async(
-                "requests.total",
-                100,
-                MetricType.COUNTER
-            )
+            await enabled_telemetry.track_metric_async("requests.total", 100, MetricType.COUNTER)
 
             assert mock_urlopen.called
 
@@ -224,10 +206,7 @@ class TestAsyncMetricTracking:
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
             await enabled_telemetry.track_metric_async(
-                "api.latency",
-                123.45,
-                MetricType.HISTOGRAM,
-                {"endpoint": "/v1/users"}
+                "api.latency", 123.45, MetricType.HISTOGRAM, {"endpoint": "/v1/users"}
             )
 
             assert mock_urlopen.called
@@ -239,10 +218,7 @@ class TestAsyncMetricTracking:
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
-            await enabled_telemetry.track_metric_async(
-                "temperature",
-                22.5
-            )
+            await enabled_telemetry.track_metric_async("temperature", 22.5)
 
             assert mock_urlopen.called
 
@@ -258,9 +234,7 @@ class TestAsyncLogTracking:
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
             await enabled_telemetry.track_log_async(
-                "User logged in",
-                LogSeverity.INFO,
-                {"user_id": "anon-123"}
+                "User logged in", LogSeverity.INFO, {"user_id": "anon-123"}
             )
 
             assert mock_urlopen.called
@@ -273,9 +247,7 @@ class TestAsyncLogTracking:
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
             await enabled_telemetry.track_log_async(
-                "Database connection failed",
-                LogSeverity.ERROR,
-                {"error_code": "DB-001"}
+                "Database connection failed", LogSeverity.ERROR, {"error_code": "DB-001"}
             )
 
             assert mock_urlopen.called
@@ -298,10 +270,7 @@ class TestAsyncLogTracking:
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
-            await enabled_telemetry.track_log_async(
-                "Simple log message",
-                LogSeverity.DEBUG
-            )
+            await enabled_telemetry.track_log_async("Simple log message", LogSeverity.DEBUG)
 
             assert mock_urlopen.called
 
@@ -344,8 +313,7 @@ class TestConcurrentAsyncOperations:
 
             # Track multiple events concurrently
             tasks = [
-                enabled_telemetry.track_event_async(f"event.{i}", {"index": i})
-                for i in range(10)
+                enabled_telemetry.track_event_async(f"event.{i}", {"index": i}) for i in range(10)
             ]
             await asyncio.gather(*tasks)
 
@@ -479,6 +447,7 @@ class TestAsyncErrorHandling:
         with patch("urllib.request.urlopen") as mock_urlopen:
             # Simulate timeout
             from urllib.error import URLError
+
             mock_urlopen.side_effect = URLError("Timeout")
 
             # Should not raise exception
@@ -513,12 +482,8 @@ class TestAsyncWithAsyncioLoop:
             mock_urlopen.return_value.__enter__.return_value = mock_response
 
             # Create tasks
-            task1 = asyncio.create_task(
-                enabled_telemetry.track_event_async("task.1")
-            )
-            task2 = asyncio.create_task(
-                enabled_telemetry.track_event_async("task.2")
-            )
+            task1 = asyncio.create_task(enabled_telemetry.track_event_async("task.1"))
+            task2 = asyncio.create_task(enabled_telemetry.track_event_async("task.2"))
 
             # Wait for tasks
             await task1
@@ -551,10 +516,9 @@ class TestAsyncPerformance:
             # Concurrent execution
             mock_urlopen.return_value.__enter__.side_effect = slow_response
             start_con = time.time()
-            await asyncio.gather(*[
-                enabled_telemetry.track_event_async(f"con.{i}")
-                for i in range(5)
-            ])
+            await asyncio.gather(
+                *[enabled_telemetry.track_event_async(f"con.{i}") for i in range(5)]
+            )
             con_time = time.time() - start_con
 
             # Concurrent should be significantly faster

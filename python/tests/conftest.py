@@ -2,12 +2,11 @@
 Pytest configuration and shared fixtures for telemetry tests.
 """
 
-import json
-import os
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Dict, Generator
-from unittest.mock import MagicMock, Mock, patch
+from typing import Any
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -96,7 +95,7 @@ def mock_stdout() -> Generator[Mock, None, None]:
 
 
 @pytest.fixture
-def sample_telemetry_config() -> Dict[str, Any]:
+def sample_telemetry_config() -> dict[str, Any]:
     """
     Sample telemetry configuration for testing.
     """
@@ -110,7 +109,7 @@ def sample_telemetry_config() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_event_data() -> Dict[str, Any]:
+def sample_event_data() -> dict[str, Any]:
     """
     Sample event data for testing.
     """
@@ -122,7 +121,7 @@ def sample_event_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_sensitive_data() -> Dict[str, Any]:
+def sample_sensitive_data() -> dict[str, Any]:
     """
     Sample data containing PII for privacy testing.
     """

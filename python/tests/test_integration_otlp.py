@@ -10,17 +10,15 @@ Run with: pytest -v -m integration
 
 import os
 import time
-from typing import Optional
 
 import pytest
 
 from automagik_telemetry import (
+    LogSeverity,
+    MetricType,
     TelemetryClient,
     TelemetryConfig,
-    MetricType,
-    LogSeverity,
 )
-
 
 # Mark as integration test requiring network
 pytestmark = [pytest.mark.integration, pytest.mark.network]
@@ -65,11 +63,14 @@ def test_send_trace_to_collector(otlp_client: TelemetryClient) -> None:
     print("\n=== Testing trace to OTLP collector ===")
 
     # Send a test trace
-    otlp_client.track_event("integration.test.trace", {
-        "test_type": "trace",
-        "timestamp": time.time(),
-        "environment": "integration_test",
-    })
+    otlp_client.track_event(
+        "integration.test.trace",
+        {
+            "test_type": "trace",
+            "timestamp": time.time(),
+            "environment": "integration_test",
+        },
+    )
 
     # Flush to ensure immediate send
     otlp_client.flush()
@@ -155,10 +156,13 @@ def test_send_all_signal_types(otlp_client: TelemetryClient) -> None:
     print("\n=== Testing all signal types to OTLP collector ===")
 
     # 1. Trace
-    otlp_client.track_event("integration.test.all_signals", {
-        "signal_type": "trace",
-        "step": 1,
-    })
+    otlp_client.track_event(
+        "integration.test.all_signals",
+        {
+            "signal_type": "trace",
+            "step": 1,
+        },
+    )
 
     # 2. Metric
     otlp_client.track_metric(
@@ -192,10 +196,13 @@ def test_error_tracking_to_collector(otlp_client: TelemetryClient) -> None:
     try:
         raise ValueError("This is a test error for integration testing")
     except Exception as e:
-        otlp_client.track_error(e, {
-            "test_context": "integration_test",
-            "error_category": "test",
-        })
+        otlp_client.track_error(
+            e,
+            {
+                "test_context": "integration_test",
+                "error_category": "test",
+            },
+        )
 
     # Flush to ensure immediate send
     otlp_client.flush()
@@ -214,10 +221,13 @@ def test_batch_send_to_collector(otlp_client: TelemetryClient) -> None:
     num_events = 50
 
     for i in range(num_events):
-        otlp_client.track_event("integration.test.batch", {
-            "event_number": i,
-            "batch_test": True,
-        })
+        otlp_client.track_event(
+            "integration.test.batch",
+            {
+                "event_number": i,
+                "batch_test": True,
+            },
+        )
 
     # Flush all events
     otlp_client.flush()
@@ -260,10 +270,13 @@ def test_concurrent_sends_to_collector(otlp_client: TelemetryClient) -> None:
     def send_events(thread_id: int) -> None:
         """Send events from a thread."""
         for i in range(10):
-            otlp_client.track_event("integration.test.concurrent", {
-                "thread_id": thread_id,
-                "event_id": i,
-            })
+            otlp_client.track_event(
+                "integration.test.concurrent",
+                {
+                    "thread_id": thread_id,
+                    "event_id": i,
+                },
+            )
 
     # Create and start threads
     threads = []
@@ -308,9 +321,12 @@ def test_retry_on_temporary_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     client = TelemetryClient(config=config)
 
     # Send an event (should succeed with retries if needed)
-    client.track_event("integration.test.retry", {
-        "test_type": "retry",
-    })
+    client.track_event(
+        "integration.test.retry",
+        {
+            "test_type": "retry",
+        },
+    )
 
     client.flush()
     time.sleep(0.5)
@@ -346,9 +362,12 @@ def test_custom_endpoint_configuration() -> None:
     print(f"Logs endpoint: {client.logs_endpoint}")
 
     # Send test event
-    client.track_event("integration.test.custom_endpoint", {
-        "endpoint_test": True,
-    })
+    client.track_event(
+        "integration.test.custom_endpoint",
+        {
+            "endpoint_test": True,
+        },
+    )
 
     client.flush()
     time.sleep(0.5)

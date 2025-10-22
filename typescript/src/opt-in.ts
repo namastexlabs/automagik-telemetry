@@ -259,7 +259,7 @@ ${this.colorize('More info:', DIM)} https://docs.automagik.ai/privacy
 /**
  * Convenience function to check if we should show the opt-in prompt.
  */
-export function shouldPromptUser(projectName: string = 'Automagik'): boolean {
+export function shouldPromptUser(_projectName: string = 'Automagik'): boolean {
   return !TelemetryOptIn.hasUserDecided() && TelemetryOptIn['isInteractive']();
 }
 

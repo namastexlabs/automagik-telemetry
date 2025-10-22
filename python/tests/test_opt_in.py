@@ -11,7 +11,6 @@ Tests cover:
 - Input handling (yes/no/interrupt)
 """
 
-import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -57,9 +56,7 @@ class TestUserDecisionDetection:
 class TestGetUserPreference:
     """Test retrieval of user preference."""
 
-    def test_should_return_none_when_no_preference(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_return_none_when_no_preference(self, temp_home: Path, clean_env: None) -> None:
         """Test that get_user_preference returns None when no decision made."""
         assert TelemetryOptIn.get_user_preference() is None
 
@@ -132,9 +129,7 @@ class TestGetUserPreference:
 class TestSavePreference:
     """Test saving user preference."""
 
-    def test_should_save_enabled_preference(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_save_enabled_preference(self, temp_home: Path, clean_env: None) -> None:
         """Test saving an 'enabled' preference."""
         TelemetryOptIn.save_preference(True)
 
@@ -142,9 +137,7 @@ class TestSavePreference:
         assert pref_file.exists()
         assert pref_file.read_text() == "enabled"
 
-    def test_should_create_automagik_dir_if_missing(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_create_automagik_dir_if_missing(self, temp_home: Path, clean_env: None) -> None:
         """Test that .automagik directory is created if it doesn't exist."""
         automagik_dir = temp_home / ".automagik"
         assert not automagik_dir.exists()
@@ -201,9 +194,7 @@ class TestColorSupport:
         with patch("sys.stdout.isatty", return_value=True):
             assert TelemetryOptIn._supports_color() is True
 
-    def test_should_not_support_color_when_not_tty(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_not_support_color_when_not_tty(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that color is not supported when stdout is not a TTY."""
         with patch("sys.stdout.isatty", return_value=False):
             assert TelemetryOptIn._supports_color() is False
@@ -226,18 +217,14 @@ class TestColorSupport:
         with patch("sys.stdout.isatty", return_value=True):
             assert TelemetryOptIn._supports_color() is False
 
-    def test_should_support_color_on_windows_10_plus(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_support_color_on_windows_10_plus(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test color support on Windows 10+."""
         monkeypatch.setattr("sys.platform", "win32")
 
         with patch("platform.version", return_value="10.0.19041"):
             assert TelemetryOptIn._supports_color() is True
 
-    def test_should_not_support_color_on_old_windows(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_not_support_color_on_old_windows(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that color is not supported on Windows < 10."""
         monkeypatch.setattr("sys.platform", "win32")
 
@@ -248,9 +235,7 @@ class TestColorSupport:
 class TestColorize:
     """Test text colorization."""
 
-    def test_should_add_color_codes_when_supported(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_add_color_codes_when_supported(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that ANSI color codes are added when colors are supported."""
         with patch.object(TelemetryOptIn, "_supports_color", return_value=True):
             result = TelemetryOptIn._colorize("test", "92")
@@ -286,7 +271,9 @@ class TestInteractiveDetection:
             with patch("sys.stdout.isatty", return_value=False):
                 assert TelemetryOptIn._is_interactive() is False
 
-    @pytest.mark.parametrize("ci_var", ["CI", "GITHUB_ACTIONS", "TRAVIS", "JENKINS", "GITLAB_CI", "CIRCLECI"])
+    @pytest.mark.parametrize(
+        "ci_var", ["CI", "GITHUB_ACTIONS", "TRAVIS", "JENKINS", "GITLAB_CI", "CIRCLECI"]
+    )
     def test_should_not_be_interactive_in_ci(
         self, monkeypatch: pytest.MonkeyPatch, ci_var: str
     ) -> None:
@@ -336,9 +323,7 @@ class TestPromptUser:
                     assert "omni" in captured.out
                     assert "Help Improve" in captured.out
 
-    def test_should_accept_yes_answer(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_accept_yes_answer(self, temp_home: Path, clean_env: None) -> None:
         """Test that 'y' answer enables telemetry."""
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
@@ -351,9 +336,7 @@ class TestPromptUser:
                     pref_file = temp_home / ".automagik" / "telemetry_preference"
                     assert pref_file.exists()
 
-    def test_should_accept_yes_full_word(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_accept_yes_full_word(self, temp_home: Path, clean_env: None) -> None:
         """Test that 'yes' answer enables telemetry."""
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
@@ -362,9 +345,7 @@ class TestPromptUser:
 
                     assert result is True
 
-    def test_should_reject_no_answer(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_reject_no_answer(self, temp_home: Path, clean_env: None) -> None:
         """Test that 'n' answer disables telemetry."""
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
@@ -377,9 +358,7 @@ class TestPromptUser:
                     opt_out_file = temp_home / ".automagik-no-telemetry"
                     assert opt_out_file.exists()
 
-    def test_should_treat_empty_input_as_no(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_treat_empty_input_as_no(self, temp_home: Path, clean_env: None) -> None:
         """Test that empty input (Enter key) is treated as 'no'."""
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
@@ -388,9 +367,7 @@ class TestPromptUser:
 
                     assert result is False
 
-    def test_should_handle_keyboard_interrupt(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_handle_keyboard_interrupt(self, temp_home: Path, clean_env: None) -> None:
         """Test that Ctrl+C is treated as 'no'."""
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
@@ -403,9 +380,7 @@ class TestPromptUser:
                     opt_out_file = temp_home / ".automagik-no-telemetry"
                     assert opt_out_file.exists()
 
-    def test_should_handle_eof_error(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_handle_eof_error(self, temp_home: Path, clean_env: None) -> None:
         """Test that EOF is treated as 'no'."""
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
@@ -538,9 +513,7 @@ class TestErrorHandling:
             # Should not raise exception
             TelemetryOptIn.save_preference(False)
 
-    def test_should_handle_opt_out_file_touch_error(
-        self, temp_home: Path, clean_env: None
-    ) -> None:
+    def test_should_handle_opt_out_file_touch_error(self, temp_home: Path, clean_env: None) -> None:
         """Test handling of opt-out file creation errors."""
         with patch("pathlib.Path.touch", side_effect=PermissionError):
             # Should not raise exception

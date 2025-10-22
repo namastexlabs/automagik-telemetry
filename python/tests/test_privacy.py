@@ -15,7 +15,6 @@ Tests cover:
 - Recursive sanitization (nested objects and arrays)
 """
 
-import pytest
 
 from automagik_telemetry.privacy import (
     DEFAULT_CONFIG,
@@ -216,8 +215,7 @@ class TestSanitizeEmail:
 
     def test_should_handle_malformed_email_in_truncate(self) -> None:
         """Test handling edge case in email truncation."""
-        from unittest.mock import patch, Mock
-        import re
+        from unittest.mock import Mock, patch
 
         config = PrivacyConfig(strategy="truncate")
 
@@ -314,8 +312,7 @@ class TestSanitizeValue:
 
     def test_should_sanitize_credit_card_without_phone_match(self) -> None:
         """Test credit card sanitization when phone pattern doesn't match."""
-        from unittest.mock import patch, Mock
-        import re
+        from unittest.mock import patch
 
         config = PrivacyConfig(strategy="redact")
 
@@ -424,6 +421,7 @@ class TestSanitizeValue:
 
     def test_should_pass_through_unknown_types(self) -> None:
         """Test that unknown types are passed through unchanged."""
+
         class CustomType:
             pass
 
@@ -686,11 +684,7 @@ class TestPrivacyConfig:
 
     def test_should_allow_custom_values(self) -> None:
         """Test creating PrivacyConfig with custom values."""
-        config = PrivacyConfig(
-            strategy="redact",
-            max_string_length=500,
-            redaction_text="[HIDDEN]"
-        )
+        config = PrivacyConfig(strategy="redact", max_string_length=500, redaction_text="[HIDDEN]")
 
         assert config.strategy == "redact"
         assert config.max_string_length == 500
