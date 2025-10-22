@@ -129,9 +129,9 @@ Your Application → AutomagikTelemetry SDK → OTLP/HTTP → OpenTelemetry Coll
 |-----------|---------|------------------|
 | **SDK** | Client library for your application | N/A |
 | **OTLP/HTTP** | Standard telemetry protocol | `https://telemetry.namastex.ai` |
-| **Collector** | Receives and processes telemetry | Container 155 (192.168.112.155) |
-| **Prometheus** | Stores metrics | Container 122 (192.168.112.122:9090) |
-| **Grafana** | Visualizes metrics | Container 122 (192.168.112.122:3000) |
+| **Collector** | Receives and processes telemetry | Configured endpoint |
+| **Prometheus** | Stores metrics | Backend storage |
+| **Grafana** | Visualizes metrics | Visualization layer |
 
 ### Privacy Controls
 
