@@ -312,6 +312,28 @@ class TestSanitizeValue:
         assert "4532123456789010" not in result
         assert "[REDACTED]" in result
 
+    def test_should_sanitize_credit_card_without_phone_match(self) -> None:
+        """Test credit card sanitization when phone pattern doesn't match."""
+        from unittest.mock import patch, Mock
+        import re
+
+        config = PrivacyConfig(strategy="redact")
+
+        # Mock PHONE.search to return None (no match) so we skip phone sanitization
+        # This forces the code to reach the CREDIT_CARD check on line 247-248
+        with patch("automagik_telemetry.privacy.Patterns.PHONE") as mock_phone_pattern:
+            mock_phone_pattern.search.return_value = None
+
+            # Test with a credit card number that would normally match both patterns
+            result = sanitize_value("1111-2222-3333-4444", config)
+
+            # The phone check should have been called but returned None
+            assert mock_phone_pattern.search.called
+
+            # The credit card should be redacted since phone didn't match
+            assert "1111-2222-3333-4444" not in result
+            assert "[REDACTED]" in result
+
     def test_should_sanitize_ip_addresses(self) -> None:
         """Test sanitizing IP addresses."""
         result = sanitize_value("Server: 192.168.1.100")
