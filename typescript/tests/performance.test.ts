@@ -5,7 +5,7 @@
  * These tests can be skipped in CI by excluding the 'performance' test pattern.
  */
 
-import { TelemetryClient } from '../src/client';
+import { TelemetryClient, MetricType } from '../src/client';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';

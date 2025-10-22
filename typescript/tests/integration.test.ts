@@ -31,7 +31,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 describeIntegration('Integration Tests', () => {
-  let client: TelemetryClient;
+  let client: InstanceType<typeof TelemetryClient>;
 
   beforeEach(() => {
     // Enable telemetry for integration tests
