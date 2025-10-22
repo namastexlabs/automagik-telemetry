@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Listen on all interfaces for Docker -->
+    <listen_host>::</listen_host>
+    <listen_host>0.0.0.0</listen_host>
+
+    <!-- HTTP interface settings -->
+    <http_port>8123</http_port>
+
+    <!-- Native protocol settings -->
+    <tcp_port>9000</tcp_port>
+
+    <!-- Logging -->
+    <logger>
+        <level>information</level>
+        <console>true</console>
+    </logger>
+
+    <!-- Performance optimizations for small datasets -->
+    <max_concurrent_queries>100</max_concurrent_queries>
+    <max_server_memory_usage_to_ram_ratio>0.8</max_server_memory_usage_to_ram_ratio>
+
+    <!-- Enable query log for debugging -->
+    <query_log>
+        <database>system</database>
+        <table>query_log</table>
+    </query_log>
+</clickhouse>

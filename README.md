@@ -326,12 +326,41 @@ client.track_histogram("request.duration_ms", value=duration_ms, attributes={
 
 ---
 
+## 🏗️ Self-Hosting & Local Development
+
+Want to run your own telemetry infrastructure? We've got you covered!
+
+```bash
+cd infra
+make start        # Start all services (ClickHouse + Collector + Grafana)
+make test         # Send test data
+make dashboard    # Open Grafana dashboard
+```
+
+**What you get:**
+- 🗄️ **ClickHouse** - High-performance OLAP database for telemetry data
+- 📡 **OTLP Collector** - Receives and processes OTLP telemetry
+- 📊 **Grafana** - Pre-configured dashboards for visualization
+- 🚀 **Production-ready** - Docker Compose setup with best practices
+
+**Full documentation:** [infra/README.md](infra/README.md)
+
+**Quick links:**
+- [Architecture Overview](infra/README.md#-architecture)
+- [Configuration Guide](infra/README.md#-configuration)
+- [Production Deployment](infra/README.md#-production-deployment)
+- [Scaling Guidelines](infra/README.md#-scaling)
+- [Troubleshooting](infra/README.md#-troubleshooting)
+
+---
+
 ## 📚 Documentation
 
 - **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Command cheat sheet and common patterns
 - **[TELEMETRY_DEVELOPMENT_GUIDE.md](TELEMETRY_DEVELOPMENT_GUIDE.md)** - Architecture deep dive and development guide
 - **[QUICKSTART.md](QUICKSTART.md)** - Getting started tutorial
 - **[INTEGRATION_TESTS.md](INTEGRATION_TESTS.md)** - Integration testing guide
+- **[infra/README.md](infra/README.md)** - Self-hosting infrastructure guide
 
 ---
 

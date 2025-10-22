@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # ClickHouse - OLAP database for telemetry data
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    container_name: automagik-clickhouse
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9000:9000"  # Native client
+    environment:
+      CLICKHOUSE_DB: telemetry
+      CLICKHOUSE_USER: telemetry
+      CLICKHOUSE_PASSWORD: telemetry_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./clickhouse/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - telemetry
+
+  # OTLP Collector/API - Receives telemetry data
+  collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: automagik-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    ports:
+      - "4318:4318"  # OTLP HTTP receiver
+      - "4317:4317"  # OTLP gRPC receiver
+      - "8888:8888"  # Prometheus metrics
+    volumes:
+      - ./collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    environment:
+      CLICKHOUSE_ENDPOINT: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: telemetry
+      CLICKHOUSE_USER: telemetry
+      CLICKHOUSE_PASSWORD: telemetry_password
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - telemetry
+
+  # Grafana - Visualization and dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: automagik-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/telemetry-overview.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - telemetry
+
+volumes:
+  clickhouse-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  telemetry:
+    driver: bridge

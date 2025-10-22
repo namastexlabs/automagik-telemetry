@@ -72,7 +72,7 @@ Comprehensive real-world integration tests have been created for both Python and
 
 ### Documentation (3 files)
 
-1. **`INTEGRATION_TESTS.md`** - Comprehensive guide covering:
+1. **`docs/INTEGRATION_TESTS.md`** - Comprehensive guide covering:
    - Test overview and purpose
    - Setup instructions for both SDKs
    - How to run tests (all variations)
@@ -254,7 +254,7 @@ TypeScript also supports:
 ## Documentation
 
 Full documentation available in:
-- `/INTEGRATION_TESTS.md` - Complete guide
+- `/docs/INTEGRATION_TESTS.md` - Complete guide
 - `/python/tests/INTEGRATION_TESTS_README.md` - Python quick reference
 - `/typescript/tests/INTEGRATION_TESTS_README.md` - TypeScript quick reference
 

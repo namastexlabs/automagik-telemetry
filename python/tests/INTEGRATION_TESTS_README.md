@@ -46,4 +46,4 @@ AUTOMAGIK_TELEMETRY_ENDPOINT=https://custom.endpoint.com pytest -v -m integratio
 
 ## See Also
 
-Full documentation: `/INTEGRATION_TESTS.md`
+Full documentation: `/docs/INTEGRATION_TESTS.md`

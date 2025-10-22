@@ -1,0 +1,103 @@
+# OpenTelemetry Collector Configuration for Automagik Telemetry
+# Receives OTLP data and exports to ClickHouse
+
+receivers:
+  # OTLP receiver for HTTP (JSON)
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+          allowed_headers:
+            - "*"
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+  # Prometheus receiver for collector self-monitoring
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['localhost:8888']
+
+processors:
+  # Batch processor for efficiency
+  batch:
+    timeout: 10s
+    send_batch_size: 100
+    send_batch_max_size: 1000
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Resource processor to add/modify attributes
+  resource:
+    attributes:
+      - key: collector.name
+        value: automagik-collector
+        action: insert
+
+  # Attributes processor for data enrichment
+  attributes:
+    actions:
+      - key: environment
+        action: insert
+        value: ${env:ENVIRONMENT}
+        from_attribute: ""
+      - key: collected_at
+        action: insert
+        value: ${NOW}
+
+exporters:
+  # ClickHouse exporter via HTTP
+  clickhouse:
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    database: ${env:CLICKHOUSE_DATABASE}
+    username: ${env:CLICKHOUSE_USER}
+    password: ${env:CLICKHOUSE_PASSWORD}
+    ttl: 72h
+    traces_table_name: traces
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  # Logging exporter for debugging
+  logging:
+    loglevel: info
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+  # Prometheus exporter for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: automagik_telemetry
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, attributes, batch]
+      exporters: [clickhouse, logging]
+
+    metrics:
+      receivers: [prometheus]
+      processors: [batch]
+      exporters: [logging]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888
+
+extensions: []
