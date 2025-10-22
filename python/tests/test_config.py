@@ -138,6 +138,36 @@ class TestLoadConfigFromEnv:
         assert config.verbose is True
         assert config.timeout == 8000
 
+    def test_should_ignore_zero_timeout_from_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that zero timeout from environment is ignored."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "0")
+
+        config = load_config_from_env()
+
+        assert config.timeout is None
+
+    def test_should_skip_empty_endpoint(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that empty endpoint string is skipped."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "")
+
+        config = load_config_from_env()
+
+        assert config.endpoint is None
+
+    def test_should_skip_empty_timeout(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that empty timeout string is skipped."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "")
+
+        config = load_config_from_env()
+
+        assert config.timeout is None
+
 
 class TestValidateConfig:
     """Test configuration validation."""
@@ -200,7 +230,7 @@ class TestValidateConfig:
             endpoint="not-a-url"
         )
 
-        with pytest.raises(ValueError, match="endpoint must be a valid URL"):
+        with pytest.raises(ValueError, match="endpoint must use http or https"):
             validate_config(config)
 
     def test_should_reject_endpoint_without_scheme(self) -> None:
@@ -289,6 +319,72 @@ class TestValidateConfig:
         )
 
         with pytest.raises(ValueError, match="organization cannot be empty"):
+            validate_config(config)
+
+    def test_should_reject_non_integer_timeout(self) -> None:
+        """Test that non-integer timeout raises error."""
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            timeout="not-an-int"  # type: ignore
+        )
+
+        with pytest.raises(ValueError, match="timeout must be a positive integer"):
+            validate_config(config)
+
+    def test_should_accept_none_organization(self) -> None:
+        """Test that None organization is accepted."""
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            organization=None
+        )
+
+        # Should not raise
+        validate_config(config)
+
+    def test_should_reject_endpoint_without_netloc(self) -> None:
+        """Test that endpoint without network location raises error."""
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            endpoint="http://"
+        )
+
+        with pytest.raises(ValueError, match="endpoint must be a valid URL"):
+            validate_config(config)
+
+    def test_should_handle_general_url_parse_error(self) -> None:
+        """Test handling of general URL parsing errors."""
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            endpoint="ht!tp://invalid"
+        )
+
+        with pytest.raises(ValueError, match="endpoint must use http or https"):
+            validate_config(config)
+
+    def test_should_handle_unexpected_url_parse_exception(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test handling of unexpected exceptions during URL parsing."""
+        from urllib.parse import urlparse
+        from unittest.mock import Mock
+
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            endpoint="http://example.com"
+        )
+
+        # Patch urlparse to raise a non-ValueError exception
+        def mock_urlparse(url: str) -> Mock:
+            raise RuntimeError("Unexpected error")
+
+        monkeypatch.setattr("automagik_telemetry.config.urlparse", mock_urlparse)
+
+        with pytest.raises(ValueError, match="endpoint must be a valid URL"):
             validate_config(config)
 
 
@@ -406,6 +502,53 @@ class TestMergeConfig:
         assert result.enabled is not None
         assert result.verbose is not None
 
+    def test_should_merge_env_enabled_over_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that env enabled takes precedence over default when user doesn't specify."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+
+        user_config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0"
+        )
+
+        result = merge_config(user_config)
+
+        assert result.enabled is True
+
+    def test_should_merge_env_verbose_over_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that env verbose takes precedence over default when user doesn't specify."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
+
+        user_config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0"
+        )
+
+        result = merge_config(user_config)
+
+        assert result.verbose is True
+
+    def test_should_handle_user_verbose_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that explicit False for verbose is respected."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
+
+        user_config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            verbose=False
+        )
+
+        result = merge_config(user_config)
+
+        # User's explicit False should win
+        assert result.verbose is False
+
 
 class TestCreateConfig:
     """Test complete configuration creation."""
@@ -441,7 +584,7 @@ class TestCreateConfig:
             endpoint="invalid-url"
         )
 
-        with pytest.raises(ValueError, match="endpoint must be a valid URL"):
+        with pytest.raises(ValueError, match="endpoint must use http or https"):
             create_config(config)
 
     def test_should_accept_valid_config_with_all_fields(self) -> None:
