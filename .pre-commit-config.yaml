@@ -63,3 +63,11 @@ repos:
         files: ^python/src/.*\.py$
         pass_filenames: false
         stages: [pre-commit]
+
+      - id: version-sync-check
+        name: Version sync check (Python vs TypeScript)
+        entry: bash -c 'scripts/check-version-sync.sh'
+        language: system
+        files: ^(python/pyproject\.toml|typescript/package\.json)$
+        pass_filenames: false
+        stages: [pre-commit]
