@@ -23,6 +23,8 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from automagik_telemetry.backends.clickhouse import ClickHouseBackend
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,6 +55,7 @@ class TelemetryConfig:
     Attributes:
         project_name: Name of the Automagik project
         version: Version of the project
+        backend: Backend to use ("otlp" or "clickhouse", default: "otlp")
         endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
         organization: Organization name (default: namastex)
         timeout: HTTP timeout in seconds (default: 5)
@@ -64,10 +67,16 @@ class TelemetryConfig:
         retry_backoff_base: Base backoff time in seconds (default: 1.0)
         metrics_endpoint: Custom endpoint for metrics (defaults to /v1/metrics)
         logs_endpoint: Custom endpoint for logs (defaults to /v1/logs)
+        clickhouse_endpoint: ClickHouse HTTP endpoint (default: http://localhost:8123)
+        clickhouse_database: ClickHouse database name (default: telemetry)
+        clickhouse_table: ClickHouse table name (default: traces)
+        clickhouse_username: ClickHouse username (default: default)
+        clickhouse_password: ClickHouse password (default: "")
     """
 
     project_name: str
     version: str
+    backend: str = "otlp"  # "otlp" or "clickhouse"
     endpoint: str | None = None
     organization: str = "namastex"
     timeout: int = 5
@@ -79,6 +88,12 @@ class TelemetryConfig:
     retry_backoff_base: float = 1.0
     metrics_endpoint: str | None = None
     logs_endpoint: str | None = None
+    # ClickHouse-specific options
+    clickhouse_endpoint: str = "http://localhost:8123"
+    clickhouse_database: str = "telemetry"
+    clickhouse_table: str = "traces"
+    clickhouse_username: str = "default"
+    clickhouse_password: str = ""
 
 
 class AutomagikTelemetry:
@@ -161,6 +176,11 @@ class AutomagikTelemetry:
         self.organization = self.config.organization
         self.timeout = self.config.timeout
 
+        # Determine backend from config or environment variable
+        self.backend_type = (
+            os.getenv("AUTOMAGIK_TELEMETRY_BACKEND", self.config.backend).lower()
+        )
+
         # Set up endpoints
         base_endpoint = self.config.endpoint or os.getenv(
             "AUTOMAGIK_TELEMETRY_ENDPOINT",
@@ -203,6 +223,42 @@ class AutomagikTelemetry:
         # User & session IDs
         self.user_id = self._get_or_create_user_id()
         self.session_id = str(uuid.uuid4())
+
+        # Initialize backend
+        self._clickhouse_backend: ClickHouseBackend | None = None
+        if self.backend_type == "clickhouse":
+            clickhouse_endpoint = os.getenv(
+                "AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT",
+                self.config.clickhouse_endpoint,
+            )
+            clickhouse_database = os.getenv(
+                "AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE",
+                self.config.clickhouse_database,
+            )
+            clickhouse_table = os.getenv(
+                "AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE",
+                self.config.clickhouse_table,
+            )
+            clickhouse_username = os.getenv(
+                "AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME",
+                self.config.clickhouse_username,
+            )
+            clickhouse_password = os.getenv(
+                "AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD",
+                self.config.clickhouse_password,
+            )
+
+            self._clickhouse_backend = ClickHouseBackend(
+                endpoint=clickhouse_endpoint,
+                database=clickhouse_database,
+                table=clickhouse_table,
+                username=clickhouse_username,
+                password=clickhouse_password,
+                timeout=self.timeout,
+                batch_size=self.config.batch_size,
+                compression_enabled=self.config.compression_enabled,
+                max_retries=self.config.max_retries,
+            )
 
         # Enable/disable check
         self.enabled = self._is_telemetry_enabled()
@@ -445,7 +501,7 @@ class AutomagikTelemetry:
         ]
 
     def _send_trace(self, event_type: str, data: dict[str, Any]) -> None:
-        """Send trace (span) using OTLP traces format."""
+        """Send trace (span) using OTLP traces format or ClickHouse backend."""
         if not self.enabled:
             return
 
@@ -462,17 +518,27 @@ class AutomagikTelemetry:
             "startTimeUnixNano": int(time.time() * 1_000_000_000),
             "endTimeUnixNano": int(time.time() * 1_000_000_000),
             "attributes": self._create_attributes(data),
-            "status": {"code": "STATUS_CODE_OK"},
+            "status": {"code": 1},  # STATUS_CODE_OK = 1
+            "resource": {"attributes": self._get_resource_attributes()},
         }
 
-        # Queue or send immediately
-        if self.config.batch_size > 1:
-            with self._queue_lock:
-                self._trace_queue.append(span)
-                if len(self._trace_queue) >= self.config.batch_size:
-                    self._flush_traces()
+        # Route to appropriate backend
+        if self.backend_type == "clickhouse" and self._clickhouse_backend:
+            # Send directly to ClickHouse backend
+            try:
+                self._clickhouse_backend.send_trace(span)
+            except Exception as e:
+                logger.debug(f"ClickHouse backend error: {e}")
         else:
-            self._flush_traces([span])
+            # Use OTLP backend (default)
+            # Queue or send immediately
+            if self.config.batch_size > 1:
+                with self._queue_lock:
+                    self._trace_queue.append(span)
+                    if len(self._trace_queue) >= self.config.batch_size:
+                        self._flush_traces()
+            else:
+                self._flush_traces([span])
 
     def _send_metric(
         self,
@@ -781,7 +847,14 @@ class AutomagikTelemetry:
         if not self.enabled:
             return
 
-        # Flush all queues
+        # Flush ClickHouse backend if active
+        if self.backend_type == "clickhouse" and self._clickhouse_backend:
+            try:
+                self._clickhouse_backend.flush()
+            except Exception as e:
+                logger.debug(f"ClickHouse flush error: {e}")
+
+        # Flush all OTLP queues
         self._flush_traces()
         self._flush_metrics()
         self._flush_logs()
@@ -1003,7 +1076,7 @@ class AutomagikTelemetry:
             if self._flush_timer is not None:
                 self._flush_timer.cancel()
 
-            # Flush all remaining events
+            # Flush all remaining events (handles both OTLP and ClickHouse)
             self.flush()
         except Exception:
             # Silent failure during cleanup

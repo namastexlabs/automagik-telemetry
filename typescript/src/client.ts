@@ -11,6 +11,8 @@ import * as path from "path";
 import * as crypto from "crypto";
 import * as zlib from "zlib";
 
+import { ClickHouseBackend } from "./backends/clickhouse";
+
 /**
  * Configuration interface for TelemetryClient.
  */
@@ -19,6 +21,8 @@ export interface TelemetryConfig {
   projectName: string;
   /** Version of the project */
   version: string;
+  /** Backend to use ("otlp" or "clickhouse", default: "otlp") */
+  backend?: string;
   /** Custom telemetry endpoint (defaults to telemetry.namastex.ai) */
   endpoint?: string;
   /** Organization name (default: namastex) */
@@ -41,6 +45,16 @@ export interface TelemetryConfig {
   metricsEndpoint?: string;
   /** Custom logs endpoint (defaults to /v1/logs) */
   logsEndpoint?: string;
+  /** ClickHouse HTTP endpoint (default: http://localhost:8123) */
+  clickhouseEndpoint?: string;
+  /** ClickHouse database name (default: telemetry) */
+  clickhouseDatabase?: string;
+  /** ClickHouse table name (default: traces) */
+  clickhouseTable?: string;
+  /** ClickHouse username (default: default) */
+  clickhouseUsername?: string;
+  /** ClickHouse password (default: "") */
+  clickhousePassword?: string;
 }
 
 /**
@@ -147,6 +161,10 @@ export class AutomagikTelemetry {
   private enabled: boolean;
   private verbose: boolean;
 
+  // Backend selection
+  private backendType: string;
+  private clickhouseBackend?: ClickHouseBackend;
+
   // Batch processing
   private eventQueue: QueuedEvent[];
   private batchSize: number;
@@ -172,6 +190,13 @@ export class AutomagikTelemetry {
     this.organization = config.organization || "namastex";
     this.timeout = (config.timeout || 5) * 1000; // Convert to milliseconds
 
+    // Determine backend from config or environment variable
+    this.backendType = (
+      process.env.AUTOMAGIK_TELEMETRY_BACKEND ||
+      config.backend ||
+      "otlp"
+    ).toLowerCase();
+
     // Allow custom endpoint for self-hosting
     const baseEndpoint =
       config.endpoint ||
@@ -191,6 +216,42 @@ export class AutomagikTelemetry {
     // User & session IDs
     this.userId = this.getOrCreateUserId();
     this.sessionId = crypto.randomUUID();
+
+    // Initialize ClickHouse backend if selected
+    if (this.backendType === "clickhouse") {
+      const clickhouseEndpoint =
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT ||
+        config.clickhouseEndpoint ||
+        "http://localhost:8123";
+      const clickhouseDatabase =
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE ||
+        config.clickhouseDatabase ||
+        "telemetry";
+      const clickhouseTable =
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE ||
+        config.clickhouseTable ||
+        "traces";
+      const clickhouseUsername =
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME ||
+        config.clickhouseUsername ||
+        "default";
+      const clickhousePassword =
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD ||
+        config.clickhousePassword ||
+        "";
+
+      this.clickhouseBackend = new ClickHouseBackend({
+        endpoint: clickhouseEndpoint,
+        database: clickhouseDatabase,
+        table: clickhouseTable,
+        username: clickhouseUsername,
+        password: clickhousePassword,
+        timeout: this.timeout,
+        batchSize: config.batchSize || 100,
+        compressionEnabled: config.compressionEnabled !== false,
+        maxRetries: config.maxRetries || 3,
+      });
+    }
 
     // Enable/disable check
     this.enabled = this.isTelemetryEnabled();
@@ -524,80 +585,89 @@ export class AutomagikTelemetry {
       // Get current time in nanoseconds
       const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
 
-      // Create OTLP-compatible payload
-      const payload = {
-        resourceSpans: [
-          {
-            resource: {
-              attributes: [
-                {
-                  key: "service.name",
-                  value: { stringValue: this.projectName },
-                },
-                {
-                  key: "service.version",
-                  value: { stringValue: this.projectVersion },
-                },
-                {
-                  key: "service.organization",
-                  value: { stringValue: this.organization },
-                },
-                {
-                  key: "user.id",
-                  value: { stringValue: this.userId },
-                },
-                {
-                  key: "session.id",
-                  value: { stringValue: this.sessionId },
-                },
-                {
-                  key: "telemetry.sdk.name",
-                  value: { stringValue: "automagik-telemetry" },
-                },
-                {
-                  key: "telemetry.sdk.version",
-                  value: { stringValue: "0.1.0" },
-                },
-              ],
-            },
-            scopeSpans: [
-              {
-                scope: {
-                  name: `${this.projectName}.telemetry`,
-                  version: this.projectVersion,
-                },
-                spans: [
-                  {
-                    traceId: traceId,
-                    spanId: spanId,
-                    name: eventType,
-                    kind: "SPAN_KIND_INTERNAL",
-                    startTimeUnixNano: timeNano.toString(),
-                    endTimeUnixNano: timeNano.toString(),
-                    attributes: this.createAttributes(data),
-                    status: { code: "STATUS_CODE_OK" },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
+      // Resource attributes
+      const resourceAttributes = [
+        {
+          key: "service.name",
+          value: { stringValue: this.projectName },
+        },
+        {
+          key: "service.version",
+          value: { stringValue: this.projectVersion },
+        },
+        {
+          key: "service.organization",
+          value: { stringValue: this.organization },
+        },
+        {
+          key: "user.id",
+          value: { stringValue: this.userId },
+        },
+        {
+          key: "session.id",
+          value: { stringValue: this.sessionId },
+        },
+        {
+          key: "telemetry.sdk.name",
+          value: { stringValue: "automagik-telemetry" },
+        },
+        {
+          key: "telemetry.sdk.version",
+          value: { stringValue: "0.1.0" },
+        },
+      ];
+
+      // Create OTLP-compatible span
+      const span: any = {
+        traceId: traceId,
+        spanId: spanId,
+        name: eventType,
+        kind: "SPAN_KIND_INTERNAL",
+        startTimeUnixNano: timeNano.toString(),
+        endTimeUnixNano: timeNano.toString(),
+        attributes: this.createAttributes(data),
+        status: { code: 1 }, // STATUS_CODE_OK = 1
+        resource: { attributes: resourceAttributes },
       };
 
       // Verbose mode: print event to console
       if (this.verbose) {
-        console.log(`\n[Telemetry] Queuing trace event: ${eventType}`);
+        console.log(`\n[Telemetry] Sending trace event: ${eventType}`);
         console.log(`  Project: ${this.projectName}`);
-        console.log(`  Data: ${JSON.stringify(data, null, 2)}`);
-        console.log(`  Endpoint: ${this.endpoint}\n`);
+        console.log(`  Backend: ${this.backendType}`);
+        console.log(`  Data: ${JSON.stringify(data, null, 2)}\n`);
       }
 
-      // Queue event for batch processing
-      await this.queueEvent({
-        type: "trace",
-        payload,
-        endpoint: this.endpoint,
-      });
+      // Route to appropriate backend
+      if (this.backendType === "clickhouse" && this.clickhouseBackend) {
+        // Send directly to ClickHouse backend
+        this.clickhouseBackend.sendTrace(span);
+      } else {
+        // Use OTLP backend (default)
+        const payload = {
+          resourceSpans: [
+            {
+              resource: { attributes: resourceAttributes },
+              scopeSpans: [
+                {
+                  scope: {
+                    name: `${this.projectName}.telemetry`,
+                    version: this.projectVersion,
+                  },
+                  spans: [span],
+                },
+              ],
+            },
+          ],
+        };
+
+        // Queue event for batch processing
+        await this.queueEvent({
+          type: "trace",
+          payload,
+          endpoint: this.endpoint,
+        });
+      }
     } catch (error) {
       // Log any errors in debug mode only
       if (this.verbose) {
@@ -940,7 +1010,23 @@ export class AutomagikTelemetry {
    * ```
    */
   async flush(): Promise<void> {
-    if (!this.enabled || this.eventQueue.length === 0) {
+    if (!this.enabled) {
+      return;
+    }
+
+    // Flush ClickHouse backend if active
+    if (this.backendType === "clickhouse" && this.clickhouseBackend) {
+      try {
+        await this.clickhouseBackend.flush();
+      } catch (error) {
+        if (this.verbose) {
+          console.debug("ClickHouse flush error:", error);
+        }
+      }
+    }
+
+    // Flush OTLP event queue
+    if (this.eventQueue.length === 0) {
       return;
     }
 

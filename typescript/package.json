@@ -23,6 +23,10 @@
   "scripts": {
     "build": "tsc",
     "test": "jest --coverage",
+    "test:unit": "jest --coverage --testPathIgnorePatterns=integration",
+    "test:integration": "RUN_INTEGRATION_TESTS=true jest integration.test.ts --coverage=false",
+    "test:integration:clickhouse": "RUN_INTEGRATION_TESTS=true jest clickhouse.integration.test.ts --coverage=false",
+    "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write src",
     "prepublishOnly": "pnpm build"

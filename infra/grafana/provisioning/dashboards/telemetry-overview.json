@@ -38,16 +38,72 @@
       },
       "id": 1,
       "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.97,
+        "fullHighlight": false,
         "legend": {
+          "showLegend": true,
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "calcs": []
         },
-        "pieType": "pie",
         "tooltip": {
           "mode": "single",
           "sort": "none"
         }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 2000
+              },
+              {
+                "color": "red",
+                "value": 4000
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "count"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "gradient-gauge"
+              }
+            ]
+          }
+        ]
       },
       "targets": [
         {
@@ -55,24 +111,13 @@
             "type": "grafana-clickhouse-datasource",
             "uid": "clickhouse"
           },
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "mode": "list",
-              "database": "telemetry",
-              "table": "traces",
-              "queryType": "aggregate",
-              "columns": ["project_name"],
-              "aggregates": [{"column": "span_id", "aggregateType": "count"}]
-            }
-          },
           "queryType": "sql",
-          "rawSql": "SELECT project_name, count() as count FROM telemetry.traces WHERE $__timeFilter(timestamp) GROUP BY project_name ORDER BY count DESC",
+          "rawSql": "SELECT project_name, count() as count FROM telemetry.traces WHERE $__timeFilter(timestamp) AND length(project_name) > 0 GROUP BY project_name ORDER BY count DESC",
           "refId": "A"
         }
       ],
       "title": "Events by Project",
-      "type": "piechart"
+      "type": "barchart"
     },
     {
       "datasource": {

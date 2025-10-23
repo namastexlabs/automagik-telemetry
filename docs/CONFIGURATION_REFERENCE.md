@@ -1,0 +1,1330 @@
+# Configuration Reference
+
+Complete configuration guide for the Automagik Telemetry SDK covering all options for both Python and TypeScript implementations.
+
+---
+
+## Table of Contents
+
+- [Quick Reference](#quick-reference)
+- [Configuration Overview](#configuration-overview)
+- [Common Configuration](#common-configuration)
+- [OTLP Backend Configuration](#otlp-backend-configuration)
+- [ClickHouse Backend Configuration](#clickhouse-backend-configuration)
+- [Environment Variables Reference](#environment-variables-reference)
+- [Configuration Examples](#configuration-examples)
+- [Validation Rules](#validation-rules)
+
+---
+
+## Quick Reference
+
+### Configuration Priority
+
+Configuration values are resolved in the following order (highest to lowest priority):
+
+1. **User-provided config** - Values passed directly to the SDK constructor
+2. **Environment variables** - `AUTOMAGIK_TELEMETRY_*` variables
+3. **Default values** - Built-in SDK defaults
+
+### Essential Configuration
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `projectName` / `project_name` | ✅ Yes | None | Name of your project |
+| `version` | ✅ Yes | None | Project version |
+| `backend` | No | `"otlp"` | Backend type: `"otlp"` or `"clickhouse"` |
+| `endpoint` | No | `https://telemetry.namastex.ai/v1/traces` | Telemetry endpoint URL |
+
+### Quick Start
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry
+
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0'
+});
+```
+
+---
+
+## Configuration Overview
+
+### How Configuration Works
+
+The SDK uses a **three-tier configuration system**:
+
+1. **Programmatic Configuration** - Passed to the SDK constructor (highest priority)
+2. **Environment Variables** - Read from process environment
+3. **Default Values** - Built-in fallbacks (lowest priority)
+
+### Config Object vs Environment Variables
+
+**When to use config object:**
+- Application-specific settings
+- Values that change per deployment
+- Settings you want to version control
+
+**When to use environment variables:**
+- Deployment-specific overrides
+- Secrets (credentials, passwords)
+- Quick enable/disable toggles
+- CI/CD pipelines
+
+### Default Values
+
+The SDK provides sensible defaults for all optional configuration:
+
+```python
+# Python defaults
+DEFAULT_CONFIG = {
+    "backend": "otlp",
+    "endpoint": "https://telemetry.namastex.ai/v1/traces",
+    "organization": "namastex",
+    "timeout": 5,  # seconds
+    "batch_size": 1,  # immediate send
+    "flush_interval": 5.0,  # seconds
+    "compression_enabled": True,
+    "compression_threshold": 1024,  # bytes
+    "max_retries": 3,
+    "retry_backoff_base": 1.0,  # seconds
+}
+```
+
+```typescript
+// TypeScript defaults
+const DEFAULT_CONFIG = {
+    backend: "otlp",
+    endpoint: "https://telemetry.namastex.ai/v1/traces",
+    organization: "namastex",
+    timeout: 5000,  // milliseconds
+    batchSize: 100,
+    flushInterval: 5000,  // milliseconds
+    compressionEnabled: true,
+    compressionThreshold: 1024,  // bytes
+    maxRetries: 3,
+    retryBackoffBase: 1000,  // milliseconds
+};
+```
+
+---
+
+## Common Configuration
+
+These options apply to both OTLP and ClickHouse backends.
+
+### Required Fields
+
+#### `projectName` / `project_name`
+
+**Type:** `string`
+**Required:** ✅ Yes
+**Description:** Name of your Automagik project (e.g., "omni", "hive", "forge")
+
+**Python:**
+```python
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0'
+});
+```
+
+**Validation:**
+- Cannot be empty or whitespace-only
+- Used in resource attributes (`service.name`)
+
+---
+
+#### `version`
+
+**Type:** `string`
+**Required:** ✅ Yes
+**Description:** Version of your project (e.g., "1.0.0", "2.3.1-beta")
+
+**Python:**
+```python
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0'
+});
+```
+
+**Validation:**
+- Cannot be empty or whitespace-only
+- Used in resource attributes (`service.version`)
+
+---
+
+### Optional Fields
+
+#### `backend`
+
+**Type:** `string`
+**Default:** `"otlp"`
+**Options:** `"otlp"` | `"clickhouse"`
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_BACKEND`
+**Description:** Select which backend to use for telemetry data
+
+**Python:**
+```python
+# Use OTLP backend (default)
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    backend="otlp"
+)
+
+# Use ClickHouse backend
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse"
+)
+```
+
+**TypeScript:**
+```typescript
+// Use OTLP backend (default)
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'otlp'
+});
+
+// Use ClickHouse backend
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse'
+});
+```
+
+**Via Environment Variable:**
+```bash
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+```
+
+---
+
+#### `organization`
+
+**Type:** `string`
+**Default:** `"namastex"`
+**Description:** Organization name for grouping telemetry data
+
+**Python:**
+```python
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    organization="acme-corp"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    organization: 'acme-corp'
+});
+```
+
+**Validation:**
+- Cannot be empty or whitespace-only if provided
+
+---
+
+#### `timeout`
+
+**Type:** `int` (Python: seconds, TypeScript: milliseconds)
+**Default:** Python: `5` seconds | TypeScript: `5000` milliseconds
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_TIMEOUT`
+**Description:** HTTP request timeout
+
+**Python:**
+```python
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    timeout=10  # 10 seconds
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    timeout: 10000  // 10 seconds
+});
+```
+
+**Validation:**
+- Must be a positive integer
+- Python: Should not exceed 60 seconds
+- TypeScript: Automatically converted to milliseconds
+
+---
+
+#### `batchSize` / `batch_size`
+
+**Type:** `int`
+**Default:** Python: `1` (immediate send) | TypeScript: `100`
+**Description:** Number of events to batch before sending
+
+**Python:**
+```python
+# Advanced config with batching
+from automagik_telemetry import TelemetryConfig
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=50  # Send every 50 events
+)
+telemetry = AutomagikTelemetry(config=config)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    batchSize: 50  // Send every 50 events
+});
+```
+
+**Notes:**
+- `batch_size=1` sends events immediately (no batching)
+- Higher values improve performance but delay delivery
+- ClickHouse backend uses this for internal batching
+
+---
+
+#### `flushInterval` / `flush_interval`
+
+**Type:** `float` (Python: seconds, TypeScript: milliseconds)
+**Default:** Python: `5.0` seconds | TypeScript: `5000` milliseconds
+**Description:** Automatic flush interval for batched events
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=100,
+    flush_interval=10.0  # Flush every 10 seconds
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    batchSize: 100,
+    flushInterval: 10000  // Flush every 10 seconds
+});
+```
+
+**Notes:**
+- Only active when `batch_size > 1`
+- Ensures events are sent even if batch isn't full
+
+---
+
+#### `compressionEnabled` / `compression_enabled`
+
+**Type:** `bool`
+**Default:** `true`
+**Description:** Enable gzip compression for payloads
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    compression_enabled=True
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    compressionEnabled: true
+});
+```
+
+**Performance Impact:**
+- Reduces network bandwidth by ~70-80%
+- Minimal CPU overhead
+- Recommended for production
+
+---
+
+#### `compressionThreshold` / `compression_threshold`
+
+**Type:** `int`
+**Default:** `1024` bytes
+**Description:** Minimum payload size before compression is applied
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    compression_enabled=True,
+    compression_threshold=2048  # Only compress if > 2KB
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    compressionEnabled: true,
+    compressionThreshold: 2048  // Only compress if > 2KB
+});
+```
+
+**Notes:**
+- Small payloads aren't worth compressing
+- Compression overhead > savings for tiny payloads
+
+---
+
+#### `maxRetries` / `max_retries`
+
+**Type:** `int`
+**Default:** `3`
+**Description:** Maximum number of retry attempts for failed requests
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    max_retries=5
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    maxRetries: 5
+});
+```
+
+**Retry Logic:**
+- Exponential backoff between retries
+- Only retries on network errors and 5xx responses
+- Does not retry on 4xx client errors
+
+---
+
+#### `retryBackoffBase` / `retry_backoff_base`
+
+**Type:** `float` (Python: seconds, TypeScript: milliseconds)
+**Default:** Python: `1.0` seconds | TypeScript: `1000` milliseconds
+**Description:** Base delay for exponential backoff
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    max_retries=3,
+    retry_backoff_base=2.0  # Start with 2s delay
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    maxRetries: 3,
+    retryBackoffBase: 2000  // Start with 2s delay
+});
+```
+
+**Backoff Formula:**
+```
+delay = retry_backoff_base * (2 ^ attempt)
+
+Example with retry_backoff_base=1.0:
+- Attempt 0: 1s
+- Attempt 1: 2s
+- Attempt 2: 4s
+```
+
+---
+
+## OTLP Backend Configuration
+
+Configuration specific to the OpenTelemetry Protocol (OTLP) backend.
+
+### `endpoint`
+
+**Type:** `string`
+**Default:** `"https://telemetry.namastex.ai/v1/traces"`
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_ENDPOINT`
+**Description:** Main OTLP endpoint for trace data
+
+**Python:**
+```python
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://custom-collector.example.com/v1/traces"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://custom-collector.example.com/v1/traces'
+});
+```
+
+**Via Environment Variable:**
+```bash
+export AUTOMAGIK_TELEMETRY_ENDPOINT=https://custom-collector.example.com/v1/traces
+```
+
+**Validation:**
+- Must be a valid HTTP or HTTPS URL
+- Must include protocol (`http://` or `https://`)
+- Must have a hostname
+
+---
+
+### `metricsEndpoint` / `metrics_endpoint`
+
+**Type:** `string`
+**Default:** `"{base_endpoint}/v1/metrics"`
+**Description:** Endpoint for OTLP metrics
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://collector.example.com/v1/traces",
+    metrics_endpoint="https://metrics.example.com/v1/metrics"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://collector.example.com/v1/traces',
+    metricsEndpoint: 'https://metrics.example.com/v1/metrics'
+});
+```
+
+**Notes:**
+- Automatically derived from `endpoint` if not specified
+- Used by `track_metric()` / `trackMetric()`
+
+---
+
+### `logsEndpoint` / `logs_endpoint`
+
+**Type:** `string`
+**Default:** `"{base_endpoint}/v1/logs"`
+**Description:** Endpoint for OTLP logs
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://collector.example.com/v1/traces",
+    logs_endpoint="https://logs.example.com/v1/logs"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://collector.example.com/v1/traces',
+    logsEndpoint: 'https://logs.example.com/v1/logs'
+});
+```
+
+**Notes:**
+- Automatically derived from `endpoint` if not specified
+- Used by `track_log()` / `trackLog()`
+
+---
+
+## ClickHouse Backend Configuration
+
+Configuration specific to the direct ClickHouse backend. See [ClickHouse Backend Design](../infra/CLICKHOUSE_BACKEND_DESIGN.md) for architecture details.
+
+### `clickhouseEndpoint` / `clickhouse_endpoint`
+
+**Type:** `string`
+**Default:** `"http://localhost:8123"`
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT`
+**Description:** ClickHouse HTTP API endpoint
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_endpoint="http://clickhouse.example.com:8123"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseEndpoint: 'http://clickhouse.example.com:8123'
+});
+```
+
+**Via Environment Variable:**
+```bash
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://clickhouse.example.com:8123
+```
+
+**Notes:**
+- Default port for ClickHouse HTTP interface is `8123`
+- Use HTTP (not HTTPS) for local development
+- Use HTTPS for production deployments
+
+---
+
+### `clickhouseDatabase` / `clickhouse_database`
+
+**Type:** `string`
+**Default:** `"telemetry"`
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE`
+**Description:** ClickHouse database name
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_database="production_telemetry"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseDatabase: 'production_telemetry'
+});
+```
+
+**Via Environment Variable:**
+```bash
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE=production_telemetry
+```
+
+---
+
+### `clickhouseTable` / `clickhouse_table`
+
+**Type:** `string`
+**Default:** `"traces"`
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE`
+**Description:** ClickHouse table name for trace data
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_table="app_traces"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseTable: 'app_traces'
+});
+```
+
+**Via Environment Variable:**
+```bash
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE=app_traces
+```
+
+**Notes:**
+- Table must exist before SDK starts
+- See `infra/clickhouse/init-db.sql` for schema
+
+---
+
+### `clickhouseUsername` / `clickhouse_username`
+
+**Type:** `string`
+**Default:** `"default"`
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME`
+**Description:** ClickHouse authentication username
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_username="telemetry_writer"
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseUsername: 'telemetry_writer'
+});
+```
+
+**Via Environment Variable:**
+```bash
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=telemetry_writer
+```
+
+---
+
+### `clickhousePassword` / `clickhouse_password`
+
+**Type:** `string`
+**Default:** `""`
+**Environment Variable:** `AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD`
+**Description:** ClickHouse authentication password
+
+**Python:**
+```python
+import os
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_username="telemetry_writer",
+    clickhouse_password=os.getenv("CH_PASSWORD", "")
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseUsername: 'telemetry_writer',
+    clickhousePassword: process.env.CH_PASSWORD || ''
+});
+```
+
+**Via Environment Variable (Recommended):**
+```bash
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=secret123
+```
+
+**Security Notes:**
+- Never hardcode passwords in source code
+- Use environment variables or secret management
+- Rotate credentials regularly
+
+---
+
+## Environment Variables Reference
+
+Complete list of environment variables supported by the SDK.
+
+### Telemetry Control
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `AUTOMAGIK_TELEMETRY_ENABLED` | boolean | `false` | Enable/disable telemetry |
+| `AUTOMAGIK_TELEMETRY_VERBOSE` | boolean | `false` | Enable verbose debug logging |
+| `AUTOMAGIK_TELEMETRY_BACKEND` | string | `"otlp"` | Backend type: `"otlp"` or `"clickhouse"` |
+
+**Boolean Values:**
+- Truthy: `"true"`, `"1"`, `"yes"`, `"on"` (case-insensitive)
+- Falsy: `"false"`, `"0"`, `"no"`, `"off"`, or any other value
+
+**Examples:**
+```bash
+# Enable telemetry
+export AUTOMAGIK_TELEMETRY_ENABLED=true
+
+# Enable verbose logging
+export AUTOMAGIK_TELEMETRY_VERBOSE=true
+
+# Use ClickHouse backend
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+```
+
+---
+
+### OTLP Configuration
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `AUTOMAGIK_TELEMETRY_ENDPOINT` | string | `https://telemetry.namastex.ai/v1/traces` | Main traces endpoint |
+| `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | `5000` | HTTP timeout in milliseconds |
+
+**Examples:**
+```bash
+# Use custom OTLP collector
+export AUTOMAGIK_TELEMETRY_ENDPOINT=https://custom-collector.example.com/v1/traces
+
+# Increase timeout to 10 seconds
+export AUTOMAGIK_TELEMETRY_TIMEOUT=10000
+```
+
+---
+
+### ClickHouse Configuration
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT` | string | `http://localhost:8123` | ClickHouse HTTP endpoint |
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE` | string | `telemetry` | Database name |
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE` | string | `traces` | Table name |
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME` | string | `default` | Username |
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD` | string | `""` | Password |
+
+**Examples:**
+```bash
+# Production ClickHouse setup
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=https://clickhouse.prod.example.com:8443
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE=production_telemetry
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=telemetry_user
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=secret123
+
+# Local development
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://localhost:8123
+```
+
+---
+
+### Auto-Disable Environments
+
+The SDK automatically disables telemetry in the following conditions:
+
+**Environment Variables:**
+- `CI=true`
+- `GITHUB_ACTIONS=true`
+- `TRAVIS=true`
+- `JENKINS=true`
+- `GITLAB_CI=true`
+- `CIRCLECI=true`
+
+**Development Indicators:**
+- `ENVIRONMENT=development`
+- `ENVIRONMENT=dev`
+- `ENVIRONMENT=test`
+- `ENVIRONMENT=testing`
+
+**File-Based Opt-Out:**
+- Presence of `~/.automagik-no-telemetry` file
+
+**Example:**
+```bash
+# Development environment (auto-disabled)
+export ENVIRONMENT=development
+
+# CI environment (auto-disabled)
+export CI=true
+
+# Production (enabled if AUTOMAGIK_TELEMETRY_ENABLED=true)
+export ENVIRONMENT=production
+export AUTOMAGIK_TELEMETRY_ENABLED=true
+```
+
+---
+
+## Configuration Examples
+
+### Development Setup
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry
+
+# Minimal development setup
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0-dev"
+)
+
+# Telemetry automatically disabled in development
+# Set AUTOMAGIK_TELEMETRY_ENABLED=true to override
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0-dev'
+});
+
+// Telemetry automatically disabled in development
+```
+
+**Environment:**
+```bash
+export ENVIRONMENT=development
+# Telemetry disabled by default
+```
+
+---
+
+### Production Setup (OTLP)
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    organization="acme-corp",
+    endpoint="https://collector.prod.example.com/v1/traces",
+    timeout=10,
+    batch_size=100,
+    flush_interval=5.0,
+    compression_enabled=True,
+    max_retries=5
+)
+
+telemetry = AutomagikTelemetry(config=config)
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    organization: 'acme-corp',
+    endpoint: 'https://collector.prod.example.com/v1/traces',
+    timeout: 10000,
+    batchSize: 100,
+    flushInterval: 5000,
+    compressionEnabled: true,
+    maxRetries: 5
+});
+```
+
+**Environment:**
+```bash
+export ENVIRONMENT=production
+export AUTOMAGIK_TELEMETRY_ENABLED=true
+export AUTOMAGIK_TELEMETRY_ENDPOINT=https://collector.prod.example.com/v1/traces
+```
+
+---
+
+### Production Setup (ClickHouse)
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+import os
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    organization="acme-corp",
+    clickhouse_endpoint="https://clickhouse.prod.example.com:8443",
+    clickhouse_database="production_telemetry",
+    clickhouse_table="traces",
+    clickhouse_username="telemetry_user",
+    clickhouse_password=os.getenv("CLICKHOUSE_PASSWORD"),
+    batch_size=100,
+    compression_enabled=True,
+    max_retries=5
+)
+
+telemetry = AutomagikTelemetry(config=config)
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    organization: 'acme-corp',
+    clickhouseEndpoint: 'https://clickhouse.prod.example.com:8443',
+    clickhouseDatabase: 'production_telemetry',
+    clickhouseTable: 'traces',
+    clickhouseUsername: 'telemetry_user',
+    clickhousePassword: process.env.CLICKHOUSE_PASSWORD,
+    batchSize: 100,
+    compressionEnabled: true,
+    maxRetries: 5
+});
+```
+
+**Environment:**
+```bash
+export ENVIRONMENT=production
+export AUTOMAGIK_TELEMETRY_ENABLED=true
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=https://clickhouse.prod.example.com:8443
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE=production_telemetry
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=telemetry_user
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=secret123
+```
+
+---
+
+### Testing Setup
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry
+
+# Point to local collector for integration tests
+telemetry = AutomagikTelemetry(
+    project_name="my-app-test",
+    version="test",
+    endpoint="http://localhost:4318/v1/traces"
+)
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app-test',
+    version: 'test',
+    endpoint: 'http://localhost:4318/v1/traces'
+});
+```
+
+**Environment:**
+```bash
+# Explicitly enable for testing
+export AUTOMAGIK_TELEMETRY_ENABLED=true
+export AUTOMAGIK_TELEMETRY_ENDPOINT=http://localhost:4318/v1/traces
+export AUTOMAGIK_TELEMETRY_VERBOSE=true
+```
+
+---
+
+### Custom Endpoint Setup
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://custom.example.com/v1/traces",
+    metrics_endpoint="https://metrics.example.com/v1/metrics",
+    logs_endpoint="https://logs.example.com/v1/logs",
+    timeout=15
+)
+
+telemetry = AutomagikTelemetry(config=config)
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://custom.example.com/v1/traces',
+    metricsEndpoint: 'https://metrics.example.com/v1/metrics',
+    logsEndpoint: 'https://logs.example.com/v1/logs',
+    timeout: 15000
+});
+```
+
+---
+
+### High-Performance Setup
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+
+# Optimized for high-throughput applications
+config = TelemetryConfig(
+    project_name="high-traffic-app",
+    version="1.0.0",
+    batch_size=500,  # Larger batches
+    flush_interval=10.0,  # Less frequent flushes
+    compression_enabled=True,
+    compression_threshold=512,  # Compress more aggressively
+    max_retries=2,  # Fewer retries
+    retry_backoff_base=0.5  # Faster retries
+)
+
+telemetry = AutomagikTelemetry(config=config)
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const telemetry = new AutomagikTelemetry({
+    projectName: 'high-traffic-app',
+    version: '1.0.0',
+    batchSize: 500,
+    flushInterval: 10000,
+    compressionEnabled: true,
+    compressionThreshold: 512,
+    maxRetries: 2,
+    retryBackoffBase: 500
+});
+```
+
+---
+
+## Validation Rules
+
+### Required Field Validation
+
+**`projectName` / `project_name`:**
+- ✅ Cannot be empty
+- ✅ Cannot be whitespace-only
+- ❌ Error: `"TelemetryConfig: project_name is required and cannot be empty"`
+
+**`version`:**
+- ✅ Cannot be empty
+- ✅ Cannot be whitespace-only
+- ❌ Error: `"TelemetryConfig: version is required and cannot be empty"`
+
+---
+
+### URL Validation
+
+**`endpoint`, `metricsEndpoint`, `logsEndpoint`, `clickhouseEndpoint`:**
+
+**Valid URLs:**
+```python
+✅ "http://localhost:4318"
+✅ "https://collector.example.com/v1/traces"
+✅ "http://192.168.1.100:8123"
+```
+
+**Invalid URLs:**
+```python
+❌ "not-a-url"                    # Missing protocol
+❌ "ftp://example.com"            # Wrong protocol
+❌ "http://"                      # No hostname
+❌ "ws://example.com"             # Wrong protocol
+```
+
+**Error Message:**
+```
+TelemetryConfig: endpoint must use http or https protocol
+TelemetryConfig: endpoint must be a valid URL (got: {value})
+```
+
+---
+
+### Timeout Validation
+
+**Rules:**
+- Must be a positive integer
+- Should not exceed 60 seconds (Python) / 60000 ms (TypeScript)
+
+**Valid Values:**
+```python
+✅ timeout=5        # 5 seconds
+✅ timeout=30       # 30 seconds
+✅ timeout=60       # Max recommended
+```
+
+**Invalid Values:**
+```python
+❌ timeout=0        # Zero not allowed
+❌ timeout=-5       # Negative not allowed
+❌ timeout=120      # Exceeds max (warning)
+❌ timeout="5s"     # Must be integer
+```
+
+**Error Messages:**
+```
+TelemetryConfig: timeout must be a positive integer (got: {value})
+TelemetryConfig: timeout should not exceed 60000ms (got: {value})
+```
+
+---
+
+### Organization Validation
+
+**Rules:**
+- Cannot be empty if provided
+- Whitespace-only values are invalid
+- `None` / `undefined` is valid (uses default)
+
+**Valid Values:**
+```python
+✅ organization="acme-corp"
+✅ organization=None           # Uses default "namastex"
+```
+
+**Invalid Values:**
+```python
+❌ organization=""             # Empty string
+❌ organization="   "          # Whitespace only
+```
+
+**Error Message:**
+```
+TelemetryConfig: organization cannot be empty if provided
+```
+
+---
+
+### Common Validation Errors
+
+**Error: Invalid Project Name**
+```python
+# ❌ Wrong
+telemetry = AutomagikTelemetry(
+    project_name="",
+    version="1.0.0"
+)
+
+# ✅ Correct
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+```
+
+---
+
+**Error: Invalid Endpoint**
+```python
+# ❌ Wrong
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="localhost:4318"  # Missing protocol
+)
+
+# ✅ Correct
+telemetry = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="http://localhost:4318/v1/traces"
+)
+```
+
+---
+
+**Error: Invalid Timeout**
+```python
+# ❌ Wrong
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    timeout=0  # Must be positive
+)
+
+# ✅ Correct
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    timeout=5
+)
+```
+
+---
+
+## Related Documentation
+
+- **[README.md](../README.md)** - Project overview and quick start
+- **[ClickHouse Backend Design](../infra/CLICKHOUSE_BACKEND_DESIGN.md)** - Architecture details
+- **[Infrastructure Guide](../infra/README.md)** - Self-hosting setup
+- **[Python README](../python/README.md)** - Python SDK documentation
+- **[TypeScript README](../typescript/README.md)** - TypeScript SDK documentation
+
+---
+
+## Support
+
+For questions or issues:
+- **GitHub Issues**: [github.com/namastexlabs/automagik-telemetry/issues](https://github.com/namastexlabs/automagik-telemetry/issues)
+- **Discord**: [discord.gg/xcW8c7fF3R](https://discord.gg/xcW8c7fF3R)
+- **Documentation**: [DeepWiki](https://deepwiki.com/namastexlabs/automagik-telemetry)
+
+---
+
+**Built with ❤️ by [Namastex Labs](https://namastex.ai)**

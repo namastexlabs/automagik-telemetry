@@ -189,8 +189,9 @@ class ClickHouseBackend:
             content_encoding = None
 
         # Build URL with query
+        from urllib.parse import quote
         query = f"INSERT INTO {self.database}.{self.table} FORMAT JSONEachRow"
-        url = f"{self.endpoint}/?query={query}"
+        url = f"{self.endpoint}/?query={quote(query)}"
 
         # Add authentication if provided
         if self.username:

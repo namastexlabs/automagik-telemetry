@@ -68,8 +68,10 @@
 
 ## 🌟 Key Features
 
-### 📡 **OpenTelemetry Protocol (OTLP)**
-Industry-standard telemetry protocol over HTTP with JSON payloads. Works with Prometheus, Grafana, Jaeger, and any OTLP-compatible backend.
+### 📡 **Dual Backend Support**
+**OTLP Backend (Default):** Industry-standard telemetry protocol over HTTP. Works with Prometheus, Grafana, Jaeger, and any OTLP-compatible backend.
+
+**ClickHouse Backend (Self-Hosting):** Direct insertion to ClickHouse for self-hosted deployments. Bypasses middleware, simpler architecture, better performance for local development.
 
 ### 🔒 **Privacy-First by Design**
 ```python
@@ -115,6 +117,7 @@ Async by default, automatic batching, retry logic, timeout handling, and gracefu
 
 ### How It Works
 
+**Option 1: OTLP Backend (Default - Production)**
 ```
 Your Application → AutomagikTelemetry SDK → OTLP/HTTP → OpenTelemetry Collector → Prometheus/Grafana
                          ↓
@@ -123,14 +126,38 @@ Your Application → AutomagikTelemetry SDK → OTLP/HTTP → OpenTelemetry Coll
                   Async Batching
 ```
 
+**Option 2: ClickHouse Backend (Self-Hosting)**
+```
+Your Application → AutomagikTelemetry SDK → ClickHouse HTTP API → ClickHouse → Grafana
+                         ↓
+                  Privacy Checks
+                  Environment Detection
+                  Batch Processing
+                  Compression
+```
+
+### Backend Comparison
+
+| Feature | OTLP Backend | ClickHouse Backend |
+|---------|--------------|-------------------|
+| **Use Case** | Production SaaS | Self-hosted, Local dev |
+| **Protocol** | OTLP over HTTP | ClickHouse HTTP API |
+| **Components** | SDK → Collector → Storage | SDK → ClickHouse (direct) |
+| **Dependencies** | OpenTelemetry Collector | ClickHouse only |
+| **Performance** | Standard | Optimized (batching + compression) |
+| **Setup Complexity** | Medium | Simple |
+| **Data Control** | Collector-managed | Full control |
+
 ### Components
 
 | Component | Purpose | Default Endpoint |
 |-----------|---------|------------------|
 | **SDK** | Client library for your application | N/A |
 | **OTLP/HTTP** | Standard telemetry protocol | `https://telemetry.namastex.ai` |
-| **Collector** | Receives and processes telemetry | Configured endpoint |
-| **Prometheus** | Stores metrics | Backend storage |
+| **ClickHouse HTTP** | Direct ClickHouse insertion | `http://localhost:8123` |
+| **Collector** | Receives and processes OTLP telemetry | Configured endpoint |
+| **ClickHouse** | High-performance OLAP database | Backend storage |
+| **Prometheus** | Stores metrics (OTLP path) | Backend storage |
 | **Grafana** | Visualizes metrics | Visualization layer |
 
 ### Privacy Controls
@@ -227,9 +254,65 @@ client.trackGauge('system.memory_mb', 512.5);
 client.trackHistogram('api.response_time_ms', 125.3);
 ```
 
+### Using ClickHouse Backend (Self-Hosting)
+
+For self-hosted deployments, you can bypass the OTLP Collector and write directly to ClickHouse. This provides better performance and simpler architecture for local development.
+
+**Why Use ClickHouse Backend?**
+- Direct insertion to ClickHouse (no middleware)
+- Faster for self-hosted setups
+- Full control over your telemetry data
+- Simpler architecture with fewer components
+- Zero additional dependencies (uses stdlib only)
+
+**Python with ClickHouse:**
+```python
+from automagik_telemetry import AutomagikTelemetry
+
+# Direct ClickHouse backend
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",  # Use ClickHouse instead of OTLP
+    clickhouse_endpoint="http://localhost:8123",
+    clickhouse_database="telemetry",
+    clickhouse_batch_size=100  # Optional: batch rows before insert
+)
+
+# Use normally - data goes directly to ClickHouse
+client.track_event("user.login", {"user_id": "123"})
+```
+
+**TypeScript with ClickHouse:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+// Direct ClickHouse backend
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',  // Use ClickHouse instead of OTLP
+    clickhouseEndpoint: 'http://localhost:8123',
+    clickhouseDatabase: 'telemetry',
+    clickhouseBatchSize: 100  // Optional: batch rows before insert
+});
+
+// Use normally - data goes directly to ClickHouse
+client.trackEvent('user.login', { userId: '123' });
+```
+
+**When to Use Which Backend:**
+
+| Use Case | Backend | Why |
+|----------|---------|-----|
+| Production SaaS | `otlp` (default) | Managed infrastructure, standard protocol |
+| Self-hosted | `clickhouse` | Direct control, better performance |
+| Local development | `clickhouse` | Simple setup, instant feedback |
+| Multi-cloud | `otlp` | Flexibility to change backends |
+
 ### Configuration
 
-**Environment Variables:**
+**Environment Variables (OTLP Backend - Default):**
 ```bash
 # Disable telemetry completely
 export AUTOMAGIK_TELEMETRY_DISABLED=true
@@ -241,7 +324,22 @@ export AUTOMAGIK_TELEMETRY_ENDPOINT=https://your-collector.com
 export ENVIRONMENT=development
 ```
 
-**Code Configuration:**
+**Environment Variables (ClickHouse Backend):**
+```bash
+# Use ClickHouse backend
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://localhost:8123
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE=telemetry
+
+# Optional ClickHouse authentication
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=default
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=your-password
+
+# Optional performance tuning
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_BATCH_SIZE=100
+```
+
+**Code Configuration (OTLP):**
 ```python
 # Python
 client = AutomagikTelemetry(
@@ -259,6 +357,37 @@ const client = new AutomagikTelemetry({
     version: '1.0.0',
     endpoint: 'https://custom-collector.com',  // Optional
     disabled: false  // Optional override
+});
+```
+
+**Code Configuration (ClickHouse):**
+```python
+# Python
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_endpoint="http://localhost:8123",
+    clickhouse_database="telemetry",
+    clickhouse_username="default",  # Optional
+    clickhouse_password="",  # Optional
+    clickhouse_batch_size=100,  # Optional (default: 100)
+    clickhouse_compression=True  # Optional (default: True)
+)
+```
+
+```typescript
+// TypeScript
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseEndpoint: 'http://localhost:8123',
+    clickhouseDatabase: 'telemetry',
+    clickhouseUsername: 'default',  // Optional
+    clickhousePassword: '',  // Optional
+    clickhouseBatchSize: 100,  // Optional (default: 100)
+    clickhouseCompression: true  // Optional (default: true)
 });
 ```
 
@@ -324,6 +453,55 @@ client.track_histogram("request.duration_ms", value=duration_ms, attributes={
 })
 ```
 
+### Switching Between Backends
+
+You can easily switch between OTLP and ClickHouse backends based on your environment:
+
+```python
+# Python - Environment-based backend selection
+import os
+
+backend = os.getenv("TELEMETRY_BACKEND", "otlp")
+
+if backend == "clickhouse":
+    client = AutomagikTelemetry(
+        project_name="my-app",
+        version="1.0.0",
+        backend="clickhouse",
+        clickhouse_endpoint=os.getenv("CLICKHOUSE_ENDPOINT", "http://localhost:8123")
+    )
+else:
+    client = AutomagikTelemetry(
+        project_name="my-app",
+        version="1.0.0",
+        endpoint=os.getenv("OTLP_ENDPOINT", "https://telemetry.namastex.ai")
+    )
+
+# Use the same API regardless of backend
+client.track_event("app.started", {"version": "1.0.0"})
+```
+
+```typescript
+// TypeScript - Environment-based backend selection
+const backend = process.env.TELEMETRY_BACKEND || 'otlp';
+
+const client = backend === 'clickhouse'
+  ? new AutomagikTelemetry({
+      projectName: 'my-app',
+      version: '1.0.0',
+      backend: 'clickhouse',
+      clickhouseEndpoint: process.env.CLICKHOUSE_ENDPOINT || 'http://localhost:8123'
+    })
+  : new AutomagikTelemetry({
+      projectName: 'my-app',
+      version: '1.0.0',
+      endpoint: process.env.OTLP_ENDPOINT || 'https://telemetry.namastex.ai'
+    });
+
+// Use the same API regardless of backend
+client.trackEvent('app.started', { version: '1.0.0' });
+```
+
 ---
 
 ## 🏗️ Self-Hosting & Local Development
@@ -343,6 +521,19 @@ make dashboard    # Open Grafana dashboard
 - 📊 **Grafana** - Pre-configured dashboards for visualization
 - 🚀 **Production-ready** - Docker Compose setup with best practices
 
+**Two Backend Options:**
+
+1. **OTLP Collector Path** (Standard)
+   - Use default SDK configuration
+   - Data flows through OpenTelemetry Collector
+   - Best for production-like environments
+
+2. **Direct ClickHouse Path** (Recommended for Self-Hosting)
+   - Use `backend="clickhouse"` in SDK configuration
+   - Bypasses collector, writes directly to ClickHouse
+   - Simpler, faster, fewer components
+   - See [ClickHouse Backend Design](infra/CLICKHOUSE_BACKEND_DESIGN.md)
+
 **Full documentation:** [infra/README.md](infra/README.md)
 
 **Quick links:**
@@ -361,6 +552,7 @@ make dashboard    # Open Grafana dashboard
 - **[QUICKSTART.md](QUICKSTART.md)** - Getting started tutorial
 - **[INTEGRATION_TESTS.md](INTEGRATION_TESTS.md)** - Integration testing guide
 - **[infra/README.md](infra/README.md)** - Self-hosting infrastructure guide
+- **[infra/CLICKHOUSE_BACKEND_DESIGN.md](infra/CLICKHOUSE_BACKEND_DESIGN.md)** - ClickHouse backend architecture and design decisions
 
 ---
 
