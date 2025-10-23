@@ -2,6 +2,11 @@
 
 Complete guide for developers to implement, test, and debug OpenTelemetry telemetry in automagik-agents.
 
+> **⚠️ IMPORTANT NOTE**: This guide shows how to implement a **custom TelemetryClient** for automagik-agents.
+> If you're looking to use the **automagik-telemetry SDK** in your application, see the [main README](../README.md) instead.
+>
+> **Recommended**: Use the automagik-telemetry SDK (`pip install automagik-telemetry`) instead of implementing your own client.
+
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
@@ -414,9 +419,53 @@ python test_telemetry_local.py
 
 ## Adding Metrics Support
 
-Currently `automagik-omni/src/core/telemetry.py` only supports traces. Here's how to add metrics:
+Currently `automagik-omni/src/core/telemetry.py` only supports traces. You have two options:
 
-### Step 1: Extend TelemetryClient
+### Option A: Use the automagik-telemetry SDK (Recommended)
+
+Instead of implementing your own client, use the official SDK:
+
+```python
+from automagik_telemetry import AutomagikTelemetry, MetricType
+
+# Initialize client
+client = AutomagikTelemetry(
+    project_name="automagik-omni",
+    version="1.0.0"
+)
+
+# Track events
+client.track_event("api.request", {
+    "endpoint": "/api/v1/runs",
+    "method": "POST"
+})
+
+# Track metrics with metric_type parameter
+client.track_metric(
+    metric_name="api.requests",
+    value=1,
+    metric_type=MetricType.COUNTER,
+    attributes={"endpoint": "/api/v1/runs", "status": 200}
+)
+
+client.track_metric(
+    metric_name="api.response_time_ms",
+    value=125.3,
+    metric_type=MetricType.HISTOGRAM
+)
+
+client.track_metric(
+    metric_name="system.memory_mb",
+    value=512.5,
+    metric_type=MetricType.GAUGE
+)
+```
+
+### Option B: Extend Custom TelemetryClient
+
+If you need to customize the implementation, here's how to add metrics to your custom client:
+
+#### Step 1: Extend TelemetryClient
 
 Add metrics endpoint and methods:
 
@@ -537,7 +586,9 @@ class TelemetryClient:
         }
 ```
 
-### Step 2: Use in Your Application
+#### Step 2: Use in Your Application
+
+**Using Custom TelemetryClient (Option B):**
 
 ```python
 from src.core.telemetry import TelemetryClient
@@ -566,7 +617,48 @@ client.track_counter("runs.created", attributes={
 client.track_gauge("system.active_connections", value=len(connections))
 ```
 
-### Step 3: Test Locally
+**Using automagik-telemetry SDK (Option A - Recommended):**
+
+```python
+from automagik_telemetry import AutomagikTelemetry, MetricType
+
+client = AutomagikTelemetry(project_name="automagik-omni", version="1.0.0")
+
+# Track API requests
+@app.post("/api/v1/runs")
+async def create_run():
+    client.track_metric(
+        metric_name="api.requests",
+        value=1,
+        metric_type=MetricType.COUNTER,
+        attributes={"endpoint": "/api/v1/runs", "method": "POST"}
+    )
+    # ... your logic
+
+    client.track_metric(
+        metric_name="api.response_time_ms",
+        value=response_time,
+        metric_type=MetricType.GAUGE
+    )
+    return result
+
+# Track business metrics
+client.track_metric(
+    metric_name="runs.created",
+    value=1,
+    metric_type=MetricType.COUNTER,
+    attributes={"agent_type": agent_type, "status": "success"}
+)
+
+# Track system metrics
+client.track_metric(
+    metric_name="system.active_connections",
+    value=len(connections),
+    metric_type=MetricType.GAUGE
+)
+```
+
+#### Step 3: Test Locally
 
 ```bash
 # Run your test script
@@ -577,7 +669,7 @@ ssh root@dl380-g10
 pct exec 155 -- journalctl -u otelcol-contrib -f | grep -i metric
 ```
 
-### Step 4: Query in Prometheus
+#### Step 4: Query in Prometheus
 
 Once metrics are flowing:
 
@@ -856,6 +948,28 @@ def _send_async(self, endpoint: str, payload: Dict[str, Any]):
 ### Sampling (Future Enhancement)
 
 For high-volume applications, consider adding sampling:
+
+**Using automagik-telemetry SDK:**
+
+```python
+import random
+from automagik_telemetry import AutomagikTelemetry, MetricType
+
+client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+
+def should_sample(sample_rate=0.1):
+    """Sample 10% of requests."""
+    return random.random() < sample_rate
+
+if should_sample():
+    client.track_metric(
+        metric_name="api.requests",
+        value=1,
+        metric_type=MetricType.COUNTER
+    )
+```
+
+**Using custom TelemetryClient:**
 
 ```python
 import random

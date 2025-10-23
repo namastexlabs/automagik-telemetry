@@ -532,15 +532,18 @@ Track response times and resource usage:
 ```python
 # Python
 import time
+from automagik_telemetry import MetricType
 
 start = time.time()
 process_request()
 duration_ms = (time.time() - start) * 1000
 
-client.track_histogram("request.duration_ms", value=duration_ms, attributes={
-    "endpoint": "/api/process",
-    "method": "POST"
-})
+client.track_metric(
+    metric_name="request.duration_ms",
+    value=duration_ms,
+    metric_type=MetricType.HISTOGRAM,
+    attributes={"endpoint": "/api/process", "method": "POST"}
+)
 ```
 
 ### Switching Between Backends
