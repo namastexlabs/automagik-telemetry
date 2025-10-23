@@ -243,7 +243,14 @@ class TestBatchProcessing:
         # Verify all 3 events in one payload
         call_args = mock_urlopen.call_args
         request = call_args[0][0]
-        payload = json.loads(request.data.decode("utf-8"))
+
+        # Handle both compressed and uncompressed data
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+
+        payload = json.loads(data.decode("utf-8"))
 
         spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
         assert len(spans) == 3
