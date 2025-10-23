@@ -10,7 +10,7 @@
  * - Environment variable handling
  * - CI environment detection
  * - Silent failure behavior
- * - Backwards compatibility with TelemetryClient alias
+ * - Backwards compatibility with AutomagikTelemetry alias
  */
 
 import * as fs from 'fs';
@@ -18,7 +18,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as zlib from 'zlib';
-import { AutomagikTelemetry, TelemetryClient, TelemetryConfig, LogSeverity, MetricType } from '../src/client';
+import { AutomagikTelemetry, AutomagikTelemetry, TelemetryConfig, LogSeverity, MetricType } from '../src/client';
 
 // Mock file system operations
 jest.mock('fs');
@@ -84,14 +84,14 @@ describe('AutomagikTelemetry', () => {
   });
 
   describe('Backwards Compatibility', () => {
-    it('should support TelemetryClient alias', () => {
-      const client = new TelemetryClient(mockConfig);
+    it('should support AutomagikTelemetry alias', () => {
+      const client = new AutomagikTelemetry(mockConfig);
       expect(client).toBeDefined();
       expect(client.isEnabled()).toBe(false);
     });
 
-    it('should have TelemetryClient as same class', () => {
-      expect(TelemetryClient).toBe(AutomagikTelemetry);
+    it('should have AutomagikTelemetry as same class', () => {
+      expect(AutomagikTelemetry).toBe(AutomagikTelemetry);
     });
   });
 

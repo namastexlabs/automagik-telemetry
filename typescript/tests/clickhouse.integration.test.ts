@@ -209,7 +209,6 @@ describeIntegration("ClickHouse Backend Integration", () => {
         backend: "clickhouse",
         clickhouseEndpoint: CLICKHOUSE_ENDPOINT,
         clickhouseDatabase: CLICKHOUSE_DATABASE,
-        clickhouseTable: CLICKHOUSE_TABLE,
         clickhouseUsername: CLICKHOUSE_USERNAME,
         clickhousePassword: CLICKHOUSE_PASSWORD,
         batchSize: 1,
@@ -260,7 +259,6 @@ describeIntegration("ClickHouse Backend Integration", () => {
         backend: "clickhouse",
         clickhouseEndpoint: CLICKHOUSE_ENDPOINT,
         clickhouseDatabase: CLICKHOUSE_DATABASE,
-        clickhouseTable: CLICKHOUSE_TABLE,
         batchSize: 10,
       };
 
@@ -373,7 +371,6 @@ describeIntegration("ClickHouse Backend Integration", () => {
         backend: "clickhouse",
         clickhouseEndpoint: CLICKHOUSE_ENDPOINT,
         clickhouseDatabase: CLICKHOUSE_DATABASE,
-        clickhouseTable: CLICKHOUSE_TABLE,
         clickhouseUsername: CLICKHOUSE_USERNAME,
         clickhousePassword: CLICKHOUSE_PASSWORD,
       };

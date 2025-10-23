@@ -12,7 +12,7 @@
  * Or with integration marker: npm test -- --testNamePattern="integration"
  */
 
-import { TelemetryClient, MetricType, LogSeverity } from '../src';
+import { AutomagikTelemetry, MetricType, LogSeverity } from '../src';
 import type { TelemetryConfig } from '../src/client';
 
 // Helper to skip tests in CI unless explicitly enabled
@@ -32,7 +32,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 describeIntegration('Integration Tests', () => {
-  let client: InstanceType<typeof TelemetryClient>;
+  let client: InstanceType<typeof AutomagikTelemetry>;
 
   beforeEach(() => {
     // Enable telemetry for integration tests
@@ -55,7 +55,7 @@ describeIntegration('Integration Tests', () => {
         batchSize: 10,
         flushInterval: 1000,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       // Simulate middleware that tracks requests
       const simulateRequest = async (path: string, method: string) => {
@@ -98,7 +98,7 @@ describeIntegration('Integration Tests', () => {
         endpoint: 'https://telemetry.namastex.ai',
         batchSize: 50,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       const numRequests = 100;
       const startTime = Date.now();
@@ -131,7 +131,7 @@ describeIntegration('Integration Tests', () => {
         flushInterval: 1000,
         compressionEnabled: true,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       const numEvents = 1000;
       const startTime = Date.now();
@@ -164,7 +164,7 @@ describeIntegration('Integration Tests', () => {
         batchSize: 100,
         compressionEnabled: true,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       const durationSeconds = 5;
       const targetRate = 500; // events per second
@@ -207,7 +207,7 @@ describeIntegration('Integration Tests', () => {
         endpoint: 'https://telemetry.namastex.ai',
         batchSize: 100,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       const numIterations = 500;
       const startTime = Date.now();
@@ -248,7 +248,7 @@ describeIntegration('Integration Tests', () => {
         timeout: 10,
         maxRetries: 2,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
       process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
     });
 
@@ -354,7 +354,7 @@ describeIntegration('Integration Tests', () => {
         batchSize: 50,
         flushInterval: 2000,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       // Force garbage collection if available
       if (global.gc) {
@@ -402,7 +402,7 @@ describeIntegration('Integration Tests', () => {
         endpoint: 'https://telemetry.namastex.ai',
         batchSize: 100,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       if (global.gc) global.gc();
       const baselineMemory = getMemoryUsageMB();
@@ -443,7 +443,7 @@ describeIntegration('Integration Tests', () => {
         endpoint: 'https://telemetry.namastex.ai',
         batchSize: 50,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       if (global.gc) global.gc();
       const baselineMemory = getMemoryUsageMB();
@@ -516,7 +516,7 @@ describeIntegration('Integration Tests', () => {
         timeout: 5,
         maxRetries: 2,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       // Should not throw even if there are network issues
       expect(() => {
@@ -533,7 +533,7 @@ describeIntegration('Integration Tests', () => {
         endpoint: 'https://telemetry.namastex.ai',
         batchSize: 1,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       const error = new Error('Test error for integration');
       client.trackError(error, { context: 'integration_test' });
@@ -551,7 +551,7 @@ describeIntegration('Integration Tests', () => {
         version: '1.0.0',
         endpoint: customEndpoint,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       const status = client.getStatus();
       expect(status.endpoint).toContain('telemetry.namastex.ai');
@@ -564,7 +564,7 @@ describeIntegration('Integration Tests', () => {
         endpoint: 'https://telemetry.namastex.ai',
         batchSize: 10,
       };
-      client = new TelemetryClient(config);
+      client = new AutomagikTelemetry(config);
 
       // Send events less than batch size
       for (let i = 0; i < 5; i++) {

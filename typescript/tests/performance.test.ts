@@ -1,11 +1,11 @@
 /**
- * Performance benchmarks for TelemetryClient.
+ * Performance benchmarks for AutomagikTelemetry.
  *
  * Tests verify that telemetry operations meet the <1ms overhead requirement.
  * These tests can be skipped in CI by excluding the 'performance' test pattern.
  */
 
-import { TelemetryClient, MetricType } from '../src/client';
+import { AutomagikTelemetry, MetricType } from '../src/client';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -82,7 +82,7 @@ describe('Performance Benchmarks', () => {
 
   describe('trackEvent Performance', () => {
     it('should have <1ms average overhead with realistic payloads', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -123,7 +123,7 @@ describe('Performance Benchmarks', () => {
 
   describe('trackError Performance', () => {
     it('should have <1ms average overhead with error context', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -165,7 +165,7 @@ describe('Performance Benchmarks', () => {
 
   describe('trackMetric Performance', () => {
     it('should have <1ms average overhead with attributes', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -206,7 +206,7 @@ describe('Performance Benchmarks', () => {
     it('should have near-zero overhead when disabled', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'false';
 
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -243,7 +243,7 @@ describe('Performance Benchmarks', () => {
 
   describe('Large Attribute Set Performance', () => {
     it('should handle large attribute sets efficiently', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -288,7 +288,7 @@ describe('Performance Benchmarks', () => {
 
   describe('Concurrent Tracking Simulation', () => {
     it('should handle rapid consecutive events efficiently', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -337,7 +337,7 @@ describe('Performance Benchmarks', () => {
       const results: Record<number, TimingStats> = {};
 
       for (const size of payloadSizes) {
-        const client = new TelemetryClient({
+        const client = new AutomagikTelemetry({
           projectName: 'benchmark-test',
           version: '1.0.0',
         });
@@ -386,7 +386,7 @@ describe('Performance Benchmarks', () => {
     it('should not leak memory with many events (disabled client)', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'false';
 
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -436,7 +436,7 @@ describe('Performance Benchmarks', () => {
 
   describe('String Truncation Performance', () => {
     it('should handle long strings efficiently', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -476,7 +476,7 @@ describe('Performance Benchmarks', () => {
 
   describe('System Info Collection Overhead', () => {
     it('should collect system info quickly', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });
@@ -505,7 +505,7 @@ describe('Performance Benchmarks', () => {
 
   describe('Async Operation Performance', () => {
     it('should not block on async operations', async () => {
-      const client = new TelemetryClient({
+      const client = new AutomagikTelemetry({
         projectName: 'benchmark-test',
         version: '1.0.0',
       });

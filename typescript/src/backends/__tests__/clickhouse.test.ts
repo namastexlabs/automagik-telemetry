@@ -57,7 +57,6 @@ describe("ClickHouseBackend", () => {
       const config = {
         endpoint: "http://custom:8123",
         database: "custom_db",
-        table: "custom_table",
         username: "custom_user",
         password: "custom_pass",
         timeout: 10000,
@@ -922,7 +921,6 @@ describe("ClickHouseBackend", () => {
       backend = new ClickHouseBackend({
         endpoint: "http://localhost:8123",
         database: "test_db",
-        table: "test_table",
       });
 
       backend.addToBatch({
