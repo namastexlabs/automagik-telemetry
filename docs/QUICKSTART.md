@@ -23,16 +23,16 @@ npm install @automagik/telemetry
 ### Python
 
 ```python
-from automagik_telemetry import TelemetryClient, StandardEvents
+from automagik_telemetry import AutomagikTelemetry
 
 # 1. Initialize (once at startup)
-telemetry = TelemetryClient(
+telemetry = AutomagikTelemetry(
     project_name="your-project",  # omni, hive, forge, etc.
     version="1.0.0"
 )
 
 # 2. Track events
-telemetry.track_event(StandardEvents.FEATURE_USED, {
+telemetry.track_event("feature.used", {
     "feature_name": "awesome_feature"
 })
 ```
@@ -40,16 +40,16 @@ telemetry.track_event(StandardEvents.FEATURE_USED, {
 ### TypeScript
 
 ```typescript
-import { TelemetryClient, StandardEvents } from '@automagik/telemetry';
+import { AutomagikTelemetry } from '@automagik/telemetry';
 
 // 1. Initialize
-const telemetry = new TelemetryClient({
+const telemetry = new AutomagikTelemetry({
   projectName: 'your-project',
   version: '1.0.0'
 });
 
 // 2. Track events
-telemetry.trackEvent(StandardEvents.FEATURE_USED, {
+telemetry.trackEvent('feature.used', {
   feature_name: 'awesome_feature'
 });
 ```
