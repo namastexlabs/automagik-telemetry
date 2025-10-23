@@ -19,13 +19,11 @@
 </p>
 
 <p align="center">
-  <a href="#-key-features">Features</a> •
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-sdk-differences">SDK Differences</a> •
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-development">Development</a> •
-  <a href="#-roadmap">Roadmap</a> •
-  <a href="#-contributing">Contributing</a>
+  <a href="docs/INDEX.md">📚 Documentation</a> •
+  <a href="docs/GETTING_STARTED.md">🚀 Quick Start</a> •
+  <a href="docs/USER_GUIDES/CONFIGURATION.md">⚙️ Configuration</a> •
+  <a href="docs/DEVELOPER_GUIDES/ARCHITECTURE.md">🏗️ Architecture</a> •
+  <a href="docs/DEVELOPER_GUIDES/CONTRIBUTING.md">🤝 Contributing</a>
 </p>
 
 ---
@@ -640,12 +638,31 @@ make dashboard    # Open Grafana dashboard
 
 ## 📚 Documentation
 
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Command cheat sheet and common patterns
-- **[TELEMETRY_DEVELOPMENT_GUIDE.md](TELEMETRY_DEVELOPMENT_GUIDE.md)** - Architecture deep dive and development guide
-- **[QUICKSTART.md](QUICKSTART.md)** - Getting started tutorial
-- **[INTEGRATION_TESTS.md](INTEGRATION_TESTS.md)** - Integration testing guide
-- **[infra/README.md](infra/README.md)** - Self-hosting infrastructure guide
-- **[infra/CLICKHOUSE_BACKEND_DESIGN.md](infra/CLICKHOUSE_BACKEND_DESIGN.md)** - ClickHouse backend architecture and design decisions
+**📍 Start Here:** [Documentation Index](docs/INDEX.md) - Complete navigation hub
+
+### 🚀 Getting Started
+- **[Quick Start Guide](docs/GETTING_STARTED.md)** - Get running in 5 minutes
+- **[Configuration Guide](docs/USER_GUIDES/CONFIGURATION.md)** - All configuration options
+- **[Privacy & Security](docs/USER_GUIDES/PRIVACY.md)** - Privacy-first design explained
+
+### 👨‍💻 User Guides
+- **[Backends Guide](docs/USER_GUIDES/BACKENDS.md)** - OTLP vs ClickHouse comparison
+- **[Self-Hosting](docs/USER_GUIDES/SELF_HOSTING.md)** - Run your own infrastructure
+- **[Quick Reference](docs/USER_GUIDES/QUICK_REFERENCE.md)** - Commands and patterns cheat sheet
+
+### 🔧 Developer Guides
+- **[Architecture](docs/DEVELOPER_GUIDES/ARCHITECTURE.md)** - System design deep dive
+- **[Implementation](docs/DEVELOPER_GUIDES/IMPLEMENTATION.md)** - Integration patterns
+- **[Testing](docs/DEVELOPER_GUIDES/TESTING.md)** - Test strategies and CI/CD
+- **[SDK Differences](docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md)** - Python vs TypeScript
+- **[Contributing](docs/DEVELOPER_GUIDES/CONTRIBUTING.md)** - How to contribute
+
+### 📖 References
+- **[API Reference](docs/REFERENCES/API_REFERENCE.md)** - Complete API documentation
+- **[Environment Variables](docs/REFERENCES/ENVIRONMENT_VARIABLES.md)** - All env vars
+- **[Troubleshooting](docs/REFERENCES/TROUBLESHOOTING.md)** - Common issues & solutions
+
+**Need help?** Check the [Documentation Index](docs/INDEX.md) for the complete navigation.
 
 ---
 
