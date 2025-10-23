@@ -27,33 +27,40 @@ curl -s "http://192.168.112.122:9090/api/v1/label/__name__/values" | jq
 
 ## 🔧 Python Client Usage
 
-### Current (Traces Only)
+### Events (Traces)
 
 ```python
-from src.core.telemetry import TelemetryClient
+from automagik_telemetry import AutomagikTelemetry
 
-client = TelemetryClient()
-client.track_api_request(endpoint="/api/v1/runs", method="POST")
-client.track_feature(feature_name="runs", category="api_endpoint")
+client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+client.track_event("api.request", {
+    "endpoint": "/api/v1/runs",
+    "method": "POST",
+    "status": 200
+})
 ```
 
-### With Metrics (To Implement)
+### Metrics
 
 ```python
+from automagik_telemetry import AutomagikTelemetry, MetricType
+
+client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+
 # Counter - for things that only go up
-client.track_counter("api.requests", value=1, attributes={
+client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER, attributes={
     "endpoint": "/api/v1/runs",
     "method": "POST",
     "status": 200
 })
 
 # Gauge - for things that go up and down
-client.track_gauge("system.memory_usage_mb", value=512.5, attributes={
+client.track_metric("system.memory_usage_mb", value=512.5, metric_type=MetricType.GAUGE, attributes={
     "host": "server-01"
 })
 
 # Histogram - for distributions
-client.track_histogram("api.response_time_ms", value=125.3, attributes={
+client.track_metric("api.response_time_ms", value=125.3, metric_type=MetricType.HISTOGRAM, attributes={
     "endpoint": "/api/v1/runs"
 })
 ```
@@ -158,6 +165,8 @@ curl -s 'http://192.168.112.122:9090/api/v1/query?query=sum(api_requests_total)b
 ### API Request Instrumentation
 
 ```python
+from automagik_telemetry import MetricType
+
 @app.post("/api/v1/runs")
 async def create_run():
     start_time = time.time()
@@ -166,7 +175,7 @@ async def create_run():
         result = await process_run()
 
         # Track success
-        client.track_counter("api.requests", attributes={
+        client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER, attributes={
             "endpoint": "/api/v1/runs",
             "method": "POST",
             "status": 200
@@ -176,7 +185,7 @@ async def create_run():
 
     except Exception as e:
         # Track error
-        client.track_counter("api.requests", attributes={
+        client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER, attributes={
             "endpoint": "/api/v1/runs",
             "method": "POST",
             "status": 500,
@@ -187,7 +196,7 @@ async def create_run():
     finally:
         # Track response time
         duration_ms = (time.time() - start_time) * 1000
-        client.track_histogram("api.response_time_ms", value=duration_ms, attributes={
+        client.track_metric("api.response_time_ms", value=duration_ms, metric_type=MetricType.HISTOGRAM, attributes={
             "endpoint": "/api/v1/runs"
         })
 ```
@@ -195,18 +204,20 @@ async def create_run():
 ### Business Metrics
 
 ```python
+from automagik_telemetry import MetricType
+
 # Track feature usage
-client.track_counter("feature.used", attributes={
+client.track_metric("feature.used", value=1, metric_type=MetricType.COUNTER, attributes={
     "feature": "agent_runs",
     "user_tier": "premium"
 })
 
 # Track resource usage
-client.track_gauge("system.active_connections", value=len(connections))
-client.track_gauge("queue.depth", value=queue.size())
+client.track_metric("system.active_connections", value=len(connections), metric_type=MetricType.GAUGE)
+client.track_metric("queue.depth", value=queue.size(), metric_type=MetricType.GAUGE)
 
 # Track processing metrics
-client.track_histogram("job.duration_seconds", value=duration, attributes={
+client.track_metric("job.duration_seconds", value=duration, metric_type=MetricType.HISTOGRAM, attributes={
     "job_type": "data_processing"
 })
 ```
