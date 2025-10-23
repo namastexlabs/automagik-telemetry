@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from automagik_telemetry import LogSeverity, MetricType, TelemetryClient, TelemetryConfig
+from automagik_telemetry import LogSeverity, MetricType, AutomagikTelemetry, TelemetryConfig
 
 # Mark as integration test with extended timeout
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(300)]
@@ -38,7 +38,7 @@ def get_thread_count() -> int:
 
 
 @pytest.fixture
-def memory_test_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
+def memory_test_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
     """Create telemetry client for memory testing."""
     # Enable telemetry
     monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
@@ -51,7 +51,7 @@ def memory_test_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
         flush_interval=2.0,
         compression_enabled=True,
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
 
     # Force garbage collection before test
     gc.collect()
@@ -64,7 +64,7 @@ def memory_test_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
     gc.collect()
 
 
-def test_no_memory_leak_simple_events(memory_test_client: TelemetryClient) -> None:
+def test_no_memory_leak_simple_events(memory_test_client: AutomagikTelemetry) -> None:
     """Test that simple events don't cause memory leaks."""
     print("\n=== Testing memory leaks with simple events ===")
 
@@ -120,7 +120,7 @@ def test_no_memory_leak_simple_events(memory_test_client: TelemetryClient) -> No
         assert growth_rate < 5, "Memory appears to be growing linearly"
 
 
-def test_memory_returns_to_baseline_after_flush(memory_test_client: TelemetryClient) -> None:
+def test_memory_returns_to_baseline_after_flush(memory_test_client: AutomagikTelemetry) -> None:
     """Test that memory returns to baseline after flush."""
     print("\n=== Testing memory returns to baseline after flush ===")
 
@@ -159,7 +159,7 @@ def test_memory_returns_to_baseline_after_flush(memory_test_client: TelemetryCli
     assert memory_diff < 5, f"Memory didn't return to baseline (diff: {memory_diff:.2f} MB)"
 
 
-def test_no_thread_leaks(memory_test_client: TelemetryClient) -> None:
+def test_no_thread_leaks(memory_test_client: AutomagikTelemetry) -> None:
     """Test that threads are properly cleaned up."""
     print("\n=== Testing thread cleanup ===")
 
@@ -192,7 +192,7 @@ def test_no_thread_leaks(memory_test_client: TelemetryClient) -> None:
     print(f"Final threads: {final_threads}")
 
 
-def test_sustained_load_memory_stability(memory_test_client: TelemetryClient) -> None:
+def test_sustained_load_memory_stability(memory_test_client: AutomagikTelemetry) -> None:
     """Test memory stability under sustained load."""
     print("\n=== Testing memory stability under sustained load ===")
 
@@ -266,7 +266,7 @@ def test_sustained_load_memory_stability(memory_test_client: TelemetryClient) ->
         assert memory_range < 20, f"Memory not stable, range: {memory_range:.2f} MB"
 
 
-def test_large_payload_memory_usage(memory_test_client: TelemetryClient) -> None:
+def test_large_payload_memory_usage(memory_test_client: AutomagikTelemetry) -> None:
     """Test memory usage with large payloads."""
     print("\n=== Testing large payload memory usage ===")
 
@@ -307,7 +307,7 @@ def test_large_payload_memory_usage(memory_test_client: TelemetryClient) -> None
     assert memory_growth < 15, f"Excessive memory growth: {memory_growth:.2f} MB"
 
 
-def test_mixed_signals_memory_usage(memory_test_client: TelemetryClient) -> None:
+def test_mixed_signals_memory_usage(memory_test_client: AutomagikTelemetry) -> None:
     """Test memory usage with mixed signal types."""
     print("\n=== Testing mixed signals memory usage ===")
 
@@ -379,7 +379,7 @@ def test_repeated_enable_disable_no_leak(monkeypatch: pytest.MonkeyPatch) -> Non
             endpoint="https://telemetry.namastex.ai",
             batch_size=10,
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         # Send some events
         for j in range(10):
@@ -418,7 +418,7 @@ def test_repeated_enable_disable_no_leak(monkeypatch: pytest.MonkeyPatch) -> Non
     assert final_threads <= baseline_threads + 1, "Thread leak detected"
 
 
-def test_queue_memory_bounds(memory_test_client: TelemetryClient) -> None:
+def test_queue_memory_bounds(memory_test_client: AutomagikTelemetry) -> None:
     """Test that queues don't grow unbounded in memory."""
     print("\n=== Testing queue memory bounds ===")
 
@@ -435,7 +435,7 @@ def test_queue_memory_bounds(memory_test_client: TelemetryClient) -> None:
         batch_size=10000,  # Large batch to accumulate events
         flush_interval=3600,  # Very long interval
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
     client.enable()
 
     # Send many events without flushing

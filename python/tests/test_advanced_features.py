@@ -20,7 +20,7 @@ import pytest
 from automagik_telemetry.client import (
     LogSeverity,
     MetricType,
-    TelemetryClient,
+    AutomagikTelemetry,
     TelemetryConfig,
 )
 
@@ -34,7 +34,7 @@ class TestMetricsExport:
         """Test sending a gauge metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(project_name="test-project", version="1.0.0")
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
 
         client.track_metric(
             "cpu.usage", 75.5, metric_type=MetricType.GAUGE, attributes={"host": "server1"}
@@ -72,7 +72,7 @@ class TestMetricsExport:
         """Test sending a counter metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(project_name="test-project", version="1.0.0")
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
 
         client.track_metric(
             "requests.total",
@@ -84,7 +84,14 @@ class TestMetricsExport:
         # Get the request
         call_args = mock_urlopen.call_args
         request = call_args[0][0]
-        payload = json.loads(request.data.decode("utf-8"))
+
+        # Handle both compressed and uncompressed data
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+
+        payload = json.loads(data.decode("utf-8"))
 
         metric = payload["resourceMetrics"][0]["scopeMetrics"][0]["metrics"][0]
         assert metric["name"] == "requests.total"
@@ -97,7 +104,7 @@ class TestMetricsExport:
         """Test sending a histogram metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(project_name="test-project", version="1.0.0")
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
 
         client.track_metric(
             "request.duration",
@@ -109,7 +116,14 @@ class TestMetricsExport:
         # Get the request
         call_args = mock_urlopen.call_args
         request = call_args[0][0]
-        payload = json.loads(request.data.decode("utf-8"))
+
+        # Handle both compressed and uncompressed data
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+
+        payload = json.loads(data.decode("utf-8"))
 
         metric = payload["resourceMetrics"][0]["scopeMetrics"][0]["metrics"][0]
         assert metric["name"] == "request.duration"
@@ -126,7 +140,7 @@ class TestLogsExport:
         """Test sending an INFO level log."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(project_name="test-project", version="1.0.0")
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
 
         client.track_log(
             "User logged in successfully",
@@ -166,7 +180,7 @@ class TestLogsExport:
         """Test sending an ERROR level log."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(project_name="test-project", version="1.0.0")
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
 
         client.track_log(
             "Database connection failed",
@@ -189,7 +203,7 @@ class TestLogsExport:
         """Test that long log messages are truncated."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = TelemetryClient(project_name="test-project", version="1.0.0")
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
 
         long_message = "x" * 2000
         client.track_log(long_message)
@@ -215,7 +229,7 @@ class TestBatchProcessing:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=3)
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         # Send 2 events - should not trigger send yet
         client.track_event("event1")
@@ -245,7 +259,7 @@ class TestBatchProcessing:
             version="1.0.0",
             batch_size=10,  # Won't auto-flush with just 2 events
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("event1")
         client.track_event("event2")
@@ -279,7 +293,7 @@ class TestCompression:
             compression_enabled=True,
             compression_threshold=100,  # Low threshold for testing
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         # Send event with large data to trigger compression
         large_data = {"key": "x" * 200}
@@ -312,7 +326,7 @@ class TestCompression:
             compression_enabled=True,
             compression_threshold=5000,  # High threshold
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("small.event", {"key": "value"})
 
@@ -339,7 +353,7 @@ class TestCompression:
             compression_enabled=False,
             compression_threshold=1,  # Even with low threshold, should not compress
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("event", {"data": "x" * 200})
 
@@ -366,7 +380,7 @@ class TestRetryLogic:
             max_retries=2,
             retry_backoff_base=0.01,  # Fast retries for testing
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         # Mock server returning 500 error
         mock_response = Mock()
@@ -387,7 +401,7 @@ class TestRetryLogic:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(project_name="test-project", version="1.0.0", max_retries=3)
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         # Mock HTTPError with 400 status
         with patch(
@@ -407,7 +421,7 @@ class TestRetryLogic:
         config = TelemetryConfig(
             project_name="test-project", version="1.0.0", max_retries=3, retry_backoff_base=0.1
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         # Mock server error
         mock_response = Mock()
@@ -445,7 +459,7 @@ class TestCleanup:
             version="1.0.0",
             batch_size=10,  # Won't auto-flush
         )
-        client = TelemetryClient(config=config)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("event1")
         mock_urlopen.assert_not_called()

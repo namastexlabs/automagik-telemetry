@@ -140,7 +140,6 @@ def clickhouse_client(
         backend="clickhouse",
         clickhouse_endpoint=clickhouse_endpoint,
         clickhouse_database="telemetry",
-        clickhouse_table="traces",
         clickhouse_username=DEFAULT_CLICKHOUSE_USER,
         clickhouse_password=DEFAULT_CLICKHOUSE_PASSWORD,
         batch_size=1,  # Immediate send for testing
@@ -171,7 +170,6 @@ def test_clickhouse_backend_initialization(clickhouse_client: AutomagikTelemetry
     assert clickhouse_client._clickhouse_backend is not None
     assert clickhouse_client._clickhouse_backend.endpoint == "http://localhost:8123"
     assert clickhouse_client._clickhouse_backend.database == "telemetry"
-    assert clickhouse_client._clickhouse_backend.table == "traces"
 
     print("ClickHouse backend initialized successfully")
 

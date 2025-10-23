@@ -10,7 +10,7 @@ Tests cover:
 - Environment variable handling
 - CI environment detection
 - Silent failure behavior
-- Backwards compatibility with TelemetryClient alias
+- Backwards compatibility with AutomagikTelemetry alias
 """
 
 import gzip
@@ -27,7 +27,7 @@ from automagik_telemetry.client import (
     AutomagikTelemetry,
     LogSeverity,
     MetricType,
-    TelemetryClient,
+    AutomagikTelemetry,
     TelemetryConfig,
 )
 
@@ -161,19 +161,19 @@ class TestAutomagikTelemetryInitialization:
 
 
 class TestBackwardsCompatibility:
-    """Test backwards compatibility with TelemetryClient alias."""
+    """Test backwards compatibility with AutomagikTelemetry alias."""
 
     def test_telemetry_client_alias_works(self, temp_home: Path, clean_env: None) -> None:
-        """Test that TelemetryClient alias still works."""
-        # Should be able to use TelemetryClient
-        client = TelemetryClient(project_name="test-project", version="1.0.0")
+        """Test that AutomagikTelemetry alias still works."""
+        # Should be able to use AutomagikTelemetry
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
 
         assert client.project_name == "test-project"
         assert client.project_version == "1.0.0"
 
     def test_telemetry_client_is_same_class(self) -> None:
-        """Test that TelemetryClient is actually AutomagikTelemetry."""
-        assert TelemetryClient is AutomagikTelemetry
+        """Test that AutomagikTelemetry is actually AutomagikTelemetry."""
+        assert AutomagikTelemetry is AutomagikTelemetry
 
 
 class TestUserIdPersistence:

@@ -16,7 +16,7 @@ import pytest
 from automagik_telemetry import (
     LogSeverity,
     MetricType,
-    TelemetryClient,
+    AutomagikTelemetry,
     TelemetryConfig,
 )
 
@@ -31,7 +31,7 @@ def otlp_endpoint() -> str:
 
 
 @pytest.fixture
-def otlp_client(monkeypatch: pytest.MonkeyPatch, otlp_endpoint: str) -> TelemetryClient:
+def otlp_client(monkeypatch: pytest.MonkeyPatch, otlp_endpoint: str) -> AutomagikTelemetry:
     """Create telemetry client configured for real OTLP collector."""
     # Enable telemetry for integration tests
     monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
@@ -46,7 +46,7 @@ def otlp_client(monkeypatch: pytest.MonkeyPatch, otlp_endpoint: str) -> Telemetr
         timeout=10,  # Longer timeout for network requests
         max_retries=2,
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
 
     # Verify client is enabled
     assert client.is_enabled(), "Client should be enabled for integration tests"
@@ -58,7 +58,7 @@ def otlp_client(monkeypatch: pytest.MonkeyPatch, otlp_endpoint: str) -> Telemetr
     client.disable()
 
 
-def test_send_trace_to_collector(otlp_client: TelemetryClient) -> None:
+def test_send_trace_to_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test sending trace (span) to real OTLP collector."""
     print("\n=== Testing trace to OTLP collector ===")
 
@@ -81,7 +81,7 @@ def test_send_trace_to_collector(otlp_client: TelemetryClient) -> None:
     print("Trace sent successfully (no exceptions)")
 
 
-def test_send_metric_to_collector(otlp_client: TelemetryClient) -> None:
+def test_send_metric_to_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test sending metrics to real OTLP collector."""
     print("\n=== Testing metrics to OTLP collector ===")
 
@@ -119,7 +119,7 @@ def test_send_metric_to_collector(otlp_client: TelemetryClient) -> None:
     print("Metrics sent successfully (no exceptions)")
 
 
-def test_send_log_to_collector(otlp_client: TelemetryClient) -> None:
+def test_send_log_to_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test sending logs to real OTLP collector."""
     print("\n=== Testing logs to OTLP collector ===")
 
@@ -151,7 +151,7 @@ def test_send_log_to_collector(otlp_client: TelemetryClient) -> None:
     print("Logs sent successfully (no exceptions)")
 
 
-def test_send_all_signal_types(otlp_client: TelemetryClient) -> None:
+def test_send_all_signal_types(otlp_client: AutomagikTelemetry) -> None:
     """Test sending all three signal types in sequence."""
     print("\n=== Testing all signal types to OTLP collector ===")
 
@@ -188,7 +188,7 @@ def test_send_all_signal_types(otlp_client: TelemetryClient) -> None:
     print("All signal types sent successfully")
 
 
-def test_error_tracking_to_collector(otlp_client: TelemetryClient) -> None:
+def test_error_tracking_to_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test tracking errors to real OTLP collector."""
     print("\n=== Testing error tracking to OTLP collector ===")
 
@@ -213,7 +213,7 @@ def test_error_tracking_to_collector(otlp_client: TelemetryClient) -> None:
     print("Error tracking sent successfully")
 
 
-def test_batch_send_to_collector(otlp_client: TelemetryClient) -> None:
+def test_batch_send_to_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test sending batch of events to collector."""
     print("\n=== Testing batch send to OTLP collector ===")
 
@@ -238,7 +238,7 @@ def test_batch_send_to_collector(otlp_client: TelemetryClient) -> None:
     print(f"Batch of {num_events} events sent successfully")
 
 
-def test_large_payload_to_collector(otlp_client: TelemetryClient) -> None:
+def test_large_payload_to_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test sending large payload with compression."""
     print("\n=== Testing large payload to OTLP collector ===")
 
@@ -261,7 +261,7 @@ def test_large_payload_to_collector(otlp_client: TelemetryClient) -> None:
     print("Large payload sent successfully (likely compressed)")
 
 
-def test_concurrent_sends_to_collector(otlp_client: TelemetryClient) -> None:
+def test_concurrent_sends_to_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test concurrent sends to collector."""
     import threading
 
@@ -318,7 +318,7 @@ def test_retry_on_temporary_failure(monkeypatch: pytest.MonkeyPatch) -> None:
         max_retries=3,
         retry_backoff_base=0.5,  # Fast retry for testing
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
 
     # Send an event (should succeed with retries if needed)
     client.track_event(
@@ -349,7 +349,7 @@ def test_custom_endpoint_configuration() -> None:
         endpoint=custom_endpoint,
         batch_size=1,
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
     client.enable()
 
     # Verify endpoints are set correctly
@@ -378,7 +378,7 @@ def test_custom_endpoint_configuration() -> None:
     print("Custom endpoint configuration test completed")
 
 
-def test_telemetry_status_with_real_collector(otlp_client: TelemetryClient) -> None:
+def test_telemetry_status_with_real_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test telemetry status with real collector configuration."""
     print("\n=== Testing telemetry status ===")
 
@@ -397,7 +397,7 @@ def test_telemetry_status_with_real_collector(otlp_client: TelemetryClient) -> N
     assert "session_id" in status
 
 
-def test_compression_with_real_collector(otlp_client: TelemetryClient) -> None:
+def test_compression_with_real_collector(otlp_client: AutomagikTelemetry) -> None:
     """Test that compression works with real collector."""
     print("\n=== Testing compression with real collector ===")
 

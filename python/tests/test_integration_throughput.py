@@ -15,14 +15,14 @@ import time
 
 import pytest
 
-from automagik_telemetry import MetricType, TelemetryClient, TelemetryConfig
+from automagik_telemetry import MetricType, AutomagikTelemetry, TelemetryConfig
 
 # Mark as integration test and add timeout
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(120)]
 
 
 @pytest.fixture
-def high_throughput_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
+def high_throughput_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
     """Create telemetry client optimized for high throughput."""
     # Enable telemetry for integration tests
     monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
@@ -36,7 +36,7 @@ def high_throughput_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
         compression_enabled=True,
         compression_threshold=512,
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
     yield client
 
     # Cleanup: flush and disable
@@ -44,7 +44,7 @@ def high_throughput_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
     client.disable()
 
 
-def test_burst_events(high_throughput_client: TelemetryClient) -> None:
+def test_burst_events(high_throughput_client: AutomagikTelemetry) -> None:
     """Test handling burst of events."""
     num_events = 1000
 
@@ -75,7 +75,7 @@ def test_burst_events(high_throughput_client: TelemetryClient) -> None:
     print(f"Flush time: {flush_duration:.3f}s")
 
 
-def test_sustained_throughput(high_throughput_client: TelemetryClient) -> None:
+def test_sustained_throughput(high_throughput_client: AutomagikTelemetry) -> None:
     """Test sustained high throughput over time."""
     duration_seconds = 10
     target_rate = 1000  # events per second
@@ -118,7 +118,7 @@ def test_sustained_throughput(high_throughput_client: TelemetryClient) -> None:
     high_throughput_client.flush()
 
 
-def test_concurrent_producers(high_throughput_client: TelemetryClient) -> None:
+def test_concurrent_producers(high_throughput_client: AutomagikTelemetry) -> None:
     """Test multiple threads producing events concurrently."""
     num_threads = 10
     events_per_thread = 500
@@ -164,7 +164,7 @@ def test_concurrent_producers(high_throughput_client: TelemetryClient) -> None:
     high_throughput_client.flush()
 
 
-def test_mixed_signal_types(high_throughput_client: TelemetryClient) -> None:
+def test_mixed_signal_types(high_throughput_client: AutomagikTelemetry) -> None:
     """Test high throughput with mixed signal types (traces, metrics, logs)."""
     num_iterations = 500
 
@@ -209,7 +209,7 @@ def test_mixed_signal_types(high_throughput_client: TelemetryClient) -> None:
     high_throughput_client.flush()
 
 
-def test_queue_management(high_throughput_client: TelemetryClient) -> None:
+def test_queue_management(high_throughput_client: AutomagikTelemetry) -> None:
     """Test that queue doesn't grow unbounded under load."""
     # Get initial queue sizes
     initial_status = high_throughput_client.get_status()
@@ -256,7 +256,7 @@ def test_memory_usage_under_load() -> None:
         batch_size=100,
         flush_interval=0.5,
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
 
     # Force garbage collection and get baseline memory
     gc.collect()
@@ -300,7 +300,7 @@ def test_memory_usage_under_load() -> None:
     client.disable()
 
 
-def test_batch_efficiency(high_throughput_client: TelemetryClient) -> None:
+def test_batch_efficiency(high_throughput_client: AutomagikTelemetry) -> None:
     """Test that batching provides efficiency gains."""
     # Test 1: Small batches (batch_size=1, immediate send)
     small_batch_config = TelemetryConfig(
@@ -309,7 +309,7 @@ def test_batch_efficiency(high_throughput_client: TelemetryClient) -> None:
         endpoint="https://telemetry.namastex.ai",
         batch_size=1,  # Immediate send
     )
-    small_batch_client = TelemetryClient(config=small_batch_config)
+    small_batch_client = AutomagikTelemetry(config=small_batch_config)
     small_batch_client.enable()
 
     num_events = 100
@@ -343,7 +343,7 @@ def test_batch_efficiency(high_throughput_client: TelemetryClient) -> None:
     small_batch_client.disable()
 
 
-def test_compression_efficiency(high_throughput_client: TelemetryClient) -> None:
+def test_compression_efficiency(high_throughput_client: AutomagikTelemetry) -> None:
     """Test that compression reduces payload size for large batches."""
     # Create client with compression disabled
     no_compression_config = TelemetryConfig(
@@ -353,7 +353,7 @@ def test_compression_efficiency(high_throughput_client: TelemetryClient) -> None
         batch_size=100,
         compression_enabled=False,
     )
-    no_compression_client = TelemetryClient(config=no_compression_config)
+    no_compression_client = AutomagikTelemetry(config=no_compression_config)
     no_compression_client.enable()
 
     # Generate events with repetitive data (compresses well)

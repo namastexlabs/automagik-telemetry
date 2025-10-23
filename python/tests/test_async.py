@@ -23,7 +23,7 @@ from automagik_telemetry import (
     LogSeverity,
     MetricType,
     StandardEvents,
-    TelemetryClient,
+    AutomagikTelemetry,
     TelemetryConfig,
 )
 
@@ -47,7 +47,7 @@ def enabled_telemetry(mock_home):
         version="1.0.0",
         batch_size=1,  # Immediate send for testing
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
     yield client
     # Cleanup
     if "AUTOMAGIK_TELEMETRY_ENABLED" in os.environ:
@@ -61,7 +61,7 @@ def disabled_telemetry(mock_home):
         project_name="test-async",
         version="1.0.0",
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
     yield client
 
 

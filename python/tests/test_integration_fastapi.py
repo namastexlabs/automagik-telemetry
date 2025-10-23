@@ -19,14 +19,14 @@ pytest.importorskip("httpx")
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from automagik_telemetry import TelemetryClient, TelemetryConfig
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
 # Mark as integration test
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def telemetry_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
+def telemetry_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
     """Create telemetry client with test configuration."""
     # Enable telemetry for integration tests
     monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
@@ -38,7 +38,7 @@ def telemetry_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
         batch_size=10,  # Small batch for faster testing
         flush_interval=1.0,  # Quick flush
     )
-    client = TelemetryClient(config=config)
+    client = AutomagikTelemetry(config=config)
     yield client
 
     # Cleanup: flush and disable
@@ -47,7 +47,7 @@ def telemetry_client(monkeypatch: pytest.MonkeyPatch) -> TelemetryClient:
 
 
 @pytest.fixture
-def fastapi_app(telemetry_client: TelemetryClient) -> FastAPI:
+def fastapi_app(telemetry_client: AutomagikTelemetry) -> FastAPI:
     """Create FastAPI app with telemetry instrumentation."""
     app = FastAPI()
 
@@ -183,7 +183,7 @@ def test_fastapi_error_tracking(fastapi_app: FastAPI) -> None:
 
 
 def test_fastapi_concurrent_requests(
-    fastapi_app: FastAPI, telemetry_client: TelemetryClient
+    fastapi_app: FastAPI, telemetry_client: AutomagikTelemetry
 ) -> None:
     """Test concurrent requests to ensure telemetry doesn't block."""
     client = TestClient(fastapi_app)
@@ -284,7 +284,7 @@ def test_fastapi_no_event_loop_blocking(fastapi_app: FastAPI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_fastapi_async_telemetry(telemetry_client: TelemetryClient) -> None:
+async def test_fastapi_async_telemetry(telemetry_client: AutomagikTelemetry) -> None:
     """Test telemetry with async/await patterns."""
 
     async def async_operation() -> None:
@@ -313,7 +313,7 @@ async def test_fastapi_async_telemetry(telemetry_client: TelemetryClient) -> Non
     telemetry_client.flush()
 
 
-def test_fastapi_telemetry_status(telemetry_client: TelemetryClient) -> None:
+def test_fastapi_telemetry_status(telemetry_client: AutomagikTelemetry) -> None:
     """Test telemetry status reporting."""
     status = telemetry_client.get_status()
 
