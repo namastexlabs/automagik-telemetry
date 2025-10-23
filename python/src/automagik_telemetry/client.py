@@ -502,6 +502,14 @@ class AutomagikTelemetry:
                 "value": {"stringValue": self.project_version},
             },
             {
+                "key": "project.name",  # ClickHouse backend uses this
+                "value": {"stringValue": self.project_name},
+            },
+            {
+                "key": "project.version",  # ClickHouse backend uses this
+                "value": {"stringValue": self.project_version},
+            },
+            {
                 "key": "service.organization",
                 "value": {"stringValue": self.organization},
             },
@@ -713,11 +721,17 @@ class AutomagikTelemetry:
                     elif "boolValue" in attr_val:
                         log_attrs_dict[key] = str(attr_val["boolValue"])
 
+                # Extract trace_id and span_id from attributes for correlation
+                trace_id = log_attrs_dict.get("trace_id", "")
+                span_id = log_attrs_dict.get("span_id", "")
+
                 self._clickhouse_backend.send_log(
                     message=message,
                     level=severity.name,
                     attributes=log_attrs_dict,
                     resource_attributes=resource_attrs_dict,
+                    trace_id=trace_id,
+                    span_id=span_id,
                 )
             except Exception as e:
                 logger.debug(f"ClickHouse backend log error: {e}")

@@ -448,6 +448,13 @@ class ClickHouseBackend:
             if timestamp is None:
                 timestamp = datetime.now(timezone.utc)
 
+            # Extract trace_id and span_id from attributes if not provided
+            # This allows logs to be correlated with traces
+            if not trace_id and "trace_id" in attributes:
+                trace_id = str(attributes.get("trace_id", ""))
+            if not span_id and "span_id" in attributes:
+                span_id = str(attributes.get("span_id", ""))
+
             # Generate unique log_id
             log_id = str(uuid.uuid4())
 
