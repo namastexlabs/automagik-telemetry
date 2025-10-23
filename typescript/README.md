@@ -108,9 +108,17 @@ const client = new AutomagikTelemetry({
 
 > **Note:** The Python SDK defaults to `batch_size=1` for immediate sending. See [main README](https://github.com/namastexlabs/automagik-telemetry#configuration) for cross-SDK differences.
 
-## Documentation
+## 📚 Documentation
 
-Full documentation: [github.com/namastexlabs/automagik-telemetry](https://github.com/namastexlabs/automagik-telemetry)
+**Complete documentation:** [Documentation Index](../docs/INDEX.md)
+
+**Quick Links:**
+- 🚀 [Getting Started Guide](../docs/GETTING_STARTED.md)
+- ⚙️ [Configuration Reference](../docs/USER_GUIDES/CONFIGURATION.md)
+- 📊 [Backends Guide (OTLP vs ClickHouse)](../docs/USER_GUIDES/BACKENDS.md)
+- 🔍 [API Reference](../docs/REFERENCES/API_REFERENCE.md)
+- 🐛 [Troubleshooting](../docs/REFERENCES/TROUBLESHOOTING.md)
+- 🔧 [SDK Differences (Python ↔ TypeScript)](../docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md)
 
 ## Development
 
@@ -127,6 +135,13 @@ pnpm test
 # Run tests with coverage
 pnpm test -- --coverage
 ```
+
+## 🔗 Related Documentation
+
+- **[Implementation Guide](../docs/DEVELOPER_GUIDES/IMPLEMENTATION.md)** - Integration patterns
+- **[Testing Guide](../docs/DEVELOPER_GUIDES/TESTING.md)** - Test strategies
+- **[Architecture](../docs/DEVELOPER_GUIDES/ARCHITECTURE.md)** - System design
+- **[Contributing](../docs/DEVELOPER_GUIDES/CONTRIBUTING.md)** - Development workflow
 
 ## License
 
