@@ -255,7 +255,7 @@ See `TELEMETRY_DEVELOPMENT_GUIDE.md` for:
 
 ```bash
 # Disable telemetry
-export AUTOMAGIK_OMNI_DISABLE_TELEMETRY=true
+export AUTOMAGIK_TELEMETRY_ENABLED=false
 
 # Custom endpoint (if needed)
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://telemetry.namastex.ai"

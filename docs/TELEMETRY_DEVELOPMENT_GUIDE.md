@@ -618,7 +618,7 @@ For `automagik-agents`:
 
 ```bash
 # Enable/disable telemetry
-export AUTOMAGIK_OMNI_DISABLE_TELEMETRY=false
+export AUTOMAGIK_TELEMETRY_ENABLED=true
 
 # Custom endpoint (if needed)
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://telemetry.namastex.ai"

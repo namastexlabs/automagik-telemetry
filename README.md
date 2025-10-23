@@ -79,7 +79,7 @@
 os.environ["ENVIRONMENT"] = "development"  # No telemetry sent
 
 # Explicit opt-out anytime
-os.environ["AUTOMAGIK_TELEMETRY_DISABLED"] = "true"
+os.environ["AUTOMAGIK_TELEMETRY_ENABLED"] = "false"
 
 # No PII collected - only anonymous metrics
 ```
@@ -168,7 +168,7 @@ ENVIRONMENT=development          # Telemetry disabled
 ENVIRONMENT=production          # Telemetry enabled
 
 # Explicit disable
-AUTOMAGIK_TELEMETRY_DISABLED=true
+AUTOMAGIK_TELEMETRY_ENABLED=false
 
 # Custom endpoint
 AUTOMAGIK_TELEMETRY_ENDPOINT=https://your-collector.com
@@ -316,10 +316,35 @@ client.trackEvent('user.login', { userId: '123' });
 
 ### Configuration
 
+**Batch Size Defaults**
+
+The Python and TypeScript SDKs have different default batch sizes to match their typical usage patterns:
+
+- **Python SDK:** `batch_size=1` (immediate send) - Optimized for low-latency and backward compatibility
+- **TypeScript SDK:** `batchSize=100` (batched send) - Optimized for high-volume web applications
+
+**Python - Enable batching for better performance:**
+```python
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=100  # Send in batches instead of immediately
+)
+```
+
+**TypeScript - Enable immediate send if needed:**
+```typescript
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    batchSize: 1  // Send immediately instead of batching
+});
+```
+
 **Environment Variables (OTLP Backend - Default):**
 ```bash
 # Disable telemetry completely
-export AUTOMAGIK_TELEMETRY_DISABLED=true
+export AUTOMAGIK_TELEMETRY_ENABLED=false
 
 # Custom OTLP endpoint
 export AUTOMAGIK_TELEMETRY_ENDPOINT=https://your-collector.com
