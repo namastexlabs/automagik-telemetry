@@ -586,10 +586,17 @@ class AutomagikTelemetry:
             # Use OTLP backend (default)
             # Queue or send immediately
             if self.config.batch_size > 1:
+                spans_to_flush = None
                 with self._queue_lock:
                     self._trace_queue.append(span)
                     if len(self._trace_queue) >= self.config.batch_size:
-                        self._flush_traces()
+                        # Extract spans while holding lock, then flush outside
+                        spans_to_flush = list(self._trace_queue)
+                        self._trace_queue.clear()
+
+                # Flush outside the lock to avoid deadlock
+                if spans_to_flush is not None:
+                    self._flush_traces(spans_to_flush)
             else:
                 self._flush_traces([span])
 
@@ -689,10 +696,17 @@ class AutomagikTelemetry:
             # Use OTLP backend (default)
             # Queue or send immediately
             if self.config.batch_size > 1:
+                metrics_to_flush = None
                 with self._queue_lock:
                     self._metric_queue.append(metric)
                     if len(self._metric_queue) >= self.config.batch_size:
-                        self._flush_metrics()
+                        # Extract metrics while holding lock, then flush outside
+                        metrics_to_flush = list(self._metric_queue)
+                        self._metric_queue.clear()
+
+                # Flush outside the lock to avoid deadlock
+                if metrics_to_flush is not None:
+                    self._flush_metrics(metrics_to_flush)
             else:
                 self._flush_metrics([metric])
 
@@ -761,10 +775,17 @@ class AutomagikTelemetry:
             # Use OTLP backend (default)
             # Queue or send immediately
             if self.config.batch_size > 1:
+                logs_to_flush = None
                 with self._queue_lock:
                     self._log_queue.append(log_record)
                     if len(self._log_queue) >= self.config.batch_size:
-                        self._flush_logs()
+                        # Extract logs while holding lock, then flush outside
+                        logs_to_flush = list(self._log_queue)
+                        self._log_queue.clear()
+
+                # Flush outside the lock to avoid deadlock
+                if logs_to_flush is not None:
+                    self._flush_logs(logs_to_flush)
             else:
                 self._flush_logs([log_record])
 
