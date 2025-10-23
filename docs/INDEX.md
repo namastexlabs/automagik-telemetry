@@ -62,7 +62,7 @@ graph LR
 
 Start with the basics
 
-**[Quickstart Guide →](QUICKSTART.md)**
+**[Quickstart Guide →](GETTING_STARTED.md)**
 
 *Get running in 5 minutes*
 
@@ -73,7 +73,7 @@ Start with the basics
 
 Implementation guide
 
-**[Implementation Guide →](IMPLEMENTATION_GUIDE.md)**
+**[Implementation Guide →](DEVELOPER_GUIDES/IMPLEMENTATION.md)**
 
 *Step-by-step integration*
 
@@ -84,7 +84,7 @@ Implementation guide
 
 Cheat sheet for devs
 
-**[Quick Reference →](QUICK_REFERENCE.md)**
+**[Quick Reference →](USER_GUIDES/QUICK_REFERENCE.md)**
 
 *Commands & patterns*
 
@@ -103,12 +103,12 @@ Perfect for first-time users and quick setup.
 
 | Document | Description | Time | Difficulty |
 |----------|-------------|------|------------|
-| **[Quickstart Guide](QUICKSTART.md)** | Install, configure, and send your first event | ⏱️ 5 min | ⭐ Easy |
-| **[Privacy Policy](PRIVACY_POLICY.md)** | Understand what we collect (spoiler: nothing personal!) | ⏱️ 3 min | ⭐ Easy |
-| **[Quick Reference](QUICK_REFERENCE.md)** | Command cheat sheet and common patterns | ⏱️ 2 min | ⭐ Easy |
+| **[Quickstart Guide](GETTING_STARTED.md)** | Install, configure, and send your first event | ⏱️ 5 min | ⭐ Easy |
+| **[Privacy Policy](USER_GUIDES/PRIVACY.md)** | Understand what we collect (spoiler: nothing personal!) | ⏱️ 3 min | ⭐ Easy |
+| **[Quick Reference](USER_GUIDES/QUICK_REFERENCE.md)** | Command cheat sheet and common patterns | ⏱️ 2 min | ⭐ Easy |
 
 > [!TIP]
-> **Start here**: Follow [Quickstart Guide](QUICKSTART.md) to send your first telemetry event in under 5 minutes.
+> **Start here**: Follow [Quickstart Guide](GETTING_STARTED.md) to send your first telemetry event in under 5 minutes.
 
 </details>
 
@@ -119,9 +119,9 @@ For developers integrating Automagik Telemetry into applications.
 
 | Document | Description | When to Use |
 |----------|-------------|-------------|
-| **[Implementation Guide](IMPLEMENTATION_GUIDE.md)** | Step-by-step guide to add telemetry to your project | Adding telemetry to Automagik projects |
-| **[Configuration Reference](CONFIGURATION_REFERENCE.md)** | Complete configuration options for both SDKs | Customizing SDK behavior |
-| **[ClickHouse Backend Guide](CLICKHOUSE_BACKEND_GUIDE.md)** | Using ClickHouse for self-hosted telemetry | Self-hosting with direct ClickHouse writes |
+| **[Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md)** | Step-by-step guide to add telemetry to your project | Adding telemetry to Automagik projects |
+| **[Configuration Reference](USER_GUIDES/CONFIGURATION.md)** | Complete configuration options for both SDKs | Customizing SDK behavior |
+| **[ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md)** | Using ClickHouse for self-hosted telemetry | Self-hosting with direct ClickHouse writes |
 
 > [!NOTE]
 > **Python or TypeScript?** Both SDKs have identical functionality with language-appropriate conventions.
@@ -148,9 +148,9 @@ For developers contributing to Automagik Telemetry or building custom integratio
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| **[Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md)** | Architecture, custom implementations, and testing | SDK contributors & advanced users |
-| **[Integration Tests Guide](INTEGRATION_TESTS.md)** | End-to-end testing with real backends | SDK developers & CI/CD setup |
-| **[Integration Tests Summary](INTEGRATION_TESTS_SUMMARY.md)** | Quick overview of test coverage | QA & contributors |
+| **[Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md)** | Architecture, custom implementations, and testing | SDK contributors & advanced users |
+| **[Integration Tests Guide](DEVELOPER_GUIDES/TESTING.md)** | End-to-end testing with real backends | SDK developers & CI/CD setup |
+| **[Integration Tests Summary](DEVELOPER_GUIDES/TESTING.md)** | Quick overview of test coverage | QA & contributors |
 | **[Code Conventions](CONVENTIONS.md)** | Naming, patterns, and best practices | All contributors |
 
 > [!IMPORTANT]
@@ -173,12 +173,12 @@ Quick reference materials for experienced users.
 
 | Document | Description | Best For |
 |----------|-------------|----------|
-| **[Quick Reference](QUICK_REFERENCE.md)** | Endpoints, commands, troubleshooting | Daily development |
-| **[Configuration Reference](CONFIGURATION_REFERENCE.md)** | All environment variables and options | Configuration lookup |
-| **[Privacy Policy](PRIVACY_POLICY.md)** | What we collect and why | Privacy concerns |
+| **[Quick Reference](USER_GUIDES/QUICK_REFERENCE.md)** | Endpoints, commands, troubleshooting | Daily development |
+| **[Configuration Reference](USER_GUIDES/CONFIGURATION.md)** | All environment variables and options | Configuration lookup |
+| **[Privacy Policy](USER_GUIDES/PRIVACY.md)** | What we collect and why | Privacy concerns |
 
 > [!TIP]
-> Keep [Quick Reference](QUICK_REFERENCE.md) bookmarked for instant access to commands and endpoints.
+> Keep [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md) bookmarked for instant access to commands and endpoints.
 
 </details>
 
@@ -191,7 +191,7 @@ For teams running their own telemetry infrastructure.
 |----------|-------------|------------|
 | **[Infrastructure Guide](../infra/README.md)** | Complete self-hosting setup with Docker Compose | Collector + Prometheus + Grafana |
 | **[ClickHouse Backend Design](../infra/CLICKHOUSE_BACKEND_DESIGN.md)** | Direct ClickHouse integration architecture | ClickHouse-only setup |
-| **[ClickHouse Backend Guide](CLICKHOUSE_BACKEND_GUIDE.md)** | Using ClickHouse backend in SDKs | SDK configuration |
+| **[ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md)** | Using ClickHouse backend in SDKs | SDK configuration |
 
 > [!WARNING]
 > **Production Deployment**: Review [Infrastructure Guide](../infra/README.md) carefully before deploying to production.
@@ -241,30 +241,30 @@ graph TB
 <details>
 <summary><h3>📊 Events & Metrics</h3></summary>
 
-- **Track Events (Traces)**: [Quickstart](QUICKSTART.md#track-events) | [Quick Reference](QUICK_REFERENCE.md#events-traces)
-- **Track Metrics**: [Quickstart](QUICKSTART.md#track-metrics) | [Quick Reference](QUICK_REFERENCE.md#metrics)
-- **Metric Types**: [Configuration Reference](CONFIGURATION_REFERENCE.md#metric-types)
-- **Custom Attributes**: [Implementation Guide](IMPLEMENTATION_GUIDE.md#custom-attributes)
+- **Track Events (Traces)**: [Quickstart](GETTING_STARTED.md#track-events) | [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md#events-traces)
+- **Track Metrics**: [Quickstart](GETTING_STARTED.md#track-metrics) | [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md#metrics)
+- **Metric Types**: [Configuration Reference](USER_GUIDES/CONFIGURATION.md#metric-types)
+- **Custom Attributes**: [Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md#custom-attributes)
 
 </details>
 
 <details>
 <summary><h3>🔒 Privacy & Security</h3></summary>
 
-- **Privacy Policy**: [Privacy Policy](PRIVACY_POLICY.md)
-- **What We Collect**: [Privacy Policy](PRIVACY_POLICY.md#what-we-collect)
-- **Opt-In/Opt-Out**: [Privacy Policy](PRIVACY_POLICY.md#your-control) | [Quickstart](QUICKSTART.md#privacy-by-default)
-- **Anonymization**: [Implementation Guide](IMPLEMENTATION_GUIDE.md#privacy-requirements)
+- **Privacy Policy**: [Privacy Policy](USER_GUIDES/PRIVACY.md)
+- **What We Collect**: [Privacy Policy](USER_GUIDES/PRIVACY.md#what-we-collect)
+- **Opt-In/Opt-Out**: [Privacy Policy](USER_GUIDES/PRIVACY.md#your-control) | [Quickstart](GETTING_STARTED.md#privacy-by-default)
+- **Anonymization**: [Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md#privacy-requirements)
 
 </details>
 
 <details>
 <summary><h3>⚙️ Configuration</h3></summary>
 
-- **Environment Variables**: [Configuration Reference](CONFIGURATION_REFERENCE.md)
-- **OTLP Backend**: [Quickstart](QUICKSTART.md#configuration)
-- **ClickHouse Backend**: [ClickHouse Backend Guide](CLICKHOUSE_BACKEND_GUIDE.md)
-- **Batch Size Tuning**: [Configuration Reference](CONFIGURATION_REFERENCE.md#batch-size-defaults)
+- **Environment Variables**: [Configuration Reference](USER_GUIDES/CONFIGURATION.md)
+- **OTLP Backend**: [Quickstart](GETTING_STARTED.md#configuration)
+- **ClickHouse Backend**: [ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md)
+- **Batch Size Tuning**: [Configuration Reference](USER_GUIDES/CONFIGURATION.md#batch-size-defaults)
 
 </details>
 
@@ -281,20 +281,20 @@ graph TB
 <details>
 <summary><h3>🧪 Testing & Debugging</h3></summary>
 
-- **Test Locally**: [Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md#testing-telemetry)
-- **Integration Tests**: [Integration Tests Guide](INTEGRATION_TESTS.md)
-- **Troubleshooting**: [Quick Reference](QUICK_REFERENCE.md#troubleshooting)
-- **Debug Mode**: [Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md#debug-mode)
+- **Test Locally**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#testing-telemetry)
+- **Integration Tests**: [Integration Tests Guide](DEVELOPER_GUIDES/TESTING.md)
+- **Troubleshooting**: [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md#troubleshooting)
+- **Debug Mode**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#debug-mode)
 
 </details>
 
 <details>
 <summary><h3>🚀 Advanced Topics</h3></summary>
 
-- **Custom TelemetryClient**: [Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md#adding-metrics-support)
-- **Backend Switching**: [ClickHouse Backend Guide](CLICKHOUSE_BACKEND_GUIDE.md#switching-between-backends)
-- **Performance Tuning**: [Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md#performance-considerations)
-- **Sampling**: [Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md#sampling-future-enhancement)
+- **Custom TelemetryClient**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#adding-metrics-support)
+- **Backend Switching**: [ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md#switching-between-backends)
+- **Performance Tuning**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#performance-considerations)
+- **Sampling**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#sampling-future-enhancement)
 
 </details>
 
@@ -340,10 +340,10 @@ client.trackMetric('api.requests', 1, MetricType.COUNTER);
 
 **Goal**: Send your first telemetry event
 
-- [ ] Read [Quickstart Guide](QUICKSTART.md) (5 min)
+- [ ] Read [Quickstart Guide](GETTING_STARTED.md) (5 min)
 - [ ] Install SDK (`pip install automagik-telemetry`)
 - [ ] Send test event
-- [ ] Review [Privacy Policy](PRIVACY_POLICY.md) (3 min)
+- [ ] Review [Privacy Policy](USER_GUIDES/PRIVACY.md) (3 min)
 
 **Time**: ~15 minutes
 
@@ -354,8 +354,8 @@ client.trackMetric('api.requests', 1, MetricType.COUNTER);
 **Goal**: Add telemetry to your application
 
 - [ ] Complete Beginner Path
-- [ ] Read [Implementation Guide](IMPLEMENTATION_GUIDE.md) (10 min)
-- [ ] Review [Configuration Reference](CONFIGURATION_REFERENCE.md)
+- [ ] Read [Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md) (10 min)
+- [ ] Review [Configuration Reference](USER_GUIDES/CONFIGURATION.md)
 - [ ] Implement event tracking
 - [ ] Add metric tracking
 - [ ] Test with verbose mode
@@ -385,8 +385,8 @@ client.trackMetric('api.requests', 1, MetricType.COUNTER);
 
 - [ ] Complete Integration Path
 - [ ] Read [Code Conventions](CONVENTIONS.md) (10 min)
-- [ ] Read [Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md) (20 min)
-- [ ] Review [Integration Tests Guide](INTEGRATION_TESTS.md)
+- [ ] Read [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md) (20 min)
+- [ ] Review [Integration Tests Guide](DEVELOPER_GUIDES/TESTING.md)
 - [ ] Set up development environment
 - [ ] Run test suite (aim for 100% coverage)
 - [ ] Submit your first PR!
@@ -401,10 +401,10 @@ Based on typical user journeys:
 
 | Rank | Document | Why It's Popular |
 |------|----------|------------------|
-| 🥇 | [Quickstart Guide](QUICKSTART.md) | Fastest way to get started |
-| 🥈 | [Quick Reference](QUICK_REFERENCE.md) | Daily reference for commands |
-| 🥉 | [Implementation Guide](IMPLEMENTATION_GUIDE.md) | Step-by-step integration |
-| 4️⃣ | [Privacy Policy](PRIVACY_POLICY.md) | Understand privacy guarantees |
+| 🥇 | [Quickstart Guide](GETTING_STARTED.md) | Fastest way to get started |
+| 🥈 | [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md) | Daily reference for commands |
+| 🥉 | [Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md) | Step-by-step integration |
+| 4️⃣ | [Privacy Policy](USER_GUIDES/PRIVACY.md) | Understand privacy guarantees |
 | 5️⃣ | [Infrastructure Guide](../infra/README.md) | Self-hosting setup |
 
 ---
@@ -452,26 +452,26 @@ Using telemetry for the first time? Follow this checklist:
 ### Installation & Setup
 - [ ] Choose your SDK (Python or TypeScript)
 - [ ] Install package (`pip install automagik-telemetry` or `pnpm add @automagik/telemetry`)
-- [ ] Read [Quickstart Guide](QUICKSTART.md)
+- [ ] Read [Quickstart Guide](GETTING_STARTED.md)
 - [ ] Send your first event
 - [ ] Verify event received (verbose mode)
 
 ### Configuration
-- [ ] Review [Configuration Reference](CONFIGURATION_REFERENCE.md)
+- [ ] Review [Configuration Reference](USER_GUIDES/CONFIGURATION.md)
 - [ ] Choose backend (OTLP or ClickHouse)
 - [ ] Set environment variables
 - [ ] Configure batch size (if needed)
 - [ ] Test opt-out mechanism
 
 ### Privacy & Compliance
-- [ ] Review [Privacy Policy](PRIVACY_POLICY.md)
+- [ ] Review [Privacy Policy](USER_GUIDES/PRIVACY.md)
 - [ ] Verify no PII in events (verbose mode)
 - [ ] Implement anonymization for sensitive data
 - [ ] Document what you track
 - [ ] Test auto-disable in development
 
 ### Production Ready
-- [ ] Read [Implementation Guide](IMPLEMENTATION_GUIDE.md)
+- [ ] Read [Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md)
 - [ ] Add error tracking
 - [ ] Add performance metrics
 - [ ] Test failure scenarios (collector down)
@@ -490,19 +490,19 @@ Using telemetry for the first time? Follow this checklist:
 ## 📚 Complete Documentation List
 
 ### Getting Started
-- [Quickstart Guide](QUICKSTART.md) - Get running in 5 minutes
-- [Quick Reference](QUICK_REFERENCE.md) - Commands and patterns cheat sheet
-- [Privacy Policy](PRIVACY_POLICY.md) - What we collect and why
+- [Quickstart Guide](GETTING_STARTED.md) - Get running in 5 minutes
+- [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md) - Commands and patterns cheat sheet
+- [Privacy Policy](USER_GUIDES/PRIVACY.md) - What we collect and why
 
 ### User Guides
-- [Implementation Guide](IMPLEMENTATION_GUIDE.md) - Integrate into your project
-- [Configuration Reference](CONFIGURATION_REFERENCE.md) - All configuration options
-- [ClickHouse Backend Guide](CLICKHOUSE_BACKEND_GUIDE.md) - Self-hosted ClickHouse setup
+- [Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md) - Integrate into your project
+- [Configuration Reference](USER_GUIDES/CONFIGURATION.md) - All configuration options
+- [ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md) - Self-hosted ClickHouse setup
 
 ### Developer Guides
-- [Telemetry Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md) - Architecture and custom implementations
-- [Integration Tests Guide](INTEGRATION_TESTS.md) - End-to-end testing
-- [Integration Tests Summary](INTEGRATION_TESTS_SUMMARY.md) - Test coverage overview
+- [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md) - Architecture and custom implementations
+- [Integration Tests Guide](DEVELOPER_GUIDES/TESTING.md) - End-to-end testing
+- [Integration Tests Summary](DEVELOPER_GUIDES/TESTING.md) - Test coverage overview
 - [Code Conventions](CONVENTIONS.md) - Coding standards and best practices
 
 ### Infrastructure
@@ -522,14 +522,14 @@ Looking for something specific? Use these keywords:
 
 | Looking for... | Try searching... | Found in... |
 |---------------|------------------|-------------|
-| **Installation** | `pip install`, `npm install`, `pnpm add` | [Quickstart](QUICKSTART.md) |
-| **Events** | `track_event`, `trackEvent`, traces | [Quick Reference](QUICK_REFERENCE.md) |
-| **Metrics** | `track_metric`, `trackMetric`, counter, gauge | [Quick Reference](QUICK_REFERENCE.md) |
-| **Privacy** | PII, anonymous, opt-out, GDPR | [Privacy Policy](PRIVACY_POLICY.md) |
+| **Installation** | `pip install`, `npm install`, `pnpm add` | [Quickstart](GETTING_STARTED.md) |
+| **Events** | `track_event`, `trackEvent`, traces | [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md) |
+| **Metrics** | `track_metric`, `trackMetric`, counter, gauge | [Quick Reference](USER_GUIDES/QUICK_REFERENCE.md) |
+| **Privacy** | PII, anonymous, opt-out, GDPR | [Privacy Policy](USER_GUIDES/PRIVACY.md) |
 | **Self-hosting** | Docker, collector, Prometheus, Grafana | [Infrastructure Guide](../infra/README.md) |
-| **ClickHouse** | direct, batch, compression | [ClickHouse Backend Guide](CLICKHOUSE_BACKEND_GUIDE.md) |
-| **Testing** | integration, verbose, debug | [Integration Tests](INTEGRATION_TESTS.md) |
-| **Configuration** | environment, batch_size, endpoint | [Configuration Reference](CONFIGURATION_REFERENCE.md) |
+| **ClickHouse** | direct, batch, compression | [ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md) |
+| **Testing** | integration, verbose, debug | [Integration Tests](DEVELOPER_GUIDES/TESTING.md) |
+| **Configuration** | environment, batch_size, endpoint | [Configuration Reference](USER_GUIDES/CONFIGURATION.md) |
 
 ---
 
@@ -540,7 +540,7 @@ Looking for something specific? Use these keywords:
 > - Use the **Table of Contents** at the top for quick jumps
 > - Click any **collapsible section** (▶️) to expand details
 > - Follow a **Learning Path** based on your role
-> - Bookmark **[Quick Reference](QUICK_REFERENCE.md)** for daily use
+> - Bookmark **[Quick Reference](USER_GUIDES/QUICK_REFERENCE.md)** for daily use
 > - Use **Find by Topic** for specific features
 
 > [!NOTE]
@@ -571,7 +571,7 @@ Found a typo? Want to improve explanations? We welcome contributions!
 
 <p align="center">
   <strong>🚀 Ready to start?</strong><br>
-  <a href="QUICKSTART.md">Begin with the Quickstart Guide →</a>
+  <a href="GETTING_STARTED.md">Begin with the Quickstart Guide →</a>
 </p>
 
 <p align="center">

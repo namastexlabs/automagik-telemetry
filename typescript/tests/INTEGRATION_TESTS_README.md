@@ -56,4 +56,4 @@ Integration tests are **skipped by default in CI** unless `RUN_INTEGRATION_TESTS
 
 ## See Also
 
-Full documentation: `/docs/INTEGRATION_TESTS.md`
+Full documentation: `/docs/DEVELOPER_GUIDES/TESTING.md`
