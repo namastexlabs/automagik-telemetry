@@ -73,7 +73,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT count(*) as total FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 1 HOUR",
+          "rawSql": "SELECT count(*) as total FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 12 HOUR",
           "refId": "A"
         }
       ],
@@ -148,7 +148,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT countIf(severity_text = 'ERROR') as errors FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 1 HOUR",
+          "rawSql": "SELECT countIf(severity_text = 'ERROR') as errors FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 12 HOUR",
           "refId": "A"
         }
       ],
@@ -223,7 +223,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT countIf(severity_text = 'WARN') as warnings FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 1 HOUR",
+          "rawSql": "SELECT countIf(severity_text = 'WARN') as warnings FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 12 HOUR",
           "refId": "A"
         }
       ],
@@ -294,7 +294,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT count(DISTINCT service_name) as services FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 1 HOUR",
+          "rawSql": "SELECT count(DISTINCT service_name) as services FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 12 HOUR",
           "refId": "A"
         }
       ],
@@ -432,7 +432,7 @@
             "type": "grafana-clickhouse-datasource",
             "uid": "clickhouse"
           },
-          "format": 1,
+          "format": 0,
           "meta": {
             "builderOptions": {
               "fields": [],
@@ -441,7 +441,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  severity_text,\n  count() as count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 1 HOUR\nGROUP BY time, severity_text\nORDER BY time",
+          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  severity_text,\n  count() as count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 12 HOUR\nGROUP BY time, severity_text\nORDER BY time",
           "refId": "A"
         }
       ],
@@ -554,7 +554,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  severity_text,\n  count() as count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 1 HOUR\nGROUP BY severity_text",
+          "rawSql": "SELECT \n  severity_text,\n  count() as count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 12 HOUR\nGROUP BY severity_text",
           "refId": "A"
         }
       ],
@@ -646,7 +646,7 @@
             "type": "grafana-clickhouse-datasource",
             "uid": "clickhouse"
           },
-          "format": 1,
+          "format": 0,
           "meta": {
             "builderOptions": {
               "fields": [],
@@ -655,7 +655,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  service_name,\n  count() as count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 1 HOUR\nGROUP BY time, service_name\nORDER BY time",
+          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  service_name,\n  count() as count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 12 HOUR\nGROUP BY time, service_name\nORDER BY time",
           "refId": "A"
         }
       ],
@@ -816,7 +816,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  timestamp,\n  severity_text,\n  service_name,\n  body,\n  trace_id,\n  span_id,\n  project_name,\n  environment\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 1 HOUR\nORDER BY timestamp DESC\nLIMIT 100",
+          "rawSql": "SELECT \n  timestamp,\n  severity_text,\n  service_name,\n  body,\n  trace_id,\n  span_id,\n  project_name,\n  environment\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 12 HOUR\nORDER BY timestamp DESC\nLIMIT 100",
           "refId": "A"
         }
       ],
