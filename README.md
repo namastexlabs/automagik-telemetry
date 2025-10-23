@@ -162,6 +162,20 @@ client.trackLog('Payment processing failed', LogSeverity.ERROR, {
 - `ERROR` (17) - Error events
 - `FATAL` (21) - Critical errors causing shutdown
 
+**When to Use: Logs vs Events vs Metrics**
+
+| Signal Type | Purpose | Use Case | Example |
+|-------------|---------|----------|---------|
+| **Events (Traces)** | Track discrete occurrences | User actions, API requests, feature usage | `user.login`, `api.request`, `feature.used` |
+| **Metrics** | Track numeric measurements over time | Performance, resource usage, business KPIs | `api.latency_ms`, `memory.usage_mb`, `revenue.total` |
+| **Logs** | Capture diagnostic messages with context | Application state, debugging, audit trails | `"User authentication successful"`, `"Database connection failed"` |
+
+**Best Practices:**
+- Use **Events** to track what happened (discrete occurrences)
+- Use **Metrics** to track how much/how many (quantitative data)
+- Use **Logs** to explain why/how it happened (contextual information)
+- Combine all three for comprehensive observability
+
 ### 🧪 **100% Test Coverage**
 Every SDK maintains 100% code coverage with comprehensive unit, integration, and performance tests.
 
