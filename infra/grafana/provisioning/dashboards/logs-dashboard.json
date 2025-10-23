@@ -705,9 +705,18 @@
                 "value": [
                   {
                     "options": {
+                      "FATAL": {
+                        "color": "dark-red",
+                        "index": 0
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
                       "ERROR": {
                         "color": "red",
-                        "index": 0
+                        "index": 1
                       }
                     },
                     "type": "value"
@@ -716,7 +725,7 @@
                     "options": {
                       "WARN": {
                         "color": "yellow",
-                        "index": 1
+                        "index": 2
                       }
                     },
                     "type": "value"
@@ -725,7 +734,25 @@
                     "options": {
                       "INFO": {
                         "color": "green",
-                        "index": 2
+                        "index": 3
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "DEBUG": {
+                        "color": "blue",
+                        "index": 4
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "TRACE": {
+                        "color": "purple",
+                        "index": 5
                       }
                     },
                     "type": "value"
