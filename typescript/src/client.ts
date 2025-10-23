@@ -652,7 +652,7 @@ export class AutomagikTelemetry {
 
       // Verbose mode: print event to console
       if (this.verbose) {
-        console.log(`\n[Telemetry] Sending trace event: ${eventType}`);
+        console.log(`\n[Telemetry] Queuing trace event: ${eventType}`);
         console.log(`  Project: ${this.projectName}`);
         console.log(`  Backend: ${this.backendType}`);
         console.log(`  Data: ${JSON.stringify(data, null, 2)}\n`);

@@ -8,14 +8,12 @@ from automagik_telemetry.client import (
     AutomagikTelemetry,
     LogSeverity,
     MetricType,
-)
-from automagik_telemetry.client import (
-    TelemetryConfig as ClientTelemetryConfig,
+    TelemetryConfig,
 )
 from automagik_telemetry.config import (
     DEFAULT_CONFIG,
     ENV_VARS,
-    TelemetryConfig,
+    TelemetryConfig as ConfigTelemetryConfig,
     ValidatedConfig,
     create_config,
     load_config_from_env,
@@ -52,7 +50,7 @@ except Exception:
 __all__ = [
     # Core client
     "AutomagikTelemetry",
-    "ClientTelemetryConfig",
+    "TelemetryConfig",
     "MetricType",
     "LogSeverity",
     "StandardEvents",
@@ -61,7 +59,7 @@ __all__ = [
     "prompt_user_if_needed",
     "should_prompt_user",
     # Configuration
-    "TelemetryConfig",
+    "ConfigTelemetryConfig",
     "ValidatedConfig",
     "create_config",
     "load_config_from_env",

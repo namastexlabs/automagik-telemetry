@@ -203,6 +203,13 @@ export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
     let sanitized = truncateString(value, cfg.maxStringLength);
 
     // Apply pattern-based sanitization (reset regex state before each test)
+    // Check API keys FIRST before phone numbers, as API keys are more specific
+    // and phone patterns can match parts of API keys
+    PATTERNS.apiKey.lastIndex = 0;
+    if (PATTERNS.apiKey.test(sanitized)) {
+      PATTERNS.apiKey.lastIndex = 0;
+      sanitized = sanitized.replace(PATTERNS.apiKey, cfg.redactionText);
+    }
     PATTERNS.phone.lastIndex = 0;
     if (PATTERNS.phone.test(sanitized)) {
       sanitized = sanitizePhone(sanitized, config);
@@ -210,11 +217,6 @@ export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
     PATTERNS.email.lastIndex = 0;
     if (PATTERNS.email.test(sanitized)) {
       sanitized = sanitizeEmail(sanitized, config);
-    }
-    PATTERNS.apiKey.lastIndex = 0;
-    if (PATTERNS.apiKey.test(sanitized)) {
-      PATTERNS.apiKey.lastIndex = 0;
-      sanitized = sanitized.replace(PATTERNS.apiKey, cfg.redactionText);
     }
     PATTERNS.creditCard.lastIndex = 0;
     if (PATTERNS.creditCard.test(sanitized)) {

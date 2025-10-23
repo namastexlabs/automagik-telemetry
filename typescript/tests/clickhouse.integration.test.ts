@@ -616,7 +616,7 @@ describeIntegration("ClickHouse Backend Integration", () => {
       };
 
       // Should not throw on init
-      let errorClient: AutomagikTelemetry;
+      let errorClient!: AutomagikTelemetry;
       expect(() => {
         errorClient = new AutomagikTelemetry(config);
       }).not.toThrow();
