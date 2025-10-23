@@ -98,7 +98,7 @@ C4Context
 C4Container
     title Container Diagram - SDK Internal Architecture
 
-    Container(client, "TelemetryClient", "Python/TypeScript", "Main SDK entry point")
+    Container(client, "AutomagikTelemetry", "Python/TypeScript", "Main SDK entry point")
     Container(config, "Configuration", "Config Module", "Manages settings & env vars")
     Container(privacy, "Privacy Engine", "Privacy Module", "PII detection & sanitization")
     Container(otlp_backend, "OTLP Backend", "Backend Module", "OTLP protocol implementation")
@@ -135,7 +135,7 @@ C4Container
 
 ```mermaid
 classDiagram
-    class TelemetryClient {
+    class AutomagikTelemetry {
         -Backend backend
         +track_event()
         +track_metric()
@@ -161,7 +161,7 @@ classDiagram
         +flush()
     }
 
-    TelemetryClient --> Backend
+    AutomagikTelemetry --> Backend
     Backend <|-- OTLPBackend
     Backend <|-- ClickHouseBackend
 ```
@@ -225,7 +225,7 @@ stateDiagram-v2
 
 ### Core Components
 
-#### 1. TelemetryClient
+#### 1. AutomagikTelemetry
 
 **Responsibilities:**
 - Public API for tracking events, metrics, logs, errors
@@ -367,7 +367,7 @@ flowchart LR
 sequenceDiagram
     autonumber
     participant App as Application
-    participant SDK as TelemetryClient
+    participant SDK as AutomagikTelemetry
     participant Privacy as PrivacyEngine
     participant Backend as Backend
     participant Queue as BatchQueue
@@ -461,7 +461,7 @@ flowchart TD
 ```mermaid
 graph TB
     subgraph "SDK (Python/TypeScript)"
-        CLIENT[TelemetryClient]
+        CLIENT[AutomagikTelemetry]
         OTLP_BACKEND[OTLP Backend]
     end
 
@@ -513,7 +513,7 @@ graph TB
 ```mermaid
 graph TB
     subgraph "SDK (Python/TypeScript)"
-        CLIENT[TelemetryClient]
+        CLIENT[AutomagikTelemetry]
         CH_BACKEND[ClickHouse Backend]
         TRANSFORMER[OTLP → ClickHouse<br/>Transformer]
     end

@@ -386,17 +386,18 @@ For self-hosted deployments, you can bypass the OTLP Collector and write directl
 
 **Python with ClickHouse:**
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
 # Direct ClickHouse backend
-client = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     backend="clickhouse",  # Use ClickHouse instead of OTLP
     clickhouse_endpoint="http://localhost:8123",
     clickhouse_database="telemetry",
-    clickhouse_batch_size=100  # Optional: batch rows before insert
+    batch_size=100  # Optional: batch rows before insert (applies to all backends)
 )
+client = AutomagikTelemetry(config=config)
 
 # Use normally - data goes directly to ClickHouse
 client.track_event("user.login", {"user_id": "123"})
@@ -413,7 +414,7 @@ const client = new AutomagikTelemetry({
     backend: 'clickhouse',  // Use ClickHouse instead of OTLP
     clickhouseEndpoint: 'http://localhost:8123',
     clickhouseDatabase: 'telemetry',
-    clickhouseBatchSize: 100  // Optional: batch rows before insert
+    batchSize: 100  // Optional: batch rows before insert (applies to all backends)
 });
 
 // Use normally - data goes directly to ClickHouse
@@ -589,7 +590,7 @@ const client = new AutomagikTelemetry({
 **Code Configuration (ClickHouse):**
 ```python
 # Python
-client = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     backend="clickhouse",
@@ -597,9 +598,10 @@ client = AutomagikTelemetry(
     clickhouse_database="telemetry",
     clickhouse_username="default",  # Optional
     clickhouse_password="",  # Optional
-    clickhouse_batch_size=100,  # Optional (default: 100)
-    clickhouse_compression=True  # Optional (default: True)
+    batch_size=100,  # Optional (default: 1 for Python)
+    compression_enabled=True  # Optional (default: True)
 )
+client = AutomagikTelemetry(config=config)
 ```
 
 ```typescript
@@ -612,8 +614,8 @@ const client = new AutomagikTelemetry({
     clickhouseDatabase: 'telemetry',
     clickhouseUsername: 'default',  // Optional
     clickhousePassword: '',  // Optional
-    clickhouseBatchSize: 100,  // Optional (default: 100)
-    clickhouseCompression: true  // Optional (default: true)
+    batchSize: 100,  // Optional (default: 100 for TypeScript)
+    compressionEnabled: true  // Optional (default: true)
 });
 ```
 

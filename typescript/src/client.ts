@@ -15,7 +15,7 @@ import { ClickHouseBackend } from "./backends/clickhouse";
 import packageJson from "../package.json";
 
 /**
- * Configuration interface for TelemetryClient.
+ * Configuration interface for AutomagikTelemetry.
  */
 export interface TelemetryConfig {
   /** Name of the Automagik project (omni, hive, forge, etc.) */
@@ -1158,10 +1158,3 @@ export class AutomagikTelemetry {
     };
   }
 }
-
-/**
- * Backwards compatibility alias for AutomagikTelemetry.
- *
- * @deprecated Use AutomagikTelemetry instead. TelemetryClient will be removed in a future version.
- */
-export const TelemetryClient = AutomagikTelemetry;

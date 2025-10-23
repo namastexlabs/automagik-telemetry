@@ -20,7 +20,7 @@ class TelemetryConfig:
         version: Version of the project
         endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
         organization: Organization name
-        timeout: HTTP timeout in milliseconds
+        timeout: HTTP timeout in seconds (NOTE: Default is 5000 for backwards compat but should be 5)
         enabled: Whether telemetry is enabled (opt-in only)
         verbose: Enable verbose logging to console
 
@@ -30,7 +30,7 @@ class TelemetryConfig:
         ...     version="1.0.0",
         ...     endpoint="https://telemetry.namastex.ai/v1/traces",
         ...     organization="namastex",
-        ...     timeout=5000,
+        ...     timeout=5,
         ...     enabled=True,
         ...     verbose=False
         ... )
@@ -66,7 +66,7 @@ class ValidatedConfig:
 DEFAULT_CONFIG: dict[str, str | int | bool] = {
     "endpoint": "https://telemetry.namastex.ai/v1/traces",
     "organization": "namastex",
-    "timeout": 5000,  # milliseconds
+    "timeout": 5,  # seconds (changed from 5000ms for consistency with client.py)
     "enabled": False,  # Disabled by default - opt-in only
     "verbose": False,
 }
@@ -110,7 +110,7 @@ def load_config_from_env() -> TelemetryConfig:
     - AUTOMAGIK_TELEMETRY_ENABLED: Enable/disable telemetry (true/false/1/0/yes/no/on/off)
     - AUTOMAGIK_TELEMETRY_ENDPOINT: Custom telemetry endpoint URL
     - AUTOMAGIK_TELEMETRY_VERBOSE: Enable verbose logging (true/false/1/0/yes/no/on/off)
-    - AUTOMAGIK_TELEMETRY_TIMEOUT: HTTP timeout in milliseconds
+    - AUTOMAGIK_TELEMETRY_TIMEOUT: HTTP timeout in seconds
 
     Returns:
         Partial configuration from environment variables
@@ -118,13 +118,13 @@ def load_config_from_env() -> TelemetryConfig:
     Example:
         >>> # Set environment variables
         >>> os.environ["AUTOMAGIK_TELEMETRY_ENABLED"] = "true"
-        >>> os.environ["AUTOMAGIK_TELEMETRY_TIMEOUT"] = "3000"
+        >>> os.environ["AUTOMAGIK_TELEMETRY_TIMEOUT"] = "10"
         >>>
         >>> config = load_config_from_env()
         >>> config.enabled
         True
         >>> config.timeout
-        3000
+        10
     """
     config = TelemetryConfig(
         project_name="",  # Not set from env
@@ -258,9 +258,9 @@ def validate_config(config: TelemetryConfig) -> None:
             raise ValueError(
                 f"TelemetryConfig: timeout must be a positive integer (got: {config.timeout})"
             )
-        if config.timeout > 60000:
+        if config.timeout > 60:
             raise ValueError(
-                f"TelemetryConfig: timeout should not exceed 60000ms (got: {config.timeout})"
+                f"TelemetryConfig: timeout should not exceed 60 seconds (got: {config.timeout})"
             )
 
     # Validate organization if provided

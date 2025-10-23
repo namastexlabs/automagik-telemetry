@@ -195,17 +195,18 @@ typescript/src/backends/
 
 ### Python Example
 ```python
-from automagik_telemetry import TelemetryClient
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
 # Use ClickHouse backend for local dev
-client = TelemetryClient(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     backend="clickhouse",  # Instead of default "otlp"
     clickhouse_endpoint="http://localhost:8123",
     clickhouse_database="telemetry",
-    clickhouse_batch_size=100
+    batch_size=100
 )
+client = AutomagikTelemetry(config=config)
 
 client.track_event("user.login", {"user_id": "123"})
 # → Goes directly to ClickHouse
@@ -213,16 +214,16 @@ client.track_event("user.login", {"user_id": "123"})
 
 ### TypeScript Example
 ```typescript
-import { TelemetryClient } from '@automagik/telemetry';
+import { AutomagikTelemetry } from '@automagik/telemetry';
 
 // Use ClickHouse backend for local dev
-const client = new TelemetryClient({
+const client = new AutomagikTelemetry({
   projectName: 'my-app',
   version: '1.0.0',
   backend: 'clickhouse',  // Instead of default 'otlp'
   clickhouseEndpoint: 'http://localhost:8123',
   clickhouseDatabase: 'telemetry',
-  clickhouseBatchSize: 100
+  batchSize: 100
 });
 
 client.trackEvent('user.login', { userId: '123' });

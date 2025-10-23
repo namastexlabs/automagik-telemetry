@@ -291,7 +291,7 @@ graph TB
 <details>
 <summary><h3>🚀 Advanced Topics</h3></summary>
 
-- **Custom TelemetryClient**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#adding-metrics-support)
+- **Custom Implementation**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#adding-metrics-support)
 - **Backend Switching**: [ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md#switching-between-backends)
 - **Performance Tuning**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#performance-considerations)
 - **Sampling**: [Telemetry Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md#sampling-future-enhancement)

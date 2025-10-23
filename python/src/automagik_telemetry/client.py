@@ -1178,9 +1178,3 @@ class AutomagikTelemetry:
         except Exception:
             # Silent failure during cleanup
             pass
-
-
-# Backwards compatibility alias
-# Note: TelemetryClient is deprecated and will be removed in a future version.
-# Please use AutomagikTelemetry instead.
-TelemetryClient = AutomagikTelemetry

@@ -2,16 +2,12 @@
 Automagik Telemetry SDK
 
 Privacy-first, opt-in telemetry for the Automagik ecosystem.
-
-Note: TelemetryClient is deprecated. Use AutomagikTelemetry instead.
-TelemetryClient is maintained as an alias for backwards compatibility.
 """
 
 from automagik_telemetry.client import (
     AutomagikTelemetry,
     LogSeverity,
     MetricType,
-    TelemetryClient,  # Backwards compatibility alias
 )
 from automagik_telemetry.client import (
     TelemetryConfig as ClientTelemetryConfig,
@@ -54,10 +50,8 @@ except Exception:
     # Fallback for development/editable installs
     __version__ = "0.0.0-dev"
 __all__ = [
-    # Core client (primary name)
+    # Core client
     "AutomagikTelemetry",
-    # Backwards compatibility alias (deprecated)
-    "TelemetryClient",
     "ClientTelemetryConfig",
     "MetricType",
     "LogSeverity",

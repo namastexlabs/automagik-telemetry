@@ -263,24 +263,24 @@ export AUTOMAGIK_TELEMETRY_VERBOSE=true
 <summary><strong>🐍 Python Configuration</strong></summary>
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
+# Option 1: Simple initialization (uses defaults)
 client = AutomagikTelemetry(
     project_name="my-app",
     version="1.0.0",
-
-    # Custom endpoint (optional)
-    endpoint="https://custom-collector.com",
-
-    # Batch size (default: 1 = immediate send)
-    batch_size=100,  # Send in batches for better performance
-
-    # Explicit enable/disable (optional)
-    disabled=False,
-
-    # Flush interval in seconds (optional)
-    flush_interval=5.0
+    endpoint="https://custom-collector.com"  # Optional
 )
+
+# Option 2: Advanced configuration
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://custom-collector.com",  # Optional
+    batch_size=100,  # Send in batches (default: 1 = immediate send)
+    flush_interval=5.0  # Auto-flush every 5 seconds (default: 5.0)
+)
+client = AutomagikTelemetry(config=config)
 ```
 
 </details>
@@ -291,21 +291,20 @@ client = AutomagikTelemetry(
 ```typescript
 import { AutomagikTelemetry } from '@automagik/telemetry';
 
+// Simple initialization (uses defaults)
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
     version: '1.0.0',
+    endpoint: 'https://custom-collector.com'  // Optional
+});
 
-    // Custom endpoint (optional)
-    endpoint: 'https://custom-collector.com',
-
-    // Batch size (default: 100 = batched send)
-    batchSize: 1,  // Send immediately for debugging
-
-    // Explicit enable/disable (optional)
-    disabled: false,
-
-    // Flush interval in milliseconds (optional)
-    flushInterval: 5000
+// Advanced configuration
+const advancedClient = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://custom-collector.com',  // Optional
+    batchSize: 1,  // Send immediately (default: 100 = batched send)
+    flushInterval: 5000  // Auto-flush every 5 seconds in ms (default: 5000)
 });
 ```
 
@@ -612,7 +611,7 @@ Now that you're up and running, explore these advanced topics:
 - **[Architecture Overview](../README.md#-architecture)** - Learn how the system works
 - **[Self-Hosting Guide](../infra/README.md)** - Run your own telemetry infrastructure
 - **[ClickHouse Backend](../infra/CLICKHOUSE_BACKEND_DESIGN.md)** - Direct database insertion
-- **[Integration Tests](INTEGRATION_TESTS.md)** - Testing your telemetry
+- **[Integration Tests](DEVELOPER_GUIDES/TESTING.md)** - Testing your telemetry
 
 ### 🔧 Advanced Features
 
@@ -768,7 +767,7 @@ We're here to help you succeed!
 
 - **[Main README](../README.md)** - Complete feature overview
 - **[Quick Reference](QUICK_REFERENCE.md)** - Command cheat sheet
-- **[Development Guide](TELEMETRY_DEVELOPMENT_GUIDE.md)** - Architecture deep dive
+- **[Development Guide](DEVELOPER_GUIDES/ARCHITECTURE.md)** - Architecture deep dive
 - **[DeepWiki Docs](https://deepwiki.com/namastexlabs/automagik-telemetry)** - AI-powered documentation
 
 ### 🤝 Community

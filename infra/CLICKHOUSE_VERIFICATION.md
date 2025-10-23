@@ -592,38 +592,35 @@ make backup             # Backup data to CSV
 
 **Python:**
 ```python
-from automagik_telemetry import TelemetryClient
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-config = {
-    "project_name": "my-project",
-    "version": "1.0.0",
-    "backend": "clickhouse",
-    "clickhouse_endpoint": "http://localhost:8123",
-    "clickhouse_database": "telemetry",
-    "clickhouse_username": "telemetry",
-    "clickhouse_password": "telemetry_password",
-}
+config = TelemetryConfig(
+    project_name="my-project",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_endpoint="http://localhost:8123",
+    clickhouse_database="telemetry",
+    clickhouse_username="telemetry",
+    clickhouse_password="telemetry_password",
+)
 
-client = TelemetryClient(config)
+client = AutomagikTelemetry(config=config)
 client.track_event("user.action", {"key": "value"})
 client.flush()
 ```
 
 **TypeScript:**
 ```typescript
-import { TelemetryClient } from '@automagik/telemetry';
-import { ClickHouseBackend } from '@automagik/telemetry/backends/clickhouse';
+import { AutomagikTelemetry } from '@automagik/telemetry';
 
-const backend = new ClickHouseBackend({
-  endpoint: 'http://localhost:8123',
-  database: 'telemetry',
-  username: 'telemetry',
-  password: 'telemetry_password',
-});
-
-const client = new TelemetryClient({
+const client = new AutomagikTelemetry({
   projectName: 'my-project',
   version: '1.0.0',
+  backend: 'clickhouse',
+  clickhouseEndpoint: 'http://localhost:8123',
+  clickhouseDatabase: 'telemetry',
+  clickhouseUsername: 'telemetry',
+  clickhousePassword: 'telemetry_password',
 });
 
 client.trackEvent('user.action', { key: 'value' });
