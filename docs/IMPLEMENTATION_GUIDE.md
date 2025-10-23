@@ -20,10 +20,10 @@ pnpm add @automagik/telemetry
 
 **Python:**
 ```python
-from automagik_telemetry import TelemetryClient, StandardEvents
+from automagik_telemetry import AutomagikTelemetry
 
 # Initialize once at application startup
-telemetry = TelemetryClient(
+telemetry = AutomagikTelemetry(
     project_name="omni",  # or "hive", "forge", etc.
     version="1.0.0"
 )
@@ -31,9 +31,9 @@ telemetry = TelemetryClient(
 
 **TypeScript:**
 ```typescript
-import { TelemetryClient, StandardEvents } from '@automagik/telemetry';
+import { AutomagikTelemetry } from '@automagik/telemetry';
 
-const telemetry = new TelemetryClient({
+const telemetry = new AutomagikTelemetry({
   projectName: 'forge',
   version: '1.0.0'
 });
