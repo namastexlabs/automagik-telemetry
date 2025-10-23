@@ -554,7 +554,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  severity_text,\n  count() as count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 12 HOUR\nGROUP BY severity_text",
+          "rawSql": "SELECT \n  severity_text as Severity,\n  count() as Count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 12 HOUR\nGROUP BY Severity\nORDER BY Count DESC",
           "refId": "A"
         }
       ],
