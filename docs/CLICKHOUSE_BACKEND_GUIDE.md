@@ -545,9 +545,11 @@ client = AutomagikTelemetry(config=config)
 
 **All your existing code remains the same:**
 ```python
+from automagik_telemetry import MetricType
+
 # These work identically with both backends
 client.track_event("user.login", {"user_id": "123"})
-client.track_counter("api.requests", value=1)
+client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER)
 client.track_error(exception)
 client.flush()
 ```
@@ -583,9 +585,11 @@ const client = new AutomagikTelemetry(config);
 
 **All your existing code remains the same:**
 ```typescript
+import { MetricType } from '@automagik/telemetry';
+
 // These work identically with both backends
 client.trackEvent('user.login', { userId: '123' });
-client.trackCounter('api.requests', 1);
+client.trackMetric('api.requests', 1, MetricType.COUNTER);
 client.trackError(error);
 await client.flush();
 ```
