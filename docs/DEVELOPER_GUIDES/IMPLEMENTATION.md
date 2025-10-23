@@ -681,6 +681,240 @@ async function processRequest(event: APIGatewayProxyEvent): Promise<any> {
 
 </details>
 
+### Pattern 6: Structured Logging (Python & TypeScript)
+
+<details>
+<summary><strong>📝 Click to expand: Application logging with severity levels</strong></summary>
+
+Structured logging provides diagnostic context throughout your application lifecycle.
+
+**Python Implementation:**
+
+```python
+"""
+Application logging with structured context.
+"""
+from automagik_telemetry import AutomagikTelemetry, LogSeverity
+import logging
+
+class ApplicationLogger:
+    """Centralized logging with telemetry integration."""
+
+    def __init__(self):
+        self.telemetry = AutomagikTelemetry(
+            project_name="my-app",
+            version="1.0.0"
+        )
+        self.logger = logging.getLogger(__name__)
+
+    def log_application_event(self, message: str, severity: LogSeverity, context: dict = None):
+        """Log with both local logger and telemetry."""
+        # Local logging
+        log_level = self._severity_to_log_level(severity)
+        self.logger.log(log_level, message, extra=context or {})
+
+        # Telemetry logging
+        self.telemetry.track_log(message, severity, context or {})
+
+    def _severity_to_log_level(self, severity: LogSeverity) -> int:
+        """Map LogSeverity to Python logging level."""
+        mapping = {
+            LogSeverity.TRACE: logging.DEBUG,
+            LogSeverity.DEBUG: logging.DEBUG,
+            LogSeverity.INFO: logging.INFO,
+            LogSeverity.WARN: logging.WARNING,
+            LogSeverity.ERROR: logging.ERROR,
+            LogSeverity.FATAL: logging.CRITICAL
+        }
+        return mapping.get(severity, logging.INFO)
+
+# Usage example
+app_logger = ApplicationLogger()
+
+# Application lifecycle logging
+app_logger.log_application_event(
+    "Application started successfully",
+    LogSeverity.INFO,
+    {
+        "environment": "production",
+        "version": "1.0.0",
+        "startup_time_ms": 245
+    }
+)
+
+# Performance warnings
+app_logger.log_application_event(
+    "Database query exceeded threshold",
+    LogSeverity.WARN,
+    {
+        "query_time_ms": 1500,
+        "threshold_ms": 1000,
+        "query_type": "SELECT",
+        "table": "users"
+    }
+)
+
+# Error tracking
+try:
+    process_payment()
+except PaymentError as e:
+    app_logger.log_application_event(
+        "Payment processing failed",
+        LogSeverity.ERROR,
+        {
+            "error_code": "PAY-1001",
+            "transaction_id": "tx_abc123",
+            "error_message": str(e),
+            "retry_count": 3
+        }
+    )
+
+# Critical errors
+app_logger.log_application_event(
+    "Database connection pool exhausted",
+    LogSeverity.FATAL,
+    {
+        "pool_size": 10,
+        "active_connections": 10,
+        "waiting_requests": 50
+    }
+)
+```
+
+**TypeScript Implementation:**
+
+```typescript
+/**
+ * Application logging with structured context.
+ */
+import { AutomagikTelemetry, LogSeverity } from '@automagik/telemetry';
+import winston from 'winston';
+
+class ApplicationLogger {
+    private telemetry: AutomagikTelemetry;
+    private logger: winston.Logger;
+
+    constructor() {
+        this.telemetry = new AutomagikTelemetry({
+            projectName: 'my-app',
+            version: '1.0.0'
+        });
+
+        this.logger = winston.createLogger({
+            level: 'info',
+            format: winston.format.json(),
+            transports: [
+                new winston.transports.Console(),
+                new winston.transports.File({ filename: 'app.log' })
+            ]
+        });
+    }
+
+    logApplicationEvent(
+        message: string,
+        severity: LogSeverity,
+        context?: Record<string, any>
+    ): void {
+        // Local logging
+        const logLevel = this.severityToLogLevel(severity);
+        this.logger.log(logLevel, message, context);
+
+        // Telemetry logging
+        this.telemetry.trackLog(message, severity, context);
+    }
+
+    private severityToLogLevel(severity: LogSeverity): string {
+        const mapping: Record<LogSeverity, string> = {
+            [LogSeverity.TRACE]: 'debug',
+            [LogSeverity.DEBUG]: 'debug',
+            [LogSeverity.INFO]: 'info',
+            [LogSeverity.WARN]: 'warn',
+            [LogSeverity.ERROR]: 'error',
+            [LogSeverity.FATAL]: 'error'
+        };
+        return mapping[severity] || 'info';
+    }
+}
+
+// Usage example
+const appLogger = new ApplicationLogger();
+
+// Application lifecycle logging
+appLogger.logApplicationEvent(
+    'Application started successfully',
+    LogSeverity.INFO,
+    {
+        environment: 'production',
+        version: '1.0.0',
+        startup_time_ms: 245
+    }
+);
+
+// Performance warnings
+appLogger.logApplicationEvent(
+    'Database query exceeded threshold',
+    LogSeverity.WARN,
+    {
+        query_time_ms: 1500,
+        threshold_ms: 1000,
+        query_type: 'SELECT',
+        table: 'users'
+    }
+);
+
+// Error tracking
+try {
+    await processPayment();
+} catch (error) {
+    appLogger.logApplicationEvent(
+        'Payment processing failed',
+        LogSeverity.ERROR,
+        {
+            error_code: 'PAY-1001',
+            transaction_id: 'tx_abc123',
+            error_message: (error as Error).message,
+            retry_count: 3
+        }
+    );
+}
+
+// Critical errors
+appLogger.logApplicationEvent(
+    'Database connection pool exhausted',
+    LogSeverity.FATAL,
+    {
+        pool_size: 10,
+        active_connections: 10,
+        waiting_requests: 50
+    }
+);
+```
+
+**Logging Best Practices:**
+
+1. **Use appropriate severity levels**
+   - `INFO`: Normal operations, user actions
+   - `WARN`: Potential issues that don't break functionality
+   - `ERROR`: Failures that need attention
+   - `FATAL`: Critical failures requiring immediate action
+
+2. **Include structured context**
+   - Add relevant metadata to understand the situation
+   - Use consistent key names across logs
+   - Sanitize sensitive data before logging
+
+3. **Avoid logging sensitive information**
+   - Never log passwords, API keys, or tokens
+   - Hash or mask PII (emails, phone numbers)
+   - Remove message content, only track metadata
+
+4. **Combine with metrics and events**
+   - Log: Why did it happen? (diagnostic context)
+   - Event: What happened? (discrete occurrence)
+   - Metric: How much/many? (quantitative data)
+
+</details>
+
 ---
 
 ## Project-Specific Integration

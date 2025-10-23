@@ -187,6 +187,62 @@ client.track_metric(
 </details>
 
 <details>
+<summary><strong>📝 Logs (Structured Logging)</strong></summary>
+
+```python
+from automagik_telemetry import AutomagikTelemetry, LogSeverity
+
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+
+# 📘 INFO - Informational messages (default)
+client.track_log("Application started successfully", LogSeverity.INFO)
+
+# ⚠️ WARN - Warning conditions
+client.track_log("Cache miss rate high", LogSeverity.WARN, {
+    "cache_hit_rate": 0.45,
+    "threshold": 0.80
+})
+
+# ❌ ERROR - Error events
+client.track_log("Database connection failed", LogSeverity.ERROR, {
+    "error": "connection_timeout",
+    "retry_count": 3
+})
+
+# 🔥 FATAL - Critical errors
+client.track_log("System memory exhausted", LogSeverity.FATAL, {
+    "available_mb": 50,
+    "required_mb": 512
+})
+
+# 🔍 DEBUG - Debugging information
+client.track_log("Cache operation details", LogSeverity.DEBUG, {
+    "operation": "get",
+    "key": "user_session_123",
+    "hit": True
+})
+
+# 🔬 TRACE - Finest detail
+client.track_log("Method entry", LogSeverity.TRACE, {
+    "method": "processPayment",
+    "args": {"amount": 99.99}
+})
+```
+
+**Log Severity Levels:**
+- `TRACE` (1) - Finest granularity, debugging
+- `DEBUG` (5) - Detailed debugging information
+- `INFO` (9) - Informational messages (default)
+- `WARN` (13) - Warning conditions
+- `ERROR` (17) - Error events
+- `FATAL` (21) - Critical errors
+
+</details>
+
+<details>
 <summary><strong>⚙️ Configuration</strong></summary>
 
 ```python
@@ -253,6 +309,62 @@ try {
     });
 }
 ```
+
+</details>
+
+<details>
+<summary><strong>📝 Logs (Structured Logging)</strong></summary>
+
+```typescript
+import { AutomagikTelemetry, LogSeverity } from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0'
+});
+
+// 📘 INFO - Informational messages (default)
+client.trackLog('Application started successfully', LogSeverity.INFO);
+
+// ⚠️ WARN - Warning conditions
+client.trackLog('Cache miss rate high', LogSeverity.WARN, {
+    cache_hit_rate: 0.45,
+    threshold: 0.80
+});
+
+// ❌ ERROR - Error events
+client.trackLog('Database connection failed', LogSeverity.ERROR, {
+    error: 'connection_timeout',
+    retry_count: 3
+});
+
+// 🔥 FATAL - Critical errors
+client.trackLog('System memory exhausted', LogSeverity.FATAL, {
+    available_mb: 50,
+    required_mb: 512
+});
+
+// 🔍 DEBUG - Debugging information
+client.trackLog('Cache operation details', LogSeverity.DEBUG, {
+    operation: 'get',
+    key: 'user_session_123',
+    hit: true
+});
+
+// 🔬 TRACE - Finest detail
+client.trackLog('Method entry', LogSeverity.TRACE, {
+    method: 'processPayment',
+    args: { amount: 99.99 }
+});
+```
+
+**Log Severity Levels:**
+- `TRACE` (1) - Finest granularity, debugging
+- `DEBUG` (5) - Detailed debugging information
+- `INFO` (9) - Informational messages (default)
+- `WARN` (13) - Warning conditions
+- `ERROR` (17) - Error events
+- `FATAL` (21) - Critical errors
 
 </details>
 

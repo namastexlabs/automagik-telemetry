@@ -1,5 +1,8 @@
 # Integration Tests
 
+> **Note:** This documentation has been consolidated into the main testing guide.
+> **See:** [Complete Testing Guide](/docs/DEVELOPER_GUIDES/TESTING.md#integration-testing---clickhouse-backend)
+
 This directory contains integration tests for the Automagik Telemetry SDK that require external services.
 
 ## Prerequisites

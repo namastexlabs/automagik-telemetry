@@ -954,6 +954,437 @@ describe('Express Integration', () => {
 
 ---
 
+## Integration Testing - ClickHouse Backend
+
+### Overview
+
+The ClickHouse backend integration tests verify that both SDKs can successfully:
+- Send telemetry data directly to ClickHouse
+- Use both environment variable and config object configuration
+- Handle batch processing and high throughput
+- Switch between OTLP and ClickHouse backends
+- Store and retrieve data correctly from ClickHouse
+
+### Prerequisites
+
+#### 1. ClickHouse Running
+
+The tests require a running ClickHouse instance with the telemetry database and schema initialized.
+
+**Start ClickHouse using Docker Compose:**
+
+```bash
+cd infra
+docker compose up -d clickhouse
+```
+
+**Verify ClickHouse is running:**
+
+```bash
+curl http://localhost:8123
+# Expected output: Ok.
+
+# Check the database is initialized
+curl "http://localhost:8123/?query=SHOW%20DATABASES" | grep telemetry
+
+# Check schema
+curl "http://localhost:8123/?query=SHOW%20TABLES%20FROM%20telemetry"
+# Expected output should include: traces
+```
+
+#### 2. Install Dependencies
+
+**Python:**
+```bash
+cd python
+pip install -e ".[dev,integration]"
+```
+
+**TypeScript:**
+```bash
+cd typescript
+pnpm install
+```
+
+### Python ClickHouse Integration Tests
+
+#### Running Tests
+
+```bash
+# From repository root
+pytest -v python/tests/integration/
+
+# Or from python directory
+cd python
+pytest -v tests/integration/
+
+# Run only ClickHouse integration tests
+pytest -v python/tests/integration/test_clickhouse_integration.py
+
+# Run with verbose output (see print statements)
+pytest -v -s python/tests/integration/test_clickhouse_integration.py
+
+# Run specific test
+pytest -v python/tests/integration/test_clickhouse_integration.py::test_track_single_event_to_clickhouse
+
+# Skip integration tests (when running all tests)
+pytest -v python/tests/ -m "not integration"
+
+# Run only integration tests
+pytest -v python/tests/ -m integration
+```
+
+#### Test Coverage
+
+The Python ClickHouse test suite (`test_clickhouse_integration.py`) covers:
+
+1. **Backend Initialization**
+   - `test_clickhouse_backend_initialization` - Verify ClickHouse backend is properly set up
+
+2. **End-to-End Flow**
+   - `test_track_single_event_to_clickhouse` - Track one event and verify in database
+   - `test_track_multiple_events_to_clickhouse` - Track batch of 10 events
+   - `test_track_event_with_error_status` - Track error and verify error status
+
+3. **Data Structure**
+   - `test_verify_data_structure_in_clickhouse` - Verify schema matches ClickHouse table
+   - `test_query_count_by_project` - Query event counts by project
+   - `test_query_events_by_timerange` - Query events by time range
+
+4. **Configuration**
+   - `test_backend_configuration_from_env` - Configure via environment variables
+   - `test_backend_configuration_from_config` - Configure via TelemetryConfig object
+   - `test_backend_default_to_otlp` - Verify default backend is OTLP
+   - `test_backend_switching` - Switch between OTLP and ClickHouse backends
+
+5. **Data Verification**
+   - `test_user_and_session_tracking` - Verify user_id and session_id are tracked
+   - `test_system_information_tracking` - Verify OS and runtime info is tracked
+
+#### Test Fixtures
+
+Key fixtures in Python tests:
+- `clickhouse_endpoint` - ClickHouse HTTP endpoint URL
+- `clickhouse_available` - Checks ClickHouse availability, skips tests if not available
+- `test_project_name` - Generates unique project name for test isolation
+- `clickhouse_client` - Pre-configured AutomagikTelemetry client with ClickHouse backend
+
+#### Cleanup
+
+Tests automatically clean up test data after each test run using the `cleanup_test_data()` function. Test data is isolated by using unique project names for each test run.
+
+### TypeScript ClickHouse Integration Tests
+
+#### Running Tests
+
+```bash
+# Run all ClickHouse integration tests
+RUN_INTEGRATION_TESTS=true npm test -- clickhouse.integration.test.ts
+
+# Using npm script (recommended)
+npm run test:integration:clickhouse
+
+# Run specific test suite
+RUN_INTEGRATION_TESTS=true npm test -- -t "End-to-End Flow"
+
+# Run specific test
+RUN_INTEGRATION_TESTS=true npm test -- -t "should send traces to ClickHouse"
+
+# Run with verbose output
+RUN_INTEGRATION_TESTS=true npm test -- clickhouse.integration.test.ts --verbose
+
+# Using helper script
+./tests/run-clickhouse-tests.sh
+
+# Run specific test with helper script
+./tests/run-clickhouse-tests.sh -t "Performance"
+```
+
+#### Test Coverage
+
+The TypeScript integration test suite includes **18 comprehensive tests**:
+
+##### 1. End-to-End Flow Tests (3 tests)
+- ✅ **Send traces to ClickHouse and verify data**
+  - Tracks multiple events with custom attributes
+  - Verifies data appears in ClickHouse
+  - Validates trace metadata (trace_id, span_id, service_name)
+
+- ✅ **Batch processing**
+  - Tests auto-flush after batch size reached
+  - Sends 25 events with batch size of 10
+  - Verifies all events are stored correctly
+
+- ✅ **High-throughput bursts**
+  - Sends 500 events rapidly
+  - Measures generation and flush performance
+  - Validates all events reach ClickHouse
+
+##### 2. Configuration Tests (3 tests)
+- ✅ **Environment variable configuration**
+  - Tests AUTOMAGIK_TELEMETRY_BACKEND
+  - Tests AUTOMAGIK_TELEMETRY_CLICKHOUSE_* variables
+  - Verifies environment-based setup
+
+- ✅ **Config object configuration**
+  - Tests explicit backend: "clickhouse"
+  - Tests clickhouseEndpoint, clickhouseDatabase, etc.
+  - Validates programmatic configuration
+
+- ✅ **Default values**
+  - Tests minimal config (only projectName + version + backend)
+  - Verifies defaults: localhost:8123, database: telemetry, table: traces
+  - Ensures sensible fallbacks work
+
+##### 3. Backend Selection Tests (3 tests)
+- ✅ **Switch between OTLP and ClickHouse**
+  - Creates client with OTLP backend
+  - Creates client with ClickHouse backend
+  - Verifies backend-specific behavior
+
+- ✅ **Backward compatibility**
+  - Tests default OTLP behavior (no backend specified)
+  - Ensures existing code continues working
+  - Silent no-op when disabled
+
+- ✅ **Invalid backend handling**
+  - Tests with invalid backend name
+  - Verifies graceful degradation
+  - No exceptions thrown
+
+##### 4. Data Verification Tests (3 tests)
+- ✅ **Trace metadata storage**
+  - Validates trace_id, span_id format
+  - Checks timestamp accuracy
+  - Verifies service_name, span_name, status_code
+
+- ✅ **System information capture**
+  - Verifies OS, architecture, Node version
+  - Checks user_id, session_id presence
+  - Validates attribute structure
+
+- ✅ **Special characters in attributes**
+  - Tests emoji (🚀🎉)
+  - Tests unicode (世界)
+  - Tests quotes and newlines
+  - Ensures proper escaping/encoding
+
+##### 5. Error Handling Tests (2 tests)
+- ✅ **Connection failures**
+  - Tests with wrong endpoint (port 9999)
+  - Verifies no exceptions thrown
+  - Validates silent failure behavior
+
+- ✅ **Invalid credentials**
+  - Tests with wrong username/password
+  - Ensures graceful degradation
+  - No application crashes
+
+##### 6. Performance Tests (1 test)
+- ✅ **1000 events with compression**
+  - Sends 1000 events in batches of 100
+  - Measures generation time (< 2s)
+  - Measures total time with flush (< 15s)
+  - Verifies all data reaches ClickHouse
+  - Reports events/sec rate
+
+#### Test Features
+
+**Automatic Test Data Cleanup:**
+- Each test uses unique project name: `test-{suite}-{timestamp}`
+- Cleanup runs automatically after each test
+- Uses ClickHouse DELETE mutations
+- Waits for mutations to complete (2s delay)
+
+**Smart Prerequisites Detection:**
+- Tests automatically skip if ClickHouse unavailable
+- Helpful error messages with setup instructions
+- No false failures in CI without infrastructure
+
+**Wait-for-Data Helper:**
+- Polls ClickHouse for data availability
+- Maximum 30 attempts with 500ms delay (15s timeout)
+- Accounts for ClickHouse's eventual consistency
+- Clear timeout error messages
+
+**Performance Measurement:**
+- Generation time (event creation)
+- Flush time (network + ClickHouse insert)
+- Total time (end-to-end)
+- Events/sec rate calculation
+- Console output with metrics
+
+### Performance Expectations
+
+Based on local testing with Docker ClickHouse:
+
+| Metric | Expected Value |
+|--------|----------------|
+| **Generation Rate** | > 500 events/sec |
+| **Total Throughput** | > 100 events/sec |
+| **1000 Events Total Time** | < 15 seconds |
+| **Batch of 25** | < 5 seconds |
+| **Single Event** | < 2 seconds |
+
+Your results may vary based on:
+- Docker resource allocation
+- Network latency
+- Disk I/O performance
+- ClickHouse configuration
+
+### Troubleshooting
+
+#### Tests are Skipped
+
+**Python:**
+```
+SKIPPED [1] test_clickhouse_integration.py:XX: ClickHouse not available at http://localhost:8123
+```
+
+**TypeScript:**
+```
+⏭️  Skipping ClickHouse integration tests (ClickHouse not available)
+```
+
+**Solution:** Start ClickHouse:
+```bash
+cd infra && docker compose up -d clickhouse
+```
+
+#### Connection Timeout
+
+If tests fail with timeout errors:
+
+1. **Check ClickHouse is running:**
+   ```bash
+   docker ps | grep clickhouse
+   ```
+
+2. **Check ClickHouse logs:**
+   ```bash
+   docker logs automagik-clickhouse
+   ```
+
+3. **Verify connectivity:**
+   ```bash
+   curl http://localhost:8123
+   ```
+
+4. **Restart ClickHouse:**
+   ```bash
+   cd infra
+   docker compose restart clickhouse
+   ```
+
+#### Data Not Appearing
+
+If tests fail waiting for data:
+
+1. **Check table exists:**
+   ```bash
+   curl "http://localhost:8123/?query=SHOW%20TABLES%20FROM%20telemetry"
+   ```
+
+2. **Manually query the table:**
+   ```bash
+   curl "http://localhost:8123/?query=SELECT%20count()%20FROM%20telemetry.traces%20FORMAT%20JSON"
+   ```
+
+3. **Check for recent data:**
+   ```bash
+   curl "http://localhost:8123/?query=SELECT%20*%20FROM%20telemetry.traces%20ORDER%20BY%20timestamp%20DESC%20LIMIT%2010%20FORMAT%20JSON"
+   ```
+
+4. **View sample data (pretty format):**
+   ```bash
+   curl "http://localhost:8123/?query=SELECT%20*%20FROM%20telemetry.traces%20ORDER%20BY%20timestamp%20DESC%20LIMIT%205%20FORMAT%20Vertical"
+   ```
+
+#### Authentication Errors
+
+If you see authentication errors, check the credentials:
+
+```bash
+# Check default user works
+curl -u default: http://localhost:8123
+
+# Or with custom credentials
+curl -u myuser:mypassword http://localhost:8123
+```
+
+#### Schema Errors
+
+If tests fail with schema-related errors (missing table, columns, etc.):
+
+**Re-initialize database:**
+```bash
+cd infra
+docker compose down -v
+docker compose up -d clickhouse
+```
+
+This will recreate the database with the correct schema from `infra/clickhouse/init-db.sql`.
+
+#### Test Data Pollution
+
+Clean all test data manually:
+```bash
+curl "http://localhost:8123/?query=ALTER%20TABLE%20telemetry.traces%20DELETE%20WHERE%20project_name%20LIKE%20'test-%25'"
+```
+
+### Development Workflow
+
+When developing ClickHouse backend features:
+
+1. **Start infrastructure:**
+   ```bash
+   cd infra && docker compose up -d clickhouse
+   ```
+
+2. **Run tests in watch mode:**
+   ```bash
+   cd typescript
+   RUN_INTEGRATION_TESTS=true npm test -- --watch clickhouse.integration.test.ts
+   ```
+
+3. **View ClickHouse data:**
+   ```bash
+   # Open ClickHouse client
+   docker exec -it automagik-clickhouse clickhouse-client
+
+   # Query recent traces
+   SELECT * FROM telemetry.traces ORDER BY timestamp DESC LIMIT 10 FORMAT Vertical
+   ```
+
+4. **Stop infrastructure:**
+   ```bash
+   cd infra && docker compose down
+   ```
+
+### Custom ClickHouse Instance
+
+If you're using a custom ClickHouse instance:
+
+**Python:**
+```bash
+AUTOMAGIK_TELEMETRY_BACKEND=clickhouse \
+AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://my-clickhouse:8123 \
+AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=myuser \
+AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=mypassword \
+pytest -v python/tests/integration/test_clickhouse_integration.py
+```
+
+**TypeScript:**
+```bash
+CLICKHOUSE_ENDPOINT=http://my-clickhouse:8123 \
+CLICKHOUSE_USERNAME=myuser \
+CLICKHOUSE_PASSWORD=mypassword \
+RUN_INTEGRATION_TESTS=true \
+npm test -- clickhouse.integration.test.ts
+```
+
+---
+
 ## Performance Testing
 
 ### Benchmark Suite
@@ -1147,6 +1578,51 @@ jobs:
           file: ./typescript/coverage/lcov.info
           flags: typescript
           fail_ci_if_error: true
+
+  clickhouse-integration-tests:
+    name: ClickHouse Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Start ClickHouse
+        run: |
+          cd infra
+          docker compose up -d clickhouse
+          sleep 10  # Wait for initialization
+
+      - name: Verify ClickHouse is running
+        run: |
+          timeout 30 bash -c 'until curl -s http://localhost:8123/?query=SELECT%201 > /dev/null; do sleep 1; done'
+
+      - name: Python ClickHouse Tests
+        run: |
+          cd python
+          pip install -e ".[dev,integration]"
+          pytest -v tests/integration/test_clickhouse_integration.py
+        env:
+          AUTOMAGIK_TELEMETRY_ENABLED: true
+          AUTOMAGIK_TELEMETRY_BACKEND: clickhouse
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: TypeScript ClickHouse Tests
+        run: |
+          cd typescript
+          pnpm install
+          npm run test:integration:clickhouse
+        env:
+          CLICKHOUSE_ENDPOINT: http://localhost:8123
 
   performance-tests:
     name: Performance Tests

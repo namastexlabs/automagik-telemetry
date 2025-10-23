@@ -1,5 +1,8 @@
 # ClickHouse Backend Integration Tests
 
+> **Note:** This documentation has been consolidated into the main testing guide.
+> **See:** [Complete Testing Guide](/docs/DEVELOPER_GUIDES/TESTING.md#integration-testing---clickhouse-backend)
+
 This document explains how to run the ClickHouse backend integration tests for the TypeScript SDK.
 
 ## Overview

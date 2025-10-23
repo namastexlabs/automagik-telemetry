@@ -1,5 +1,8 @@
 # Python Integration Tests
 
+> **Note:** This documentation has been consolidated into the main testing guide.
+> **See:** [Complete Testing Guide](/docs/DEVELOPER_GUIDES/TESTING.md#integration-testing)
+
 ## Quick Start
 
 ```bash
