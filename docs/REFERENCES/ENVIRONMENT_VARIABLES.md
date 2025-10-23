@@ -29,6 +29,8 @@
 | `AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT` | string | Auto-derived from base endpoint | Override logs endpoint separately | `export AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT=https://custom.example.com/v1/logs` |
 | `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | Python: `5` (sec)<br>TypeScript: `5000` (ms) | HTTP request timeout | Python: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10`<br>TypeScript: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10000` |
 
+**Note:** These environment variables are currently read for `ENDPOINT` and `TIMEOUT`, but other OTLP configuration options (`METRICS_ENDPOINT`, `LOGS_ENDPOINT`) are available as code-level configuration only in the current implementation.
+
 **🔍 Endpoint Format:**
 - Must include protocol: `http://` or `https://`
 - Can include path: `/v1/traces`, `/v1/metrics`, `/v1/logs`

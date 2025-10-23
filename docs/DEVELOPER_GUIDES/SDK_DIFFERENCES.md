@@ -535,54 +535,195 @@ client.trackLog(
 
 ### Time Units
 
-> **⚠️ Important:** Time units differ between SDKs
+> **⚠️ Critical:** Time units differ between SDKs - Pay careful attention to avoid configuration errors!
 
-```mermaid
-graph LR
-    subgraph "Python"
-        PY_FLUSH[flush_interval<br/>5.0 seconds]
-        PY_TIMEOUT[timeout<br/>5 seconds]
-    end
+#### Complete Time Units Comparison
 
-    subgraph "TypeScript"
-        TS_FLUSH[flushInterval<br/>5000 milliseconds]
-        TS_TIMEOUT[timeout<br/>5 seconds]
-    end
+| Parameter | Python Unit | Python Type | TypeScript Unit | TypeScript Type | Notes |
+|-----------|------------|-------------|-----------------|-----------------|-------|
+| **`timeout`** | **seconds** | `int` | **seconds** | `number` | ✅ Same unit - HTTP request timeout |
+| **`flush_interval`** | **seconds** | `float` | **milliseconds** | `number` | ⚠️ Different units! |
+| **`retry_backoff_base`** | **seconds** | `float` | **milliseconds** | `number` | ⚠️ Different units! |
 
-    PY_FLUSH -.->|"Same duration"| TS_FLUSH
-    PY_TIMEOUT -.->|"Same duration"| TS_TIMEOUT
+#### Detailed Explanation
 
-    style PY_FLUSH fill:#FFB84D
-    style TS_FLUSH fill:#51CF66
-```
-
-**Python:**
-- `flush_interval`: **float (seconds)**
-- `timeout`: **int (seconds)**
-
-**TypeScript:**
-- `flushInterval`: **number (milliseconds)**
-- `timeout`: **number (seconds)**
-
-**Examples:**
-
+**Timeout (Consistent Across SDKs):**
 ```python
-# Python - 5 seconds
-client = AutomagikTelemetry(
-    project_name="my-app",
-    version="1.0.0",
-    flush_interval=5.0  # seconds
-)
+# Python - timeout in SECONDS
+timeout=5  # 5 seconds (int)
 ```
 
 ```typescript
-// TypeScript - 5 seconds
-const client = new AutomagikTelemetry({
-    projectName: 'my-app',
-    version: '1.0.0',
-    flushInterval: 5000  // milliseconds
-});
+// TypeScript - timeout in SECONDS (converted to ms internally)
+timeout: 5  // 5 seconds (number) - internally converted to 5000ms
 ```
+
+**Flush Interval (Different Units!):**
+```python
+# Python - flush_interval in SECONDS
+flush_interval=5.0  # 5 seconds (float)
+```
+
+```typescript
+// TypeScript - flushInterval in MILLISECONDS
+flushInterval: 5000  // 5000 milliseconds = 5 seconds
+```
+
+**Retry Backoff Base (Different Units!):**
+```python
+# Python - retry_backoff_base in SECONDS
+retry_backoff_base=1.0  # 1 second (float)
+```
+
+```typescript
+// TypeScript - retryBackoffBase in MILLISECONDS
+retryBackoffBase: 1000  // 1000 milliseconds = 1 second
+```
+
+#### Visual Comparison
+
+```mermaid
+graph LR
+    subgraph "Python Time Units"
+        PY_TIMEOUT[timeout<br/>5 seconds<br/>int]
+        PY_FLUSH[flush_interval<br/>5.0 seconds<br/>float]
+        PY_RETRY[retry_backoff_base<br/>1.0 seconds<br/>float]
+    end
+
+    subgraph "TypeScript Time Units"
+        TS_TIMEOUT[timeout<br/>5 seconds<br/>number]
+        TS_FLUSH[flushInterval<br/>5000 milliseconds<br/>number]
+        TS_RETRY[retryBackoffBase<br/>1000 milliseconds<br/>number]
+    end
+
+    PY_TIMEOUT -.->|"✅ Same unit"| TS_TIMEOUT
+    PY_FLUSH -.->|"⚠️ Convert x1000"| TS_FLUSH
+    PY_RETRY -.->|"⚠️ Convert x1000"| TS_RETRY
+
+    style PY_TIMEOUT fill:#51CF66
+    style TS_TIMEOUT fill:#51CF66
+    style PY_FLUSH fill:#FFB84D
+    style TS_FLUSH fill:#FFB84D
+    style PY_RETRY fill:#FFB84D
+    style TS_RETRY fill:#FFB84D
+```
+
+#### Conversion Guide
+
+**From Python to TypeScript:**
+- `timeout`: Keep the same value (both use seconds)
+- `flush_interval`: Multiply by 1000 (seconds → milliseconds)
+- `retry_backoff_base`: Multiply by 1000 (seconds → milliseconds)
+
+**From TypeScript to Python:**
+- `timeout`: Keep the same value (both use seconds)
+- `flushInterval`: Divide by 1000 (milliseconds → seconds)
+- `retryBackoffBase`: Divide by 1000 (milliseconds → seconds)
+
+#### Common Examples
+
+<table>
+<tr>
+<th>Configuration</th>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td><strong>5 second timeout</strong></td>
+<td>
+
+```python
+timeout=5
+```
+
+</td>
+<td>
+
+```typescript
+timeout: 5
+```
+
+</td>
+</tr>
+<tr>
+<td><strong>5 second flush interval</strong></td>
+<td>
+
+```python
+flush_interval=5.0
+```
+
+</td>
+<td>
+
+```typescript
+flushInterval: 5000
+```
+
+</td>
+</tr>
+<tr>
+<td><strong>1 second retry backoff</strong></td>
+<td>
+
+```python
+retry_backoff_base=1.0
+```
+
+</td>
+<td>
+
+```typescript
+retryBackoffBase: 1000
+```
+
+</td>
+</tr>
+<tr>
+<td><strong>30 second flush interval</strong></td>
+<td>
+
+```python
+flush_interval=30.0
+```
+
+</td>
+<td>
+
+```typescript
+flushInterval: 30000
+```
+
+</td>
+</tr>
+<tr>
+<td><strong>100ms flush interval</strong></td>
+<td>
+
+```python
+flush_interval=0.1
+```
+
+</td>
+<td>
+
+```typescript
+flushInterval: 100
+```
+
+</td>
+</tr>
+</table>
+
+#### Why Different Units?
+
+**Design Rationale:**
+- **Python Convention**: Python's standard library typically uses seconds (e.g., `time.sleep()`, `socket.settimeout()`)
+- **TypeScript Convention**: JavaScript/Node.js typically uses milliseconds (e.g., `setTimeout()`, `setInterval()`)
+- **Internal Implementation**: TypeScript SDK converts `timeout` parameter from seconds to milliseconds internally to maintain consistency with JavaScript conventions
+
+**Best Practice:**
+Always check parameter names and documentation when migrating between SDKs to avoid timing issues!
 
 ### Environment Variables
 

@@ -1,12 +1,16 @@
 # Automagik Telemetry - Python SDK
 
-Privacy-first OpenTelemetry SDK for Python applications.
+> **📚 [Complete Documentation](../docs/INDEX.md)** | **🚀 [Main README](../README.md)** | **⚙️ [Configuration Guide](../docs/USER_GUIDES/CONFIGURATION.md)**
+
+Privacy-first OpenTelemetry SDK for Python applications with zero dependencies and 100% test coverage.
 
 ## Installation
 
 ```bash
 pip install automagik-telemetry
 ```
+
+**Requirements:** Python 3.12+
 
 ## Quick Start
 
@@ -19,60 +23,72 @@ client = AutomagikTelemetry(
     version="1.0.0"
 )
 
-# Track events
+# Track events (traces)
 client.track_event("user.login", {
     "user_id": "anonymous-123",
     "method": "oauth"
 })
 
-# Track metrics
+# Track metrics (counter, gauge, histogram)
 client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER, attributes={
     "endpoint": "/api/users",
     "status": 200
 })
 ```
 
-## Configuration
+## Key Configuration
 
-### Batch Size
-
-The Python SDK defaults to `batch_size=1`, which means events are sent immediately to the telemetry backend. This ensures low-latency event delivery but may result in more frequent network requests.
-
-**Enable batching for better performance:**
+### Batch Size (Default: `batch_size=1`)
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+# Default: Send immediately (low latency)
+client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
 
+# Enable batching for high-volume apps
 client = AutomagikTelemetry(
     project_name="my-app",
     version="1.0.0",
-    batch_size=100  # Send events in batches of 100
+    batch_size=100  # Batch 100 events before sending
 )
 ```
 
-**When to use batching:**
-- High-volume applications (100+ events/second)
-- Performance-sensitive workloads
-- Reducing network overhead
+### Backend Selection
 
-**When to use immediate send (batch_size=1):**
-- Low-volume applications
-- Real-time monitoring requirements
-- Debugging and testing
+```python
+# OTLP Backend (default - production)
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://telemetry.namastex.ai"
+)
 
-> **Note:** The TypeScript SDK defaults to `batchSize=100` for efficient batching. See [main README](https://github.com/namastexlabs/automagik-telemetry#configuration) for cross-SDK differences.
+# ClickHouse Backend (self-hosting)
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_endpoint="http://localhost:8123"
+)
+```
 
-## 📚 Documentation
+### Environment Variables
 
-**Complete documentation:** [Documentation Index](../docs/INDEX.md)
+```bash
+# Disable telemetry
+export AUTOMAGIK_TELEMETRY_ENABLED=false
 
-**Quick Links:**
-- 🚀 [Getting Started Guide](../docs/GETTING_STARTED.md)
-- ⚙️ [Configuration Reference](../docs/USER_GUIDES/CONFIGURATION.md)
-- 📊 [Backends Guide (OTLP vs ClickHouse)](../docs/USER_GUIDES/BACKENDS.md)
-- 🔍 [API Reference](../docs/REFERENCES/API_REFERENCE.md)
-- 🐛 [Troubleshooting](../docs/REFERENCES/TROUBLESHOOTING.md)
-- 🔧 [SDK Differences (Python ↔ TypeScript)](../docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md)
+# Auto-disable in development
+export ENVIRONMENT=development
+
+# Custom OTLP endpoint
+export AUTOMAGIK_TELEMETRY_ENDPOINT=https://your-collector.com
+
+# ClickHouse backend
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://localhost:8123
+```
+
+See [Configuration Guide](../docs/USER_GUIDES/CONFIGURATION.md) for all options.
 
 ## Development
 
@@ -85,14 +101,31 @@ pytest
 
 # Run tests with coverage
 pytest --cov=automagik_telemetry --cov-report=html
+
+# Type checking
+mypy src/automagik_telemetry
+
+# Linting
+ruff check src tests
 ```
 
-## 🔗 Related Documentation
+## Documentation
 
-- **[Implementation Guide](../docs/DEVELOPER_GUIDES/IMPLEMENTATION.md)** - Integration patterns
-- **[Testing Guide](../docs/DEVELOPER_GUIDES/TESTING.md)** - Test strategies
-- **[Architecture](../docs/DEVELOPER_GUIDES/ARCHITECTURE.md)** - System design
-- **[Contributing](../docs/DEVELOPER_GUIDES/CONTRIBUTING.md)** - Development workflow
+- **[Getting Started](../docs/GETTING_STARTED.md)** - Complete setup guide
+- **[Configuration](../docs/USER_GUIDES/CONFIGURATION.md)** - All configuration options
+- **[Backends Guide](../docs/USER_GUIDES/BACKENDS.md)** - OTLP vs ClickHouse comparison
+- **[API Reference](../docs/REFERENCES/API_REFERENCE.md)** - Complete API documentation
+- **[SDK Differences](../docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md)** - Python vs TypeScript
+- **[Troubleshooting](../docs/REFERENCES/TROUBLESHOOTING.md)** - Common issues and solutions
+
+## Python-Specific Features
+
+- **Sync and async methods:** `track_event()` (sync) and `track_event_async()` (async)
+- **snake_case naming:** Follows PEP 8 conventions (`track_event`, `project_name`)
+- **Type hints:** Full type safety with mypy strict mode
+- **Time units:** `flush_interval` in seconds (float)
+
+See [SDK Differences](../docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md) for Python vs TypeScript comparison.
 
 ## License
 

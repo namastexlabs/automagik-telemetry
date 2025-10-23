@@ -385,6 +385,237 @@ const telemetry = new AutomagikTelemetry({
 
 ---
 
+#### `compressionThreshold` / `compression_threshold`
+
+<table>
+<tr><td><strong>Type</strong></td><td><code>int</code></td></tr>
+<tr><td><strong>Default</strong></td><td><code>1024</code> bytes (1 KB)</td></tr>
+<tr><td><strong>Description</strong></td><td>Minimum payload size in bytes before compression is applied</td></tr>
+</table>
+
+<details>
+<summary><strong>⚙️ Compression Threshold Configuration</strong></summary>
+
+**When to Adjust:**
+- Lower threshold (e.g., 512 bytes): More aggressive compression, saves bandwidth
+- Higher threshold (e.g., 2048 bytes): Less compression overhead for small payloads
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    compression_enabled=True,
+    compression_threshold=512  # Compress payloads > 512 bytes
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    compressionEnabled: true,
+    compressionThreshold: 512  // Compress payloads > 512 bytes
+});
+```
+
+> **💡 Tip:** Small payloads may not benefit from compression due to overhead
+
+</details>
+
+---
+
+#### `flushInterval` / `flush_interval`
+
+<table>
+<tr><td><strong>Type</strong></td><td><code>float</code> (Python: seconds) | <code>number</code> (TypeScript: milliseconds)</td></tr>
+<tr><td><strong>Default</strong></td><td>Python: <code>5.0</code> seconds | TypeScript: <code>5000</code> milliseconds</td></tr>
+<tr><td><strong>Description</strong></td><td>Interval for automatically flushing queued events</td></tr>
+</table>
+
+<details>
+<summary><strong>⏱️ Flush Interval Configuration</strong></summary>
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=100,
+    flush_interval=10.0  # Flush every 10 seconds
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    batchSize: 100,
+    flushInterval: 10000  // Flush every 10 seconds
+});
+```
+
+> **🎯 Recommendation:**
+> - High-frequency apps: 2-5 seconds
+> - Low-frequency apps: 10-30 seconds
+
+</details>
+
+---
+
+#### `maxRetries` / `max_retries`
+
+<table>
+<tr><td><strong>Type</strong></td><td><code>int</code></td></tr>
+<tr><td><strong>Default</strong></td><td><code>3</code></td></tr>
+<tr><td><strong>Description</strong></td><td>Maximum number of retry attempts for failed requests</td></tr>
+</table>
+
+<details>
+<summary><strong>🔄 Retry Configuration</strong></summary>
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    max_retries=5  # Retry up to 5 times
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    maxRetries: 5  // Retry up to 5 times
+});
+```
+
+> **⚠️ Note:** Retries only occur for network errors and 5xx server errors
+
+</details>
+
+---
+
+#### `retryBackoffBase` / `retry_backoff_base`
+
+<table>
+<tr><td><strong>Type</strong></td><td><code>float</code> (Python: seconds) | <code>number</code> (TypeScript: milliseconds)</td></tr>
+<tr><td><strong>Default</strong></td><td>Python: <code>1.0</code> second | TypeScript: <code>1000</code> milliseconds</td></tr>
+<tr><td><strong>Description</strong></td><td>Base time for exponential backoff between retry attempts</td></tr>
+</table>
+
+<details>
+<summary><strong>⏳ Exponential Backoff</strong></summary>
+
+**How it Works:**
+- Attempt 1: Wait `retry_backoff_base * 2^0` = base time
+- Attempt 2: Wait `retry_backoff_base * 2^1` = 2x base time
+- Attempt 3: Wait `retry_backoff_base * 2^2` = 4x base time
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    max_retries=3,
+    retry_backoff_base=0.5  # Start with 0.5 second backoff
+)
+# Retry delays: 0.5s, 1s, 2s
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    maxRetries: 3,
+    retryBackoffBase: 500  // Start with 500ms backoff
+});
+// Retry delays: 500ms, 1000ms, 2000ms
+```
+
+</details>
+
+---
+
+#### `metricsEndpoint` / `metrics_endpoint`
+
+<table>
+<tr><td><strong>Type</strong></td><td><code>string</code></td></tr>
+<tr><td><strong>Default</strong></td><td>Auto-derived from base endpoint (<code>/v1/metrics</code>)</td></tr>
+<tr><td><strong>Description</strong></td><td>Custom endpoint for metrics (OTLP metrics signal)</td></tr>
+</table>
+
+<details>
+<summary><strong>📊 Custom Metrics Endpoint</strong></summary>
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://telemetry.example.com/v1/traces",
+    metrics_endpoint="https://metrics.example.com/v1/metrics"  # Separate endpoint
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://telemetry.example.com/v1/traces',
+    metricsEndpoint: 'https://metrics.example.com/v1/metrics'  // Separate endpoint
+});
+```
+
+> **💡 Use Case:** Route metrics to dedicated Prometheus/Grafana instance
+
+</details>
+
+---
+
+#### `logsEndpoint` / `logs_endpoint`
+
+<table>
+<tr><td><strong>Type</strong></td><td><code>string</code></td></tr>
+<tr><td><strong>Default</strong></td><td>Auto-derived from base endpoint (<code>/v1/logs</code>)</td></tr>
+<tr><td><strong>Description</strong></td><td>Custom endpoint for logs (OTLP logs signal)</td></tr>
+</table>
+
+<details>
+<summary><strong>📝 Custom Logs Endpoint</strong></summary>
+
+**Python:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://telemetry.example.com/v1/traces",
+    logs_endpoint="https://logs.example.com/v1/logs"  # Separate endpoint
+)
+```
+
+**TypeScript:**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://telemetry.example.com/v1/traces',
+    logsEndpoint: 'https://logs.example.com/v1/logs'  // Separate endpoint
+});
+```
+
+> **💡 Use Case:** Route logs to dedicated Loki or Elasticsearch instance
+
+</details>
+
+---
+
 ## 📡 OTLP Backend Configuration
 
 > Configuration specific to the OpenTelemetry Protocol (OTLP) backend

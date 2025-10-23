@@ -104,6 +104,64 @@ const client = new AutomagikTelemetry({ projectName: 'my-app', version: '1.0.0' 
 client.trackEvent('api.request', { endpoint: '/users', status: 200 });
 ```
 
+### 📝 **Structured Logging**
+
+Built-in OTLP-compatible logging with severity levels and structured context.
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry, LogSeverity
+
+client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+
+# Log with severity levels
+client.track_log("User authentication successful", LogSeverity.INFO, {
+    "user_id": "anonymous-uuid",
+    "method": "oauth"
+})
+
+client.track_log("Database connection slow", LogSeverity.WARN, {
+    "latency_ms": 1500,
+    "threshold_ms": 1000
+})
+
+client.track_log("Payment processing failed", LogSeverity.ERROR, {
+    "error_code": "PAY-1001",
+    "transaction_id": "tx_abc123"
+})
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry, LogSeverity } from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({ projectName: 'my-app', version: '1.0.0' });
+
+// Log with severity levels
+client.trackLog('User authentication successful', LogSeverity.INFO, {
+    userId: 'anonymous-uuid',
+    method: 'oauth'
+});
+
+client.trackLog('Database connection slow', LogSeverity.WARN, {
+    latency_ms: 1500,
+    threshold_ms: 1000
+});
+
+client.trackLog('Payment processing failed', LogSeverity.ERROR, {
+    error_code: 'PAY-1001',
+    transaction_id: 'tx_abc123'
+});
+```
+
+**Available Log Severity Levels:**
+- `TRACE` (1) - Finest granularity, debugging information
+- `DEBUG` (5) - Detailed debugging information
+- `INFO` (9) - Informational messages (default)
+- `WARN` (13) - Warning messages
+- `ERROR` (17) - Error events
+- `FATAL` (21) - Critical errors causing shutdown
+
 ### 🧪 **100% Test Coverage**
 Every SDK maintains 100% code coverage with comprehensive unit, integration, and performance tests.
 
@@ -214,6 +272,21 @@ client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER, att
 client.track_metric("system.memory_mb", value=512.5, metric_type=MetricType.GAUGE)
 
 client.track_metric("api.response_time_ms", value=125.3, metric_type=MetricType.HISTOGRAM)
+
+# Track logs with severity levels
+from automagik_telemetry import LogSeverity
+
+client.track_log("Application started successfully", LogSeverity.INFO)
+
+client.track_log("Cache miss rate high", LogSeverity.WARN, {
+    "cache_hit_rate": 0.45,
+    "threshold": 0.80
+})
+
+client.track_log("Database connection failed", LogSeverity.ERROR, {
+    "error": "connection_timeout",
+    "retry_count": 3
+})
 ```
 
 ### TypeScript SDK
@@ -255,6 +328,21 @@ client.trackMetric('api.requests', 1, MetricType.COUNTER, {
 client.trackMetric('system.memory_mb', 512.5, MetricType.GAUGE);
 
 client.trackMetric('api.response_time_ms', 125.3, MetricType.HISTOGRAM);
+
+// Track logs with severity levels
+import { LogSeverity } from '@automagik/telemetry';
+
+client.trackLog('Application started successfully', LogSeverity.INFO);
+
+client.trackLog('Cache miss rate high', LogSeverity.WARN, {
+    cache_hit_rate: 0.45,
+    threshold: 0.80
+});
+
+client.trackLog('Database connection failed', LogSeverity.ERROR, {
+    error: 'connection_timeout',
+    retry_count: 3
+});
 ```
 
 ### Using ClickHouse Backend (Self-Hosting)
@@ -315,6 +403,27 @@ client.trackEvent('user.login', { userId: '123' });
 
 ### Configuration
 
+**Complete Configuration Reference**
+
+All available configuration parameters with their defaults:
+
+| Parameter | Python | TypeScript | Default (Python) | Default (TypeScript) | Description |
+|-----------|--------|------------|------------------|----------------------|-------------|
+| `project_name` / `projectName` | ✅ | ✅ | *Required* | *Required* | Name of your project |
+| `version` | ✅ | ✅ | *Required* | *Required* | Project version |
+| `backend` | ✅ | ✅ | `"otlp"` | `"otlp"` | Backend type: `"otlp"` or `"clickhouse"` |
+| `endpoint` | ✅ | ✅ | `"https://telemetry.namastex.ai/v1/traces"` | `"https://telemetry.namastex.ai/v1/traces"` | Main traces endpoint |
+| `organization` | ✅ | ✅ | `"namastex"` | `"namastex"` | Organization name |
+| `timeout` | ✅ | ✅ | `5` (seconds) | `5000` (milliseconds) | HTTP request timeout |
+| `batch_size` / `batchSize` | ✅ | ✅ | `1` | `100` | Events to batch before sending |
+| `flush_interval` / `flushInterval` | ✅ | ✅ | `5.0` (seconds) | `5000` (milliseconds) | Auto-flush interval |
+| `compression_enabled` / `compressionEnabled` | ✅ | ✅ | `True` | `true` | Enable gzip compression |
+| `compression_threshold` / `compressionThreshold` | ✅ | ✅ | `1024` (bytes) | `1024` (bytes) | Minimum size for compression |
+| `max_retries` / `maxRetries` | ✅ | ✅ | `3` | `3` | Maximum retry attempts |
+| `retry_backoff_base` / `retryBackoffBase` | ✅ | ✅ | `1.0` (seconds) | `1000` (milliseconds) | Base backoff time for retries |
+| `metrics_endpoint` / `metricsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | Custom metrics endpoint |
+| `logs_endpoint` / `logsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | Custom logs endpoint |
+
 **Batch Size Defaults**
 
 The Python and TypeScript SDKs have different default batch sizes to match their typical usage patterns:
@@ -367,14 +476,14 @@ export AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=your-password
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_BATCH_SIZE=100
 ```
 
-**Code Configuration (OTLP):**
+**Code Configuration (OTLP - Basic):**
 ```python
 # Python
 client = AutomagikTelemetry(
     project_name="my-app",
     version="1.0.0",
     endpoint="https://custom-collector.com",  # Optional
-    disabled=False  # Optional override
+    organization="my-org"  # Optional
 )
 ```
 
@@ -384,7 +493,68 @@ const client = new AutomagikTelemetry({
     projectName: 'my-app',
     version: '1.0.0',
     endpoint: 'https://custom-collector.com',  // Optional
-    disabled: false  // Optional override
+    organization: 'my-org'  // Optional
+});
+```
+
+**Code Configuration (OTLP - Advanced):**
+```python
+# Python - Advanced configuration with all options
+from automagik_telemetry import TelemetryConfig, AutomagikTelemetry
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    organization="my-org",
+
+    # Endpoints
+    endpoint="https://telemetry.example.com/v1/traces",
+    metrics_endpoint="https://telemetry.example.com/v1/metrics",  # Optional override
+    logs_endpoint="https://telemetry.example.com/v1/logs",  # Optional override
+
+    # Performance
+    batch_size=100,  # Batch 100 events before sending
+    flush_interval=5.0,  # Auto-flush every 5 seconds
+    timeout=10,  # 10 second timeout
+
+    # Compression
+    compression_enabled=True,
+    compression_threshold=1024,  # Compress payloads > 1KB
+
+    # Reliability
+    max_retries=3,
+    retry_backoff_base=1.0  # 1 second base backoff
+)
+
+client = AutomagikTelemetry(config=config)
+```
+
+```typescript
+// TypeScript - Advanced configuration with all options
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    organization: 'my-org',
+
+    // Endpoints
+    endpoint: 'https://telemetry.example.com/v1/traces',
+    metricsEndpoint: 'https://telemetry.example.com/v1/metrics',  // Optional override
+    logsEndpoint: 'https://telemetry.example.com/v1/logs',  // Optional override
+
+    // Performance
+    batchSize: 100,  // Batch 100 events before sending
+    flushInterval: 5000,  // Auto-flush every 5 seconds
+    timeout: 10000,  // 10 second timeout
+
+    // Compression
+    compressionEnabled: true,
+    compressionThreshold: 1024,  // Compress payloads > 1KB
+
+    // Reliability
+    maxRetries: 3,
+    retryBackoffBase: 1000  // 1 second base backoff
 });
 ```
 

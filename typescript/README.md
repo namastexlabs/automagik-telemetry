@@ -1,6 +1,8 @@
 # Automagik Telemetry - TypeScript SDK
 
-Privacy-first OpenTelemetry SDK for TypeScript/JavaScript applications.
+> **📚 [Complete Documentation](../docs/INDEX.md)** | **🚀 [Main README](../README.md)** | **⚙️ [Configuration Guide](../docs/USER_GUIDES/CONFIGURATION.md)**
+
+Privacy-first OpenTelemetry SDK for TypeScript/JavaScript applications with zero dependencies and 100% test coverage.
 
 ## Installation
 
@@ -9,6 +11,8 @@ npm install @automagik/telemetry
 # or
 pnpm add @automagik/telemetry
 ```
+
+**Requirements:** Node.js 18+
 
 ## Quick Start
 
@@ -21,104 +25,82 @@ const client = new AutomagikTelemetry({
     version: '1.0.0'
 });
 
-// Track events
+// Track events (traces)
 client.trackEvent('user.login', {
     userId: 'anonymous-123',
     method: 'oauth'
 });
 
-// Track metrics
+// Track metrics (counter, gauge, histogram)
 client.trackMetric('api.requests', 1, MetricType.COUNTER, {
     endpoint: '/api/users',
     status: 200
 });
 ```
 
-## Async Usage
+## Key Configuration
 
-All tracking methods in TypeScript are internally async but designed for fire-and-forget usage:
-
-### Standard Usage (Fire-and-Forget)
-```typescript
-// Methods return void and handle async internally
-client.trackEvent('user.login', { userId: 'anonymous-123' });
-client.trackMetric('api.requests', 1, { status: 200 });
-
-// No need to await - telemetry is sent asynchronously in the background
-```
-
-### Ensuring Delivery Before Shutdown
-```typescript
-// If you need to ensure all telemetry is sent before your app exits
-process.on('SIGTERM', async () => {
-    await client.shutdown();  // Flushes all pending events
-    process.exit(0);
-});
-```
-
-### Integration with Async Functions
-```typescript
-async function handleRequest() {
-    try {
-        const result = await processUserRequest();
-
-        // Track success (fire-and-forget)
-        client.trackEvent('request.success', {
-            duration: result.duration
-        });
-
-        return result;
-    } catch (error) {
-        // Track error (fire-and-forget)
-        client.trackError(error as Error, {
-            endpoint: '/api/users'
-        });
-        throw error;
-    }
-}
-```
-
-## Configuration
-
-### Batch Size
-
-The TypeScript SDK defaults to `batchSize=100`, which batches events before sending them to the telemetry backend. This provides efficient network usage and better performance for most applications.
-
-**Enable immediate sending:**
+### Batch Size (Default: `batchSize=100`)
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+// Default: Batch 100 events (optimized for performance)
+const client = new AutomagikTelemetry({ projectName: 'my-app', version: '1.0.0' });
 
+// Disable batching for real-time apps
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
     version: '1.0.0',
-    batchSize: 1  // Send events immediately
+    batchSize: 1  // Send immediately
 });
 ```
 
-**When to use batching (default):**
-- Most production applications
-- High-volume event streams
-- Optimizing network usage
+### Backend Selection
 
-**When to use immediate send (batchSize=1):**
-- Critical real-time events
-- Low-latency requirements
-- Debugging and testing
+```typescript
+// OTLP Backend (default - production)
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    endpoint: 'https://telemetry.namastex.ai'
+});
 
-> **Note:** The Python SDK defaults to `batch_size=1` for immediate sending. See [main README](https://github.com/namastexlabs/automagik-telemetry#configuration) for cross-SDK differences.
+// ClickHouse Backend (self-hosting)
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseEndpoint: 'http://localhost:8123'
+});
+```
 
-## 📚 Documentation
+### Environment Variables
 
-**Complete documentation:** [Documentation Index](../docs/INDEX.md)
+```bash
+# Disable telemetry
+export AUTOMAGIK_TELEMETRY_ENABLED=false
 
-**Quick Links:**
-- 🚀 [Getting Started Guide](../docs/GETTING_STARTED.md)
-- ⚙️ [Configuration Reference](../docs/USER_GUIDES/CONFIGURATION.md)
-- 📊 [Backends Guide (OTLP vs ClickHouse)](../docs/USER_GUIDES/BACKENDS.md)
-- 🔍 [API Reference](../docs/REFERENCES/API_REFERENCE.md)
-- 🐛 [Troubleshooting](../docs/REFERENCES/TROUBLESHOOTING.md)
-- 🔧 [SDK Differences (Python ↔ TypeScript)](../docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md)
+# Auto-disable in development
+export ENVIRONMENT=development
+
+# Custom OTLP endpoint
+export AUTOMAGIK_TELEMETRY_ENDPOINT=https://your-collector.com
+
+# ClickHouse backend
+export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://localhost:8123
+```
+
+See [Configuration Guide](../docs/USER_GUIDES/CONFIGURATION.md) for all options.
+
+### Graceful Shutdown
+
+```typescript
+// Ensure all telemetry is sent before app exits
+process.on('SIGTERM', async () => {
+    await client.shutdown();  // Flushes pending events
+    process.exit(0);
+});
+```
 
 ## Development
 
@@ -134,14 +116,28 @@ pnpm test
 
 # Run tests with coverage
 pnpm test -- --coverage
+
+# Linting
+pnpm lint
 ```
 
-## 🔗 Related Documentation
+## Documentation
 
-- **[Implementation Guide](../docs/DEVELOPER_GUIDES/IMPLEMENTATION.md)** - Integration patterns
-- **[Testing Guide](../docs/DEVELOPER_GUIDES/TESTING.md)** - Test strategies
-- **[Architecture](../docs/DEVELOPER_GUIDES/ARCHITECTURE.md)** - System design
-- **[Contributing](../docs/DEVELOPER_GUIDES/CONTRIBUTING.md)** - Development workflow
+- **[Getting Started](../docs/GETTING_STARTED.md)** - Complete setup guide
+- **[Configuration](../docs/USER_GUIDES/CONFIGURATION.md)** - All configuration options
+- **[Backends Guide](../docs/USER_GUIDES/BACKENDS.md)** - OTLP vs ClickHouse comparison
+- **[API Reference](../docs/REFERENCES/API_REFERENCE.md)** - Complete API documentation
+- **[SDK Differences](../docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md)** - Python vs TypeScript
+- **[Troubleshooting](../docs/REFERENCES/TROUBLESHOOTING.md)** - Common issues and solutions
+
+## TypeScript-Specific Features
+
+- **Fire-and-forget async:** All methods return void but handle async internally
+- **camelCase naming:** Follows JavaScript conventions (`trackEvent`, `projectName`)
+- **Strict TypeScript:** Full type safety with strict mode enabled
+- **Time units:** `flushInterval` in milliseconds (number)
+
+See [SDK Differences](../docs/DEVELOPER_GUIDES/SDK_DIFFERENCES.md) for Python vs TypeScript comparison.
 
 ## License
 

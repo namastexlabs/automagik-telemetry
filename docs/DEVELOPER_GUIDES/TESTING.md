@@ -466,19 +466,68 @@ describe('PII Detection', () => {
 
 ## Integration Testing
 
+### Overview
+
+Integration tests validate end-to-end functionality with real backends and services. We have two main categories:
+1. **OTLP Backend Integration** - Tests against OTLP collectors
+2. **ClickHouse Backend Integration** - Tests against ClickHouse database
+
+Both SDKs support both backends with comprehensive test coverage.
+
 ### Python Integration Tests
+
+#### Quick Start
+
+```bash
+# Install dependencies
+pip install -e ".[dev,integration]"
+
+# Run all integration tests
+pytest -v -m integration
+
+# Run specific test file
+pytest -v tests/test_integration_fastapi.py
+
+# Skip integration tests (unit tests only)
+pytest -v -m "not integration"
+
+# Run with output visible
+pytest -v -s -m integration
+```
+
+#### Environment Variables
+
+- `AUTOMAGIK_TELEMETRY_ENABLED=true` - Enable telemetry (required for tests)
+- `AUTOMAGIK_TELEMETRY_ENDPOINT` - Override collector endpoint
+- `AUTOMAGIK_TELEMETRY_VERBOSE=true` - Enable verbose output
+- `AUTOMAGIK_TELEMETRY_BACKEND` - Backend type (`clickhouse` or `otlp`)
+- `AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT` - ClickHouse HTTP endpoint (default: `http://localhost:8123`)
+- `AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE` - Database name (default: `telemetry`)
+- `AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE` - Table name (default: `traces`)
 
 #### Test Organization
 
 ```
-python/tests/integration/
-├── __init__.py
-├── test_fastapi_integration.py     # FastAPI integration
-├── test_throughput.py              # High-volume tests
-├── test_otlp_collector.py          # Real collector tests
-├── test_clickhouse.py              # ClickHouse backend tests
-└── test_memory_leaks.py            # Memory leak detection
+python/tests/
+├── test_integration_fastapi.py     # FastAPI integration
+├── test_integration_throughput.py  # High-volume tests
+├── test_integration_otlp.py        # Real OTLP collector tests
+├── test_integration_memory.py      # Memory leak detection
+└── integration/
+    ├── __init__.py
+    ├── test_clickhouse_integration.py  # ClickHouse backend tests
+    └── README.md                       # ClickHouse integration docs
 ```
+
+#### Test Files Overview
+
+| File | Description | Requirements |
+|------|-------------|--------------|
+| `test_integration_fastapi.py` | FastAPI integration with HTTP servers | fastapi, httpx |
+| `test_integration_throughput.py` | High-throughput and sustained load | psutil (optional) |
+| `test_integration_otlp.py` | Real OTLP collector communication | Network access |
+| `test_integration_memory.py` | Memory leak detection | psutil |
+| `integration/test_clickhouse_integration.py` | ClickHouse backend tests | ClickHouse running |
 
 #### FastAPI Integration Test
 
@@ -755,13 +804,85 @@ def test_large_payload_with_compression(real_client):
 
 ### TypeScript Integration Tests
 
+#### Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run all tests
+pnpm test
+
+# Run only integration tests
+pnpm test -- integration.test.ts
+
+# Run ClickHouse integration tests
+pnpm test:integration:clickhouse
+
+# Run with verbose output
+pnpm test -- --verbose integration.test.ts
+
+# Enable integration tests in CI
+RUN_INTEGRATION_TESTS=true pnpm test
+```
+
+#### Environment Variables
+
+- `AUTOMAGIK_TELEMETRY_ENABLED=true` - Enable telemetry (required for tests)
+- `AUTOMAGIK_TELEMETRY_ENDPOINT` - Override collector endpoint
+- `AUTOMAGIK_TELEMETRY_VERBOSE=true` - Enable verbose output
+- `RUN_INTEGRATION_TESTS=true` - Run integration tests in CI
+- `CLICKHOUSE_ENDPOINT=http://localhost:8123` - ClickHouse endpoint
+- `CLICKHOUSE_DATABASE=telemetry` - Database name
+- `CLICKHOUSE_TABLE=traces` - Table name
+- `CLICKHOUSE_USERNAME=default` - Username
+- `CLICKHOUSE_PASSWORD=` - Password
+
+#### NPM Scripts
+
+```json
+{
+  "scripts": {
+    "test:unit": "jest --coverage --testPathIgnorePatterns=integration",
+    "test:integration": "RUN_INTEGRATION_TESTS=true jest integration.test.ts --coverage=false",
+    "test:integration:clickhouse": "RUN_INTEGRATION_TESTS=true jest clickhouse.integration.test.ts --coverage=false",
+    "test:watch": "jest --watch"
+  }
+}
+```
+
 #### Test Organization
 
 ```
 typescript/tests/
-├── integration.test.ts             # Main integration tests
+├── integration.test.ts             # OTLP integration tests
 ├── clickhouse.integration.test.ts  # ClickHouse backend tests
-└── performance.test.ts             # Performance benchmarks
+├── run-clickhouse-tests.sh         # Helper script with prerequisite checks
+├── CLICKHOUSE_INTEGRATION_README.md
+├── CLICKHOUSE_TESTS_SUMMARY.md
+└── INTEGRATION_TESTS_README.md
+```
+
+#### Test Suites Overview
+
+**integration.test.ts** contains:
+1. **Express/Fastify Integration** - HTTP server integration
+2. **High-Throughput Tests** - Sustained high load scenarios
+3. **Real OTLP Collector Integration** - Network tests with real backend
+4. **Memory Leak Detection** - Long-running memory stability tests
+5. **Error Handling** - Graceful failure scenarios
+6. **Configuration** - Custom endpoint and batch configuration
+
+**Common Commands:**
+```bash
+# Run specific test suite
+pnpm test -- --testNamePattern="Real OTLP Collector"
+
+# Run specific test
+pnpm test -- --testNamePattern="should handle burst of 1000 events"
+
+# Run with memory profiling
+node --expose-gc node_modules/.bin/jest integration.test.ts
 ```
 
 #### Express Integration Test
