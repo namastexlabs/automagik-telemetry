@@ -127,7 +127,7 @@ You can run your own telemetry infrastructure:
 export AUTOMAGIK_TELEMETRY_ENDPOINT=http://your-server:4318
 ```
 
-See [Self-Hosting Guide](SELF_HOSTING.md) for details.
+See [Self-Hosting Guide](../infra/README.md) for details.
 
 ## Transparency
 

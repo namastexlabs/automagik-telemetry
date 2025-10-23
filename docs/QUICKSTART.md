@@ -90,7 +90,7 @@ Output:
 export AUTOMAGIK_TELEMETRY_ENDPOINT=http://localhost:4318/v1/traces
 ```
 
-See [Self-Hosting Guide](docs/SELF_HOSTING.md) for full setup.
+See [Self-Hosting Guide](../infra/README.md) for full setup.
 
 ## Common Patterns
 
@@ -202,7 +202,7 @@ telemetry.enable()   # Removes opt-out file
 - **See real examples:** [examples/python/omni_example.py](examples/python/omni_example.py)
 - **Implementation guide:** [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md)
 - **Privacy policy:** [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md)
-- **Self-hosting:** [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)
+- **Self-hosting:** [infra/README.md](../infra/README.md)
 
 ## Need Help?
 
