@@ -36,8 +36,13 @@ def print_header(text: str) -> None:
     print(f"{'=' * 70}\n")
 
 
-def generate_traces(client: AutomagikTelemetry, count: int = 20) -> None:
-    """Generate sample trace/event data."""
+def generate_traces(client: AutomagikTelemetry, count: int = 20) -> list[tuple[str, str]]:
+    """
+    Generate sample trace/event data.
+
+    Returns:
+        List of (trace_id, span_id) tuples for correlation with logs
+    """
     print(f"📍 Generating {count} trace events...")
 
     features = [
@@ -167,8 +172,16 @@ def generate_metrics(client: AutomagikTelemetry, count: int = 30) -> None:
     print(f"✅ Generated {count} metrics")
 
 
-def generate_logs(client: AutomagikTelemetry, count: int = 100) -> None:
-    """Generate sample log data with trace context."""
+def generate_logs(client: AutomagikTelemetry, count: int = 100, trace_contexts: list[tuple[str, str]] | None = None) -> None:
+    """
+    Generate sample log data with trace context.
+
+    Args:
+        client: Telemetry client
+        count: Number of logs to generate
+        trace_contexts: Optional list of (trace_id, span_id) tuples to use for correlation.
+                       If provided, some logs will use these IDs for realistic correlation.
+    """
     print(f"\n📝 Generating {count} logs...")
 
     log_messages = {
