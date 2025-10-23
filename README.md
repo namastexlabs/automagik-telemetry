@@ -363,6 +363,16 @@ client.trackLog('Database connection failed', LogSeverity.ERROR, {
 });
 ```
 
+> **💡 Standard Event Constants:** Both SDKs provide `StandardEvents` with predefined constants for consistent tracking:
+> - `FEATURE_USED` - Track feature usage across your application
+> - `API_REQUEST` - Track API endpoint calls and responses
+> - `COMMAND_EXECUTED` - Track CLI command executions
+> - `OPERATION_LATENCY` - Track performance metrics and timings
+> - `ERROR_OCCURRED` - Track errors and exceptions
+> - `SERVICE_HEALTH` - Track service health checks and status
+>
+> 📚 See [Event Constants Reference](docs/REFERENCES/EVENT_CONSTANTS.md) for complete documentation, naming conventions, and best practices.
+
 ### Using ClickHouse Backend (Self-Hosting)
 
 For self-hosted deployments, you can bypass the OTLP Collector and write directly to ClickHouse. This provides better performance and simpler architecture for local development.
@@ -779,6 +789,350 @@ const client = backend === 'clickhouse'
 
 // Use the same API regardless of backend
 client.trackEvent('app.started', { version: '1.0.0' });
+```
+
+
+---
+
+## 🎛️ Control Methods
+
+### Flush - Force Immediate Send
+
+Force all queued events to be sent immediately. Useful before application shutdown or at critical checkpoints.
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry
+
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=100  # Events will queue until batch_size or flush
+)
+
+# Track some events
+client.track_event("app.startup")
+client.track_metric("initialization_time_ms", 1234.5)
+
+# Force immediate send (synchronous)
+client.flush()
+
+# For async contexts
+import asyncio
+await client.flush_async()
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    batchSize: 100  // Events will queue until batchSize or flush
+});
+
+// Track some events
+client.trackEvent('app.startup');
+client.trackMetric('initialization_time_ms', 1234.5);
+
+// Force immediate send (async)
+await client.flush();
+```
+
+**When to use `flush()`:**
+- Before application shutdown to ensure no data loss
+- After critical events that must be delivered
+- At checkpoints in long-running processes
+- When using batching (`batch_size` > 1) and need immediate delivery
+
+### Enable/Disable - Runtime Control
+
+Enable or disable telemetry programmatically at runtime.
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry
+
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+
+# Enable telemetry (removes opt-out file)
+client.enable()
+
+# Track events - now active
+client.track_event("user.action")
+
+# Disable telemetry (creates opt-out file)
+client.disable()
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0'
+});
+
+// Enable telemetry (removes opt-out file)
+client.enable();
+
+// Track events - now active
+client.trackEvent('user.action');
+
+// Disable telemetry (creates opt-out file, flushes pending events)
+await client.disable();  // Flushes before disabling
+```
+
+**What happens when you disable:**
+- Pending events are flushed before disabling (TypeScript only)
+- Creates `~/.automagik-no-telemetry` opt-out file
+- All future tracking calls become no-ops (silent failures)
+- Preference persists across application restarts
+
+### Check Status - isEnabled() and getStatus()
+
+Check if telemetry is enabled and get detailed status information.
+
+**Python:**
+```python
+from automagik_telemetry import AutomagikTelemetry
+
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+
+# Simple enabled check
+if client.is_enabled():
+    print("Telemetry is active")
+    client.track_event("conditional.event")
+else:
+    print("Telemetry is disabled")
+
+# Detailed status information
+status = client.get_status()
+print(f"Enabled: {status['enabled']}")
+print(f"User ID: {status['user_id']}")
+print(f"Session ID: {status['session_id']}")
+print(f"Endpoint: {status['endpoint']}")
+print(f"Batch size: {status['batch_size']}")
+print(f"Queue sizes: {status['queue_sizes']}")
+# Output:
+# {
+#     'enabled': True,
+#     'user_id': 'uuid-here',
+#     'session_id': 'uuid-here',
+#     'project_name': 'my-app',
+#     'project_version': '1.0.0',
+#     'endpoint': 'https://telemetry.namastex.ai/v1/traces',
+#     'metrics_endpoint': 'https://telemetry.namastex.ai/v1/metrics',
+#     'logs_endpoint': 'https://telemetry.namastex.ai/v1/logs',
+#     'opt_out_file_exists': False,
+#     'env_var': None,
+#     'verbose': False,
+#     'batch_size': 100,
+#     'compression_enabled': True,
+#     'queue_sizes': {
+#         'traces': 5,
+#         'metrics': 2,
+#         'logs': 0
+#     }
+# }
+```
+
+**TypeScript:**
+```typescript
+import { AutomagikTelemetry } from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0'
+});
+
+// Simple enabled check
+if (client.isEnabled()) {
+    console.log('Telemetry is active');
+    client.trackEvent('conditional.event');
+} else {
+    console.log('Telemetry is disabled');
+}
+
+// Detailed status information
+const status = client.getStatus();
+console.log(`Enabled: ${status.enabled}`);
+console.log(`User ID: ${status.user_id}`);
+console.log(`Session ID: ${status.session_id}`);
+console.log(`Endpoint: ${status.endpoint}`);
+// Output:
+// {
+//     enabled: true,
+//     user_id: 'uuid-here',
+//     session_id: 'uuid-here',
+//     project_name: 'my-app',
+//     project_version: '1.0.0',
+//     endpoint: 'https://telemetry.namastex.ai/v1/traces',
+//     opt_out_file_exists: false,
+//     env_var: undefined,
+//     verbose: false
+// }
+```
+
+**Use cases for status checking:**
+- Debugging telemetry configuration issues
+- Displaying telemetry state in admin dashboards
+- Conditional tracking based on enabled state
+- Monitoring queue sizes to tune batch configuration
+
+---
+
+## ⚡ Async Support (Python)
+
+The Python SDK provides async versions of all tracking methods for seamless integration with asyncio applications.
+
+### Available Async Methods
+
+All tracking methods have async counterparts that run in a thread pool to avoid blocking the event loop:
+
+- `track_event_async()` - Async event tracking
+- `track_error_async()` - Async error tracking
+- `track_metric_async()` - Async metric tracking
+- `track_log_async()` - Async log tracking
+- `flush_async()` - Async flush
+
+### Usage Examples
+
+**Basic Async Tracking:**
+```python
+import asyncio
+from automagik_telemetry import AutomagikTelemetry, MetricType, LogSeverity
+
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0"
+)
+
+async def main():
+    # Async event tracking
+    await client.track_event_async("user.login", {
+        "user_id": "anonymous-123",
+        "method": "oauth"
+    })
+
+    # Async metric tracking
+    await client.track_metric_async(
+        "api.latency_ms",
+        123.45,
+        MetricType.HISTOGRAM,
+        {"endpoint": "/api/users"}
+    )
+
+    # Async log tracking
+    await client.track_log_async(
+        "User authenticated successfully",
+        LogSeverity.INFO,
+        {"user_type": "premium"}
+    )
+
+    # Async error tracking
+    try:
+        raise ValueError("Test error")
+    except Exception as e:
+        await client.track_error_async(e, {
+            "context": "authentication",
+            "recoverable": True
+        })
+
+    # Async flush
+    await client.flush_async()
+
+asyncio.run(main())
+```
+
+**FastAPI Integration:**
+```python
+from fastapi import FastAPI
+from automagik_telemetry import AutomagikTelemetry, MetricType
+import time
+
+app = FastAPI()
+client = AutomagikTelemetry(project_name="my-api", version="1.0.0")
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: str):
+    start = time.time()
+
+    try:
+        # Your async logic here
+        user = await fetch_user(user_id)
+        duration_ms = (time.time() - start) * 1000
+
+        # Track async
+        await client.track_event_async("api.request", {
+            "endpoint": f"/users/{user_id}",
+            "status": 200
+        })
+
+        await client.track_metric_async(
+            "api.latency_ms",
+            duration_ms,
+            MetricType.HISTOGRAM
+        )
+
+        return user
+
+    except Exception as e:
+        await client.track_error_async(e, {
+            "endpoint": f"/users/{user_id}"
+        })
+        raise
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # Ensure all events are sent before shutdown
+    await client.flush_async()
+```
+
+**Async Context Manager Pattern:**
+```python
+import asyncio
+from automagik_telemetry import AutomagikTelemetry
+
+async def tracked_operation(client: AutomagikTelemetry):
+    """Example of tracking an async operation."""
+    await client.track_event_async("operation.start")
+
+    try:
+        # Your async work here
+        result = await do_async_work()
+
+        await client.track_event_async("operation.success", {
+            "result_count": len(result)
+        })
+
+        return result
+
+    except Exception as e:
+        await client.track_error_async(e)
+        raise
+
+    finally:
+        # Ensure events are sent
+        await client.flush_async()
+```
+
+**Why Use Async Methods:**
+- Non-blocking execution in async applications
+- Better integration with FastAPI, aiohttp, etc.
+- Maintains event loop responsiveness
+- Proper async/await semantics
+- No need for `asyncio.to_thread()` wrapper
+
+**Note:** Async methods use `asyncio.to_thread()` internally, so they're safe to use in any async context without blocking the event loop.
 ```
 
 ---
