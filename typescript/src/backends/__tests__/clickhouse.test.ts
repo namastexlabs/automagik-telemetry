@@ -82,7 +82,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData).toHaveLength(1);
       expect(batchData[0].trace_id).toBe("abc123");
@@ -97,7 +97,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].trace_id).toBe("");
       expect(batchData[0].span_id).toBe("");
@@ -113,7 +113,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].timestamp).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
       expect(batchData[0].timestamp_ns).toBe(1609459200000000000);
@@ -129,7 +129,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       const afterTime = Date.now() * 1_000_000;
 
@@ -147,7 +147,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].duration_ms).toBe(0); // Floors to 0
     });
@@ -162,7 +162,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].duration_ms).toBe(5);
     });
@@ -176,7 +176,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].duration_ms).toBe(0);
     });
@@ -194,7 +194,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].attributes).toEqual({
         "http.method": "GET",
@@ -215,7 +215,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].attributes).toEqual({
         "http.status_code": "200",
@@ -236,7 +236,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].attributes).toEqual({
         "cpu.usage": "45.67",
@@ -257,7 +257,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].attributes).toEqual({
         "is.cached": "true",
@@ -280,7 +280,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].attributes).toEqual({
         str_attr: "hello",
@@ -321,7 +321,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].service_name).toBe("my-service");
       expect(batchData[0].project_name).toBe("my-project");
@@ -343,7 +343,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].service_name).toBe("unknown");
       expect(batchData[0].project_name).toBe("");
@@ -369,7 +369,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].status_code).toBe("OK");
       expect(batchData[0].status_message).toBe("");
@@ -388,7 +388,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].status_code).toBe("Internal error");
       expect(batchData[0].status_message).toBe("Internal error");
@@ -403,7 +403,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].status_code).toBe("OK");
       expect(batchData[0].status_message).toBe("");
@@ -419,7 +419,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].user_id).toBe("user-123");
     });
@@ -436,7 +436,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData[0].session_id).toBe("session-xyz");
     });
@@ -452,7 +452,7 @@ describe("ClickHouseBackend", () => {
       };
 
       backend.addToBatch(otlpSpan);
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
 
       expect(batchData).toHaveLength(1);
     });
@@ -467,7 +467,7 @@ describe("ClickHouseBackend", () => {
         });
       }
 
-      const batchData = (backend as any).batch;
+      const batchData = (backend as any).traceBatch;
       expect(batchData).toHaveLength(5);
     });
 
@@ -512,7 +512,7 @@ describe("ClickHouseBackend", () => {
         startTimeUnixNano: 1000000000000000,
       });
 
-      expect((backend as any).batch).toHaveLength(2);
+      expect((backend as any).traceBatch).toHaveLength(2);
 
       // Add 3rd span - should trigger flush
       backend.addToBatch({
@@ -523,7 +523,7 @@ describe("ClickHouseBackend", () => {
       });
 
       // Batch should be cleared after flush
-      expect((backend as any).batch).toHaveLength(0);
+      expect((backend as any).traceBatch).toHaveLength(0);
       expect(mockRequest).toHaveBeenCalled();
     });
 
@@ -558,12 +558,12 @@ describe("ClickHouseBackend", () => {
         startTimeUnixNano: 1000000000000000,
       });
 
-      expect((backend as any).batch).toHaveLength(1);
+      expect((backend as any).traceBatch).toHaveLength(1);
 
       const result = await backend.flush();
 
       expect(result).toBe(true);
-      expect((backend as any).batch).toHaveLength(0);
+      expect((backend as any).traceBatch).toHaveLength(0);
       expect(mockRequest).toHaveBeenCalled();
     });
 
@@ -595,7 +595,7 @@ describe("ClickHouseBackend", () => {
 
       expect(result).toBe(false);
       // Batch is cleared before flush attempt
-      expect((backend as any).batch).toHaveLength(0);
+      expect((backend as any).traceBatch).toHaveLength(0);
     });
   });
 
@@ -938,7 +938,7 @@ describe("ClickHouseBackend", () => {
       expect(options.hostname).toBe("localhost");
       expect(options.port).toBe("8123");
       expect(options.path).toContain(
-        "query=INSERT+INTO+test_db.test_table+FORMAT+JSONEachRow"
+        "query=INSERT+INTO+test_db.traces+FORMAT+JSONEachRow"
       );
     });
 
@@ -1027,7 +1027,7 @@ describe("ClickHouseBackend", () => {
       });
 
       expect(result).toBe(true);
-      expect((backend as any).batch).toHaveLength(1);
+      expect((backend as any).traceBatch).toHaveLength(1);
     });
 
     it("should handle multiple sendTrace calls", () => {
@@ -1045,7 +1045,7 @@ describe("ClickHouseBackend", () => {
         startTimeUnixNano: 1000000000000000,
       });
 
-      expect((backend as any).batch).toHaveLength(2);
+      expect((backend as any).traceBatch).toHaveLength(2);
     });
   });
 });

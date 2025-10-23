@@ -18,7 +18,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as zlib from 'zlib';
-import { AutomagikTelemetry, AutomagikTelemetry, TelemetryConfig, LogSeverity, MetricType } from '../src/client';
+import { AutomagikTelemetry, TelemetryConfig, LogSeverity, MetricType } from '../src/client';
 
 // Mock file system operations
 jest.mock('fs');
