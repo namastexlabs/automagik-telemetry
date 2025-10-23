@@ -12,6 +12,7 @@ import * as crypto from "crypto";
 import * as zlib from "zlib";
 
 import { ClickHouseBackend } from "./backends/clickhouse";
+import packageJson from "../package.json";
 
 /**
  * Configuration interface for TelemetryClient.
@@ -562,6 +563,13 @@ export class AutomagikTelemetry {
   }
 
   /**
+   * Get SDK version from package.json (single source of truth).
+   */
+  private getSDKVersion(): string {
+    return packageJson.version;
+  }
+
+  /**
    * Send telemetry event to the endpoint (internal method).
    *
    * @param eventType - Event type name
@@ -613,7 +621,7 @@ export class AutomagikTelemetry {
         },
         {
           key: "telemetry.sdk.version",
-          value: { stringValue: "0.1.0" },
+          value: { stringValue: this.getSDKVersion() },
         },
       ];
 

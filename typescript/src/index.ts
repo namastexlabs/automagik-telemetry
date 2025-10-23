@@ -37,4 +37,6 @@ export {
   SENSITIVE_KEYS,
 } from "./privacy";
 
-export const VERSION = "0.1.0";
+// Version is read from package.json (single source of truth)
+import packageJson from "../package.json";
+export const VERSION = packageJson.version;
