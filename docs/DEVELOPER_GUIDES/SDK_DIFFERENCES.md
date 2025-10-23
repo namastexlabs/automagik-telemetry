@@ -230,8 +230,8 @@ client = AutomagikTelemetry(
     version="1.0.0"
 )
 
-# With all options
-client = AutomagikTelemetry(
+# With all options using TelemetryConfig
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     backend="otlp",
@@ -240,19 +240,20 @@ client = AutomagikTelemetry(
     flush_interval=5.0,  # seconds
     compression_enabled=True,
     max_retries=3,
-    timeout=5,  # seconds
-    disabled=False
+    timeout=5  # seconds
 )
+client = AutomagikTelemetry(config=config)
 
-# ClickHouse backend
-client = AutomagikTelemetry(
+# ClickHouse backend with TelemetryConfig
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     backend="clickhouse",
     clickhouse_endpoint="http://localhost:8123",
     clickhouse_database="telemetry",
-    clickhouse_batch_size=100
+    batch_size=100
 )
+client = AutomagikTelemetry(config=config)
 ```
 
 </td>

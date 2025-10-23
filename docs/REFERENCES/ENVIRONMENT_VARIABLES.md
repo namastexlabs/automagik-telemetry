@@ -2,6 +2,8 @@
 
 > **⚡ Fast lookup guide** for all Automagik Telemetry environment variables. Copy-paste ready examples with platform-specific notes.
 
+> ⚠️ **Important:** Environment variable names are **case-sensitive**. Always use exact capitalization as shown (e.g., `AUTOMAGIK_TELEMETRY_ENABLED`, not `automagik_telemetry_enabled`).
+
 ---
 
 ## 📋 Complete Variables Table
