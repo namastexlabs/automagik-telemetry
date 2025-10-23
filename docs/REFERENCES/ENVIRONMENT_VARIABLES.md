@@ -25,12 +25,35 @@
 | Variable | Type | Default | Description | Example |
 |----------|------|---------|-------------|---------|
 | `AUTOMAGIK_TELEMETRY_ENDPOINT` | string | `https://telemetry.namastex.ai/v1/traces` | Main OTLP traces endpoint | `export AUTOMAGIK_TELEMETRY_ENDPOINT=https://custom.example.com/v1/traces` |
+| `AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT` | string | Auto-derived from base endpoint | Override metrics endpoint separately | `export AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT=https://custom.example.com/v1/metrics` |
+| `AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT` | string | Auto-derived from base endpoint | Override logs endpoint separately | `export AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT=https://custom.example.com/v1/logs` |
 | `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | Python: `5` (sec)<br>TypeScript: `5000` (ms) | HTTP request timeout | Python: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10`<br>TypeScript: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10000` |
 
 **🔍 Endpoint Format:**
 - Must include protocol: `http://` or `https://`
 - Can include path: `/v1/traces`, `/v1/metrics`, `/v1/logs`
 - Auto-derives metrics/logs endpoints from base
+
+**📍 Endpoint Hierarchy:**
+1. **Base endpoint** (`AUTOMAGIK_TELEMETRY_ENDPOINT`): Primary endpoint for traces
+   - If you set `https://telemetry.example.com/v1/traces`, the SDK extracts the base (`https://telemetry.example.com`)
+   - Metrics endpoint auto-derives to: `https://telemetry.example.com/v1/metrics`
+   - Logs endpoint auto-derives to: `https://telemetry.example.com/v1/logs`
+
+2. **Specific overrides**: Use when routing different signal types to different backends
+   - `AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT`: Send metrics to a dedicated metrics service
+   - `AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT`: Send logs to a dedicated logging service
+   - Example: Route metrics to Prometheus, logs to Loki, traces to Tempo
+
+**💡 When to Use Specific Endpoints:**
+- **Same backend for all signals**: Only set `AUTOMAGIK_TELEMETRY_ENDPOINT` (most common)
+- **Separate backends per signal type**: Set individual endpoints for advanced routing
+  ```bash
+  # Route to different OTLP receivers
+  export AUTOMAGIK_TELEMETRY_ENDPOINT=https://tempo.example.com/v1/traces
+  export AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT=https://prometheus.example.com/v1/metrics
+  export AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT=https://loki.example.com/v1/logs
+  ```
 
 ---
 

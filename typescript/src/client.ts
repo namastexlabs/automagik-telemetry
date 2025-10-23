@@ -189,7 +189,21 @@ export class AutomagikTelemetry {
     this.projectName = config.projectName;
     this.projectVersion = config.version;
     this.organization = config.organization || "namastex";
-    this.timeout = (config.timeout || 5) * 1000; // Convert to milliseconds
+
+    // Read timeout from environment variable if not provided via constructor
+    let timeoutSeconds: number;
+    if (config.timeout !== undefined) {
+      timeoutSeconds = config.timeout;
+    } else {
+      const timeoutEnv = process.env.AUTOMAGIK_TELEMETRY_TIMEOUT;
+      if (timeoutEnv !== undefined) {
+        const parsed = parseFloat(timeoutEnv);
+        timeoutSeconds = isNaN(parsed) ? 5 : parsed;
+      } else {
+        timeoutSeconds = 5; // Default timeout
+      }
+    }
+    this.timeout = timeoutSeconds * 1000; // Convert to milliseconds
 
     // Determine backend from config or environment variable
     this.backendType = (
