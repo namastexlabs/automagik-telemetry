@@ -21,6 +21,7 @@
 <p align="center">
   <a href="#-key-features">Features</a> •
   <a href="#-quick-start">Quick Start</a> •
+  <a href="#-sdk-differences">SDK Differences</a> •
   <a href="#-architecture">Architecture</a> •
   <a href="#-development">Development</a> •
   <a href="#-roadmap">Roadmap</a> •
@@ -419,6 +420,66 @@ const client = new AutomagikTelemetry({
     clickhouseCompression: true  // Optional (default: true)
 });
 ```
+
+---
+
+## 🔄 SDK Differences
+
+While both SDKs provide identical functionality, there are intentional differences in defaults and conventions:
+
+### Naming Conventions
+- **Python**: Uses `snake_case` following PEP 8 conventions
+  - `track_event`, `project_name`, `flush_interval`
+- **TypeScript**: Uses `camelCase` following JavaScript conventions
+  - `trackEvent`, `projectName`, `flushInterval`
+
+### Batch Size Defaults
+- **Python**: `batch_size=1` (immediate send)
+  - Optimized for simplicity and debugging
+  - Each event sent immediately for easier troubleshooting
+  - Better for low-volume applications
+- **TypeScript**: `batchSize=100` (batched)
+  - Optimized for performance in high-throughput scenarios
+  - Reduces network overhead with batching
+  - Better for modern async applications
+
+**How to configure:**
+```python
+# Python - enable batching for better performance
+client = AutomagikTelemetry(
+    project_name="my-app",
+    batch_size=100  # Match TypeScript default
+)
+```
+
+```typescript
+// TypeScript - disable batching for debugging
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    batchSize: 1  // Match Python default
+});
+```
+
+### Time Units
+- **Python**: `flush_interval` in **seconds** (float)
+  ```python
+  flush_interval=5.0  # 5 seconds
+  ```
+- **TypeScript**: `flushInterval` in **milliseconds** (number)
+  ```typescript
+  flushInterval: 5000  // 5 seconds
+  ```
+
+### Async Patterns
+- **Python**: Provides both sync and async methods
+  ```python
+  client.track_event("event", {})  # Sync
+  await client.track_event_async("event", {})  # Async
+  ```
+- **TypeScript**: All methods return void but are internally async
+  ```typescript
+  client.trackEvent('event', {});  // Fire-and-forget
+  ```
 
 ---
 
