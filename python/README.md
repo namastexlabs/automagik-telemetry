@@ -11,7 +11,7 @@ pip install automagik-telemetry
 ## Quick Start
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, MetricType
 
 # Initialize client
 client = AutomagikTelemetry(
@@ -26,7 +26,7 @@ client.track_event("user.login", {
 })
 
 # Track metrics
-client.track_counter("api.requests", value=1, attributes={
+client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER, attributes={
     "endpoint": "/api/users",
     "status": 200
 })
