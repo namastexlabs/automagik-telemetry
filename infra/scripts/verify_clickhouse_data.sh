@@ -262,7 +262,7 @@ show_summary() {
     echo -e "   ${GREEN}make logs-clickhouse${NC}"
     echo ""
     echo -e "5. ${YELLOW}Read verification guide:${NC}"
-    echo -e "   ${GREEN}cat infra/docs/CLICKHOUSE_VERIFICATION.md${NC}"
+    echo -e "   ${GREEN}cat infra/CLICKHOUSE_VERIFICATION.md${NC}"
     echo ""
 
     if [ $PASSED_TESTS -eq $TOTAL_TESTS ]; then

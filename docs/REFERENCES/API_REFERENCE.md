@@ -1432,9 +1432,9 @@ process.on('SIGINT', async () => {
 
 ## 📚 Related Documentation
 
-- [Environment Variables](/home/cezar/automagik-telemetry/docs/REFERENCES/ENVIRONMENT_VARIABLES.md) - All environment variable options
-- [Troubleshooting](/home/cezar/automagik-telemetry/docs/REFERENCES/TROUBLESHOOTING.md) - Common issues and solutions
-- [Configuration Reference](/home/cezar/automagik-telemetry/docs/CONFIGURATION_REFERENCE.md) - Detailed configuration guide
+- [Environment Variables](./ENVIRONMENT_VARIABLES.md) - All environment variable options
+- [Troubleshooting](./TROUBLESHOOTING.md) - Common issues and solutions
+- [Configuration Reference](../USER_GUIDES/CONFIGURATION.md) - Detailed configuration guide
 
 ---
 

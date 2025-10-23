@@ -298,10 +298,10 @@ env | grep -E "^(CI|GITHUB_ACTIONS|TRAVIS|JENKINS|GITLAB_CI|CIRCLECI)=" && echo 
 
 ## 📚 Related Documentation
 
-- [API Reference](/home/cezar/automagik-telemetry/docs/REFERENCES/API_REFERENCE.md) - Full SDK API documentation
-- [Troubleshooting](/home/cezar/automagik-telemetry/docs/REFERENCES/TROUBLESHOOTING.md) - Common issues and solutions
-- [Configuration Reference](/home/cezar/automagik-telemetry/docs/CONFIGURATION_REFERENCE.md) - Detailed configuration guide
-- [ClickHouse Backend Guide](/home/cezar/automagik-telemetry/docs/CLICKHOUSE_BACKEND_GUIDE.md) - ClickHouse backend architecture
+- [API Reference](./API_REFERENCE.md) - Full SDK API documentation
+- [Troubleshooting](./TROUBLESHOOTING.md) - Common issues and solutions
+- [Configuration Reference](../USER_GUIDES/CONFIGURATION.md) - Detailed configuration guide
+- [ClickHouse Backend Guide](../USER_GUIDES/BACKENDS.md) - ClickHouse backend architecture
 
 ---
 
