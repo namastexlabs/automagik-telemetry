@@ -34,6 +34,50 @@ client.trackMetric('api.requests', 1, MetricType.COUNTER, {
 });
 ```
 
+## Async Usage
+
+All tracking methods in TypeScript are internally async but designed for fire-and-forget usage:
+
+### Standard Usage (Fire-and-Forget)
+```typescript
+// Methods return void and handle async internally
+client.trackEvent('user.login', { userId: 'anonymous-123' });
+client.trackMetric('api.requests', 1, { status: 200 });
+
+// No need to await - telemetry is sent asynchronously in the background
+```
+
+### Ensuring Delivery Before Shutdown
+```typescript
+// If you need to ensure all telemetry is sent before your app exits
+process.on('SIGTERM', async () => {
+    await client.shutdown();  // Flushes all pending events
+    process.exit(0);
+});
+```
+
+### Integration with Async Functions
+```typescript
+async function handleRequest() {
+    try {
+        const result = await processUserRequest();
+
+        // Track success (fire-and-forget)
+        client.trackEvent('request.success', {
+            duration: result.duration
+        });
+
+        return result;
+    } catch (error) {
+        // Track error (fire-and-forget)
+        client.trackError(error as Error, {
+            endpoint: '/api/users'
+        });
+        throw error;
+    }
+}
+```
+
 ## Configuration
 
 ### Batch Size
