@@ -27,11 +27,11 @@
 | Variable | Type | Default | Description | Example |
 |----------|------|---------|-------------|---------|
 | `AUTOMAGIK_TELEMETRY_ENDPOINT` | string | `https://telemetry.namastex.ai/v1/traces` | Main OTLP traces endpoint | `export AUTOMAGIK_TELEMETRY_ENDPOINT=https://custom.example.com/v1/traces` |
-| `AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT` | string | Auto-derived from base endpoint | Override metrics endpoint separately | `export AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT=https://custom.example.com/v1/metrics` |
-| `AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT` | string | Auto-derived from base endpoint | Override logs endpoint separately | `export AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT=https://custom.example.com/v1/logs` |
+| `AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT` | string | Auto-derived from base endpoint | Override metrics endpoint separately (code-only) | See code examples below |
+| `AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT` | string | Auto-derived from base endpoint | Override logs endpoint separately (code-only) | See code examples below |
 | `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | Python: `5` (sec)<br>TypeScript: `5000` (ms) | HTTP request timeout | Python: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10`<br>TypeScript: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10000` |
 
-**Note:** These environment variables are currently read for `ENDPOINT` and `TIMEOUT`, but other OTLP configuration options (`METRICS_ENDPOINT`, `LOGS_ENDPOINT`) are available as code-level configuration only in the current implementation.
+**Note:** `AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT` and `AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT` are **not** available as environment variables. These options can only be configured programmatically in code. Use `AUTOMAGIK_TELEMETRY_ENDPOINT` for the base endpoint, and configure specific endpoints in your SDK initialization if needed.
 
 **🔍 Endpoint Format:**
 - Must include protocol: `http://` or `https://`
@@ -51,12 +51,39 @@
 
 **💡 When to Use Specific Endpoints:**
 - **Same backend for all signals**: Only set `AUTOMAGIK_TELEMETRY_ENDPOINT` (most common)
-- **Separate backends per signal type**: Set individual endpoints for advanced routing
-  ```bash
-  # Route to different OTLP receivers
-  export AUTOMAGIK_TELEMETRY_ENDPOINT=https://tempo.example.com/v1/traces
-  export AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT=https://prometheus.example.com/v1/metrics
-  export AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT=https://loki.example.com/v1/logs
+- **Separate backends per signal type**: Configure in code for advanced routing
+
+  **Python Example:**
+  ```python
+  from automagik_telemetry import TelemetryClient, TelemetryConfig
+
+  config = TelemetryConfig(
+      project_name="myapp",
+      version="1.0.0",
+      enabled=True,
+      backend="otlp",
+      endpoint="https://tempo.example.com/v1/traces",  # Traces
+  )
+
+  # Create OTLP backend with custom endpoints
+  client = TelemetryClient(config)
+  client.otlp_backend.metrics_endpoint = "https://prometheus.example.com/v1/metrics"
+  client.otlp_backend.logs_endpoint = "https://loki.example.com/v1/logs"
+  ```
+
+  **TypeScript Example:**
+  ```typescript
+  import { TelemetryClient } from '@namastex/automagik-telemetry';
+
+  const client = new TelemetryClient({
+      projectName: 'myapp',
+      version: '1.0.0',
+      enabled: true,
+      backend: 'otlp',
+      endpoint: 'https://tempo.example.com/v1/traces',  // Traces
+      metricsEndpoint: 'https://prometheus.example.com/v1/metrics',
+      logsEndpoint: 'https://loki.example.com/v1/logs',
+  });
   ```
 
 ---

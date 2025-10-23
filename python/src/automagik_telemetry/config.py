@@ -20,7 +20,7 @@ class TelemetryConfig:
         version: Version of the project
         endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
         organization: Organization name
-        timeout: HTTP timeout in seconds (NOTE: Default is 5000 for backwards compat but should be 5)
+        timeout: HTTP timeout in seconds (default: 5)
         enabled: Whether telemetry is enabled (opt-in only)
         verbose: Enable verbose logging to console
 
