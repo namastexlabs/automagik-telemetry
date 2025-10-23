@@ -1,5 +1,7 @@
 # 🏗️ Automagik Telemetry Infrastructure
 
+📚 See [Documentation Index](../docs/INDEX.md) for complete guides
+
 Self-hosted telemetry infrastructure for local development and production deployments.
 
 ## 🚀 Quick Start
@@ -840,6 +842,15 @@ make query-traces
 - [TypeScript Backend Implementation](../typescript/src/backends/clickhouse.ts)
 - [Python Integration Tests](../python/tests/integration/test_clickhouse_integration.py)
 - [TypeScript Integration Tests](../typescript/tests/clickhouse.integration.test.ts)
+
+## 📖 Related Documentation
+
+For comprehensive guides and additional information, see:
+
+- **[Self-Hosting Guide](../docs/USER_GUIDES/SELF_HOSTING.md)** - Complete guide for self-hosted deployments
+- **[Backend Configuration Guide](../docs/USER_GUIDES/BACKENDS.md)** - Detailed backend configuration options
+- **[Architecture Overview](../docs/DEVELOPER_GUIDES/ARCHITECTURE.md)** - System architecture and design decisions
+- **[Troubleshooting Guide](../docs/REFERENCES/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## 🆘 Support
 

@@ -1,5 +1,9 @@
 # ClickHouse Direct Backend Design Document
 
+📚 User guide available at [docs/USER_GUIDES/BACKENDS.md](../docs/USER_GUIDES/BACKENDS.md)
+
+This is a technical design document. For user-facing configuration and usage instructions, see the Backend Configuration Guide above.
+
 ## Problem Statement
 
 ### The Bug We Encountered

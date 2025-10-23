@@ -1,5 +1,8 @@
 # ClickHouse Data Verification Guide
 
+📚 For backend configuration, see [Backend Configuration Guide](../../docs/USER_GUIDES/BACKENDS.md)
+🔧 For troubleshooting, see [Troubleshooting Guide](../../docs/REFERENCES/TROUBLESHOOTING.md)
+
 This guide helps you verify that telemetry data is correctly flowing into ClickHouse and understand how to query and visualize it in Grafana.
 
 ## Table of Contents
@@ -452,6 +455,8 @@ ORDER BY hour DESC, events DESC;
 ---
 
 ## Troubleshooting
+
+For additional troubleshooting resources, see the [Troubleshooting Guide](../../docs/REFERENCES/TROUBLESHOOTING.md).
 
 ### No Data Appearing
 
