@@ -140,7 +140,7 @@ class AutomagikTelemetry:
         version: str | None = None,
         endpoint: str | None = None,
         organization: str = "namastex",
-        timeout: int = 5,
+        timeout: int | None = None,
         config: TelemetryConfig | None = None,
     ):
         """
@@ -151,7 +151,7 @@ class AutomagikTelemetry:
             version: Version of the project
             endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
             organization: Organization name (default: namastex)
-            timeout: HTTP timeout in seconds (default: 5)
+            timeout: HTTP timeout in seconds (default: 5, or AUTOMAGIK_TELEMETRY_TIMEOUT env var)
             config: TelemetryConfig instance for advanced configuration (overrides individual params)
         """
         # Support both old and new initialization styles
@@ -162,12 +162,24 @@ class AutomagikTelemetry:
                 raise ValueError(
                     "Either 'config' or both 'project_name' and 'version' must be provided"
                 )
+
+            # Read timeout from environment variable if not provided via constructor
+            if timeout is None:
+                timeout_env = os.getenv("AUTOMAGIK_TELEMETRY_TIMEOUT")
+                if timeout_env is not None:
+                    try:
+                        timeout = float(timeout_env)
+                    except ValueError:
+                        timeout = 5  # Fallback to default if invalid
+                else:
+                    timeout = 5  # Default timeout
+
             self.config = TelemetryConfig(
                 project_name=project_name,
                 version=version,
                 endpoint=endpoint,
                 organization=organization,
-                timeout=timeout,
+                timeout=int(timeout),
             )
 
         # Convenience properties for backward compatibility
@@ -251,7 +263,9 @@ class AutomagikTelemetry:
             self._clickhouse_backend = ClickHouseBackend(
                 endpoint=clickhouse_endpoint,
                 database=clickhouse_database,
-                table=clickhouse_table,
+                traces_table=clickhouse_table,  # Use same table name for backward compat
+                metrics_table="metrics",
+                logs_table="logs",
                 username=clickhouse_username,
                 password=clickhouse_password,
                 timeout=self.timeout,
@@ -605,14 +619,52 @@ class AutomagikTelemetry:
             **metric_data,
         }
 
-        # Queue or send immediately
-        if self.config.batch_size > 1:
-            with self._queue_lock:
-                self._metric_queue.append(metric)
-                if len(self._metric_queue) >= self.config.batch_size:
-                    self._flush_metrics()
+        # Route to appropriate backend
+        if self.backend_type == "clickhouse" and self._clickhouse_backend:
+            # Send directly to ClickHouse backend
+            try:
+                # Extract resource attributes as dict
+                resource_attrs_dict = {}
+                for attr in self._get_resource_attributes():
+                    key = attr.get("key", "")
+                    attr_value = attr.get("value", {})
+                    if "stringValue" in attr_value:
+                        resource_attrs_dict[key] = attr_value["stringValue"]
+
+                # Extract metric attributes as dict
+                metric_attrs_dict = {}
+                for attr in attrs:
+                    key = attr.get("key", "")
+                    attr_val = attr.get("value", {})
+                    if "stringValue" in attr_val:
+                        metric_attrs_dict[key] = attr_val["stringValue"]
+                    elif "intValue" in attr_val:
+                        metric_attrs_dict[key] = str(attr_val["intValue"])
+                    elif "doubleValue" in attr_val:
+                        metric_attrs_dict[key] = str(attr_val["doubleValue"])
+                    elif "boolValue" in attr_val:
+                        metric_attrs_dict[key] = str(attr_val["boolValue"])
+
+                self._clickhouse_backend.send_metric(
+                    metric_name=metric_name,
+                    value=value,
+                    metric_type=metric_type.value,
+                    unit="",
+                    attributes=metric_attrs_dict,
+                    resource_attributes=resource_attrs_dict,
+                )
+            except Exception as e:
+                logger.debug(f"ClickHouse backend metric error: {e}")
         else:
-            self._flush_metrics([metric])
+            # Use OTLP backend (default)
+            # Queue or send immediately
+            if self.config.batch_size > 1:
+                with self._queue_lock:
+                    self._metric_queue.append(metric)
+                    if len(self._metric_queue) >= self.config.batch_size:
+                        self._flush_metrics()
+            else:
+                self._flush_metrics([metric])
 
     def _send_log(
         self,
@@ -635,14 +687,50 @@ class AutomagikTelemetry:
             "attributes": attrs,
         }
 
-        # Queue or send immediately
-        if self.config.batch_size > 1:
-            with self._queue_lock:
-                self._log_queue.append(log_record)
-                if len(self._log_queue) >= self.config.batch_size:
-                    self._flush_logs()
+        # Route to appropriate backend
+        if self.backend_type == "clickhouse" and self._clickhouse_backend:
+            # Send directly to ClickHouse backend
+            try:
+                # Extract resource attributes as dict
+                resource_attrs_dict = {}
+                for attr in self._get_resource_attributes():
+                    key = attr.get("key", "")
+                    attr_value = attr.get("value", {})
+                    if "stringValue" in attr_value:
+                        resource_attrs_dict[key] = attr_value["stringValue"]
+
+                # Extract log attributes as dict
+                log_attrs_dict = {}
+                for attr in attrs:
+                    key = attr.get("key", "")
+                    attr_val = attr.get("value", {})
+                    if "stringValue" in attr_val:
+                        log_attrs_dict[key] = attr_val["stringValue"]
+                    elif "intValue" in attr_val:
+                        log_attrs_dict[key] = str(attr_val["intValue"])
+                    elif "doubleValue" in attr_val:
+                        log_attrs_dict[key] = str(attr_val["doubleValue"])
+                    elif "boolValue" in attr_val:
+                        log_attrs_dict[key] = str(attr_val["boolValue"])
+
+                self._clickhouse_backend.send_log(
+                    message=message,
+                    level=severity.name,
+                    attributes=log_attrs_dict,
+                    resource_attributes=resource_attrs_dict,
+                )
+            except Exception as e:
+                logger.debug(f"ClickHouse backend log error: {e}")
         else:
-            self._flush_logs([log_record])
+            # Use OTLP backend (default)
+            # Queue or send immediately
+            if self.config.batch_size > 1:
+                with self._queue_lock:
+                    self._log_queue.append(log_record)
+                    if len(self._log_queue) >= self.config.batch_size:
+                        self._flush_logs()
+            else:
+                self._flush_logs([log_record])
 
     def _flush_traces(self, spans: list[dict[str, Any]] | None = None) -> None:
         """Flush trace queue to endpoint."""

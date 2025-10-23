@@ -9,6 +9,7 @@ import * as http from "http";
 import * as https from "https";
 import * as url from "url";
 import * as zlib from "zlib";
+import * as crypto from "crypto";
 
 /**
  * Configuration options for ClickHouse backend.
@@ -18,8 +19,12 @@ export interface ClickHouseBackendConfig {
   endpoint?: string;
   /** Database name (default: telemetry) */
   database?: string;
-  /** Table name (default: traces) */
-  table?: string;
+  /** Traces table name (default: traces) */
+  tracesTable?: string;
+  /** Metrics table name (default: metrics) */
+  metricsTable?: string;
+  /** Logs table name (default: logs) */
+  logsTable?: string;
   /** ClickHouse username (default: default) */
   username?: string;
   /** ClickHouse password */
@@ -35,9 +40,9 @@ export interface ClickHouseBackendConfig {
 }
 
 /**
- * ClickHouse row structure matching our schema.
+ * ClickHouse trace row structure matching our schema.
  */
-interface ClickHouseRow {
+interface ClickHouseTraceRow {
   trace_id: string;
   span_id: string;
   parent_span_id: string;
@@ -63,6 +68,45 @@ interface ClickHouseRow {
 }
 
 /**
+ * ClickHouse metric row structure matching our schema.
+ */
+interface ClickHouseMetricRow {
+  metric_id: string;
+  timestamp: string;
+  timestamp_ns: number;
+  service_name: string;
+  metric_name: string;
+  metric_type: string;
+  value: number;
+  unit: string;
+  project_name: string;
+  project_version: string;
+  environment: string;
+  hostname: string;
+  attributes: Record<string, string>;
+}
+
+/**
+ * ClickHouse log row structure matching our schema.
+ */
+interface ClickHouseLogRow {
+  log_id: string;
+  timestamp: string;
+  timestamp_ns: number;
+  trace_id: string;
+  span_id: string;
+  severity_number: number;
+  severity_text: string;
+  body: string;
+  service_name: string;
+  project_name: string;
+  project_version: string;
+  environment: string;
+  hostname: string;
+  attributes: Record<string, string>;
+}
+
+/**
  * Direct ClickHouse insertion backend.
  *
  * Transforms OTLP-format traces to our custom ClickHouse schema
@@ -71,19 +115,25 @@ interface ClickHouseRow {
 export class ClickHouseBackend {
   private endpoint: string;
   private database: string;
-  private table: string;
+  private tracesTable: string;
+  private metricsTable: string;
+  private logsTable: string;
   private username: string;
   private password: string;
   private timeout: number;
   private batchSize: number;
   private compressionEnabled: boolean;
   private maxRetries: number;
-  private batch: ClickHouseRow[] = [];
+  private traceBatch: ClickHouseTraceRow[] = [];
+  private metricBatch: ClickHouseMetricRow[] = [];
+  private logBatch: ClickHouseLogRow[] = [];
 
   constructor(config: ClickHouseBackendConfig = {}) {
     this.endpoint = config.endpoint || "http://localhost:8123";
     this.database = config.database || "telemetry";
-    this.table = config.table || "traces";
+    this.tracesTable = config.tracesTable || "traces";
+    this.metricsTable = config.metricsTable || "metrics";
+    this.logsTable = config.logsTable || "logs";
     this.username = config.username || "default";
     this.password = config.password || "";
     this.timeout = config.timeout || 5000;
@@ -93,9 +143,16 @@ export class ClickHouseBackend {
   }
 
   /**
+   * Generate a UUID v4.
+   */
+  private generateUUID(): string {
+    return crypto.randomUUID();
+  }
+
+  /**
    * Transform OTLP span format to our ClickHouse schema.
    */
-  private transformOTLPToClickHouse(otlpSpan: any): ClickHouseRow {
+  private transformOTLPToClickHouse(otlpSpan: any): ClickHouseTraceRow {
     // Extract timestamp (use start time or current time)
     const timestampNs = otlpSpan.startTimeUnixNano || Date.now() * 1_000_000;
     const timestamp = new Date(Number(timestampNs) / 1_000_000);
@@ -167,36 +224,60 @@ export class ClickHouseBackend {
   }
 
   /**
-   * Add a span to the batch queue.
+   * Add a span to the trace batch queue.
    */
   public addToBatch(otlpSpan: any): void {
     const row = this.transformOTLPToClickHouse(otlpSpan);
-    this.batch.push(row);
+    this.traceBatch.push(row);
 
     // Auto-flush if batch size reached
-    if (this.batch.length >= this.batchSize) {
+    if (this.traceBatch.length >= this.batchSize) {
       this.flush();
     }
   }
 
   /**
-   * Flush the current batch to ClickHouse.
+   * Flush all batches (traces, metrics, logs) to ClickHouse.
    */
   public async flush(): Promise<boolean> {
-    if (this.batch.length === 0) {
+    const promises: Promise<boolean>[] = [];
+
+    // Flush traces
+    if (this.traceBatch.length > 0) {
+      const rows = [...this.traceBatch];
+      this.traceBatch = [];
+      promises.push(this.insertBatch(rows, this.tracesTable));
+    }
+
+    // Flush metrics
+    if (this.metricBatch.length > 0) {
+      const rows = [...this.metricBatch];
+      this.metricBatch = [];
+      promises.push(this.insertBatch(rows, this.metricsTable));
+    }
+
+    // Flush logs
+    if (this.logBatch.length > 0) {
+      const rows = [...this.logBatch];
+      this.logBatch = [];
+      promises.push(this.insertBatch(rows, this.logsTable));
+    }
+
+    if (promises.length === 0) {
       return true;
     }
 
-    const rows = [...this.batch];
-    this.batch = [];
-
-    return this.insertBatch(rows);
+    const results = await Promise.all(promises);
+    return results.every((result) => result);
   }
 
   /**
    * Insert a batch of rows into ClickHouse.
    */
-  private async insertBatch(rows: ClickHouseRow[]): Promise<boolean> {
+  private async insertBatch(
+    rows: Array<ClickHouseTraceRow | ClickHouseMetricRow | ClickHouseLogRow>,
+    tableName: string
+  ): Promise<boolean> {
     if (rows.length === 0) {
       return true;
     }
@@ -212,7 +293,7 @@ export class ClickHouseBackend {
     }
 
     // Build URL with query
-    const query = `INSERT INTO ${this.database}.${this.table} FORMAT JSONEachRow`;
+    const query = `INSERT INTO ${this.database}.${tableName} FORMAT JSONEachRow`;
     const parsedUrl = new url.URL(this.endpoint);
     parsedUrl.searchParams.set("query", query);
 
@@ -338,6 +419,195 @@ export class ClickHouseBackend {
       return true;
     } catch (error) {
       console.error("Error adding span to batch:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Send a single metric to ClickHouse.
+   *
+   * @param metricName - Name of the metric (e.g., "http.request.duration")
+   * @param value - Numeric value of the metric
+   * @param metricType - Type of metric: "GAUGE", "COUNTER", "HISTOGRAM", "SUMMARY"
+   * @param unit - Unit of measurement (e.g., "ms", "bytes", "count")
+   * @param attributes - Additional metric attributes
+   * @param resourceAttributes - Resource-level attributes (service name, environment, etc.)
+   * @param timestamp - Optional timestamp (defaults to current time)
+   * @returns true if successfully added to batch, false otherwise
+   */
+  public sendMetric(
+    metricName: string,
+    value: number,
+    metricType: string = "GAUGE",
+    unit: string = "",
+    attributes?: Record<string, any>,
+    resourceAttributes?: Record<string, any>,
+    timestamp?: Date
+  ): boolean {
+    try {
+      // Map COUNTER to SUM for ClickHouse enum compatibility
+      let mappedType = metricType.toUpperCase();
+      if (mappedType === "COUNTER") {
+        mappedType = "SUM";
+      }
+
+      // Validate metric type
+      const validTypes = ["GAUGE", "SUM", "HISTOGRAM", "SUMMARY"];
+      if (!validTypes.includes(mappedType)) {
+        console.warn(
+          `Invalid metric type: ${metricType}. Using GAUGE as fallback.`
+        );
+        mappedType = "GAUGE";
+      }
+
+      // Generate timestamp
+      const ts = timestamp || new Date();
+      const timestampNs = ts.getTime() * 1_000_000;
+
+      // Flatten attributes
+      const flatAttrs: Record<string, string> = {};
+      if (attributes) {
+        for (const [key, val] of Object.entries(attributes)) {
+          flatAttrs[key] = String(val);
+        }
+      }
+
+      // Extract resource attributes
+      const resAttrs = resourceAttributes || {};
+
+      // Build metric row
+      const metricRow: ClickHouseMetricRow = {
+        metric_id: this.generateUUID(),
+        timestamp: ts.toISOString().replace("T", " ").substring(0, 19),
+        timestamp_ns: timestampNs,
+        service_name:
+          String(resAttrs["service.name"] || resAttrs.service_name) ||
+          "unknown",
+        metric_name: metricName,
+        metric_type: mappedType,
+        value: value,
+        unit: unit,
+        project_name:
+          String(resAttrs["project.name"] || resAttrs.project_name) || "",
+        project_version:
+          String(resAttrs["project.version"] || resAttrs.project_version) ||
+          "",
+        environment:
+          String(
+            resAttrs["deployment.environment"] ||
+              resAttrs.environment ||
+              resAttrs.env
+          ) || "production",
+        hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
+        attributes: flatAttrs,
+      };
+
+      // Add to batch
+      this.metricBatch.push(metricRow);
+
+      // Auto-flush if batch size reached
+      if (this.metricBatch.length >= this.batchSize) {
+        this.flush();
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error adding metric to batch:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Send a single log entry to ClickHouse.
+   *
+   * @param message - Log message body
+   * @param level - Log level: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+   * @param attributes - Additional log attributes
+   * @param resourceAttributes - Resource-level attributes (service name, environment, etc.)
+   * @param timestamp - Optional timestamp (defaults to current time)
+   * @param traceId - Optional trace ID to correlate with traces
+   * @param spanId - Optional span ID to correlate with traces
+   * @returns true if successfully added to batch, false otherwise
+   */
+  public sendLog(
+    message: string,
+    level: string = "INFO",
+    attributes?: Record<string, any>,
+    resourceAttributes?: Record<string, any>,
+    timestamp?: Date,
+    traceId: string = "",
+    spanId: string = ""
+  ): boolean {
+    try {
+      // Map severity level to number (OpenTelemetry severity numbers)
+      const severityMap: Record<string, number> = {
+        TRACE: 1,
+        DEBUG: 5,
+        INFO: 9,
+        WARN: 13,
+        WARNING: 13,
+        ERROR: 17,
+        FATAL: 21,
+        CRITICAL: 21,
+      };
+
+      const upperLevel = level.toUpperCase();
+      const severityNumber = severityMap[upperLevel] || 9; // Default to INFO
+
+      // Generate timestamp
+      const ts = timestamp || new Date();
+      const timestampNs = ts.getTime() * 1_000_000;
+
+      // Flatten attributes
+      const flatAttrs: Record<string, string> = {};
+      if (attributes) {
+        for (const [key, val] of Object.entries(attributes)) {
+          flatAttrs[key] = String(val);
+        }
+      }
+
+      // Extract resource attributes
+      const resAttrs = resourceAttributes || {};
+
+      // Build log row
+      const logRow: ClickHouseLogRow = {
+        log_id: this.generateUUID(),
+        timestamp: ts.toISOString().replace("T", " ").substring(0, 19),
+        timestamp_ns: timestampNs,
+        trace_id: traceId,
+        span_id: spanId,
+        severity_number: severityNumber,
+        severity_text: upperLevel,
+        body: message,
+        service_name:
+          String(resAttrs["service.name"] || resAttrs.service_name) ||
+          "unknown",
+        project_name:
+          String(resAttrs["project.name"] || resAttrs.project_name) || "",
+        project_version:
+          String(resAttrs["project.version"] || resAttrs.project_version) ||
+          "",
+        environment:
+          String(
+            resAttrs["deployment.environment"] ||
+              resAttrs.environment ||
+              resAttrs.env
+          ) || "production",
+        hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
+        attributes: flatAttrs,
+      };
+
+      // Add to batch
+      this.logBatch.push(logRow);
+
+      // Auto-flush if batch size reached
+      if (this.logBatch.length >= this.batchSize) {
+        this.flush();
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error adding log to batch:", error);
       return false;
     }
   }
