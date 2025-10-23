@@ -34,6 +34,7 @@ services:
       - "4318:4318"  # OTLP HTTP receiver
       - "4317:4317"  # OTLP gRPC receiver
       - "8888:8888"  # Prometheus metrics
+      - "13133:13133"  # Health check endpoint
     volumes:
       - ./collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     environment:
@@ -44,11 +45,9 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    # Note: Health check disabled due to distroless image limitations
+    # The collector provides its own health endpoint at :13133
+    # Test with: curl http://localhost:13133/
     networks:
       - telemetry
 

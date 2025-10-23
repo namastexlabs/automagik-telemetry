@@ -51,21 +51,6 @@ processors:
         action: insert
 
 exporters:
-  # ClickHouse exporter via HTTP
-  clickhouse:
-    endpoint: ${env:CLICKHOUSE_ENDPOINT}
-    database: ${env:CLICKHOUSE_DATABASE}
-    username: ${env:CLICKHOUSE_USER}
-    password: ${env:CLICKHOUSE_PASSWORD}
-    ttl: 72h
-    traces_table_name: traces
-    timeout: 10s
-    retry_on_failure:
-      enabled: true
-      initial_interval: 5s
-      max_interval: 30s
-      max_elapsed_time: 300s
-
   # Debug exporter for debugging (replaces deprecated logging exporter)
   debug:
     verbosity: normal
@@ -77,6 +62,9 @@ exporters:
     endpoint: "0.0.0.0:8889"
     namespace: automagik_telemetry
 
+  # Note: ClickHouse export is handled directly by SDKs for better performance
+  # SDKs write directly to ClickHouse using custom schema and batching
+
 service:
   pipelines:
     traces:
@@ -85,10 +73,21 @@ service:
       exporters: [debug]
 
     metrics:
-      receivers: [prometheus]
+      receivers: [prometheus, otlp]
+      processors: [batch]
+      exporters: [prometheus, debug]
+
+    logs:
+      receivers: [otlp]
       processors: [batch]
       exporters: [debug]
 
   telemetry:
     logs:
       level: info
+
+  extensions: [health_check]
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
