@@ -167,8 +167,8 @@ def generate_metrics(client: AutomagikTelemetry, count: int = 30) -> None:
     print(f"✅ Generated {count} metrics")
 
 
-def generate_logs(client: AutomagikTelemetry, count: int = 25) -> None:
-    """Generate sample log data."""
+def generate_logs(client: AutomagikTelemetry, count: int = 100) -> None:
+    """Generate sample log data with trace context."""
     print(f"\n📝 Generating {count} logs...")
 
     log_messages = {
@@ -178,22 +178,34 @@ def generate_logs(client: AutomagikTelemetry, count: int = 25) -> None:
             "Database connection established",
             "Service started successfully",
             "Cache warmed up with 1000 entries",
+            "Request processed successfully",
+            "Data synchronized with remote",
+            "Backup completed successfully",
+            "Health check passed",
+            "Session created for user",
         ],
         LogSeverity.WARN: [
             "High memory usage detected (85%)",
             "Slow database query detected (>500ms)",
             "Rate limit approaching threshold",
             "Deprecated API endpoint called",
+            "Retry attempt 3/5",
+            "Cache miss - fetching from database",
+            "Connection pool near capacity",
         ],
         LogSeverity.ERROR: [
             "Failed to connect to external service",
             "Database query timeout",
             "Invalid user input received",
             "File not found: config.json",
+            "API rate limit exceeded",
+            "Authentication failed",
+            "Data validation error",
         ],
         LogSeverity.FATAL: [
             "Out of memory - service crashing",
             "Critical database connection lost",
+            "Unrecoverable data corruption detected",
         ],
     }
 
@@ -207,9 +219,16 @@ def generate_logs(client: AutomagikTelemetry, count: int = 25) -> None:
 
         message = random.choice(log_messages[severity])
 
+        # Generate trace context for logs (simulating they're part of requests)
+        import uuid
+        trace_id = str(uuid.uuid4())
+        span_id = str(uuid.uuid4())[:16]  # Shorter span ID
+
         attributes = {
             "source": random.choice(["api", "worker", "scheduler", "webhook"]),
             "request_id": f"req-{random.randint(10000, 99999)}",
+            "trace_id": trace_id,  # Add trace context
+            "span_id": span_id,    # Add span context
         }
 
         # Add error-specific attributes
@@ -220,7 +239,7 @@ def generate_logs(client: AutomagikTelemetry, count: int = 25) -> None:
 
         client.track_log(message, severity, attributes)
 
-        time.sleep(0.1)
+        time.sleep(0.05)  # Faster generation for 100 logs
 
     print(f"✅ Generated {count} logs")
 
@@ -298,7 +317,7 @@ def main() -> None:
         # Generate different types of telemetry data
         generate_traces(client, count=20)
         generate_metrics(client, count=30)
-        generate_logs(client, count=25)
+        generate_logs(client, count=100)  # Generate 100 logs with trace context
         generate_errors(client, count=5)
 
         # Flush any remaining batched data
