@@ -13,7 +13,7 @@ pnpm add @automagik/telemetry
 ## Quick Start
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
 
 // Initialize client
 const client = new AutomagikTelemetry({
@@ -28,7 +28,7 @@ client.trackEvent('user.login', {
 });
 
 // Track metrics
-client.trackCounter('api.requests', 1, {
+client.trackMetric('api.requests', 1, MetricType.COUNTER, {
     endpoint: '/api/users',
     status: 200
 });
