@@ -40,8 +40,9 @@ integration = [
 
 [project.urls]
 Homepage = "https://github.com/namastexlabs/automagik-telemetry"
-Documentation = "https://docs.automagik.ai/telemetry"
+Documentation = "https://github.com/namastexlabs/automagik-telemetry#readme"
 Repository = "https://github.com/namastexlabs/automagik-telemetry"
+Directory = "python"
 Issues = "https://github.com/namastexlabs/automagik-telemetry/issues"
 
 [build-system]
