@@ -743,8 +743,6 @@ We love contributions! However, to maintain project quality:
 - Jest for testing
 - 100% test coverage enforced
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
 ---
 
 ## 🙏 Acknowledgments
