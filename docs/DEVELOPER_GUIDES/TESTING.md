@@ -513,10 +513,10 @@ python/tests/
 ├── test_integration_throughput.py  # High-volume tests
 ├── test_integration_otlp.py        # Real OTLP collector tests
 ├── test_integration_memory.py      # Memory leak detection
+├── README.md                       # Quick test reference
 └── integration/
     ├── __init__.py
-    ├── test_clickhouse_integration.py  # ClickHouse backend tests
-    └── README.md                       # ClickHouse integration docs
+    └── test_clickhouse_integration.py  # ClickHouse backend tests
 ```
 
 #### Test Files Overview
@@ -858,9 +858,7 @@ typescript/tests/
 ├── integration.test.ts             # OTLP integration tests
 ├── clickhouse.integration.test.ts  # ClickHouse backend tests
 ├── run-clickhouse-tests.sh         # Helper script with prerequisite checks
-├── CLICKHOUSE_INTEGRATION_README.md
-├── CLICKHOUSE_TESTS_SUMMARY.md
-└── INTEGRATION_TESTS_README.md
+└── README.md                       # Quick test reference
 ```
 
 #### Test Suites Overview

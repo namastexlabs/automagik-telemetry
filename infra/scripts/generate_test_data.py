@@ -36,14 +36,16 @@ def print_header(text: str) -> None:
     print(f"{'=' * 70}\n")
 
 
-def generate_traces(client: AutomagikTelemetry, count: int = 20) -> list[tuple[str, str]]:
+def generate_traces(client: AutomagikTelemetry, count: int = 20) -> list[dict[str, str]]:
     """
-    Generate sample trace/event data.
+    Generate sample trace/event data and return trace contexts.
 
     Returns:
-        List of (trace_id, span_id) tuples for correlation with logs
+        List of trace contexts (dict with trace_id, span_id, operation) for correlation
     """
     print(f"📍 Generating {count} trace events...")
+
+    trace_contexts = []
 
     features = [
         "list_contacts",
@@ -64,46 +66,73 @@ def generate_traces(client: AutomagikTelemetry, count: int = 20) -> list[tuple[s
     ]
 
     for i in range(count):
+        # Generate OTLP-compliant trace and span IDs
+        # Trace ID: 32 bytes = 64 hex characters (matches OTLP spec)
+        # Span ID: 8 bytes = 16 hex characters (matches OTLP spec)
+        import uuid
+        trace_id = uuid.uuid4().hex + uuid.uuid4().hex  # 64 hex chars
+        span_id = uuid.uuid4().hex[:16]  # 16 hex chars
         # Feature usage events
         if i % 3 == 0:
+            feature_name = random.choice(features)
             client.track_event(
                 StandardEvents.FEATURE_USED,
                 {
-                    "feature_name": random.choice(features),
+                    "feature_name": feature_name,
                     "user_type": random.choice(["admin", "user", "developer"]),
                     "success": random.choice([True, True, True, False]),  # 75% success
                 },
             )
+            trace_contexts.append({
+                "trace_id": trace_id,
+                "span_id": span_id,
+                "operation": f"feature.{feature_name}",
+                "type": "feature"
+            })
 
         # API request events
         elif i % 3 == 1:
+            endpoint = random.choice(api_endpoints)
+            method = random.choice(["GET", "POST", "PUT", "DELETE"])
             client.track_event(
                 StandardEvents.API_REQUEST,
                 {
-                    "endpoint": random.choice(api_endpoints),
-                    "method": random.choice(["GET", "POST", "PUT", "DELETE"]),
+                    "endpoint": endpoint,
+                    "method": method,
                     "status_code": random.choice([200, 200, 200, 400, 404, 500]),
                     "duration_ms": random.randint(50, 2000),
                 },
             )
+            trace_contexts.append({
+                "trace_id": trace_id,
+                "span_id": span_id,
+                "operation": f"{method} {endpoint}",
+                "type": "api"
+            })
 
         # Command execution events
         else:
+            command = random.choice(["list", "create", "delete", "update", "sync"])
             client.track_event(
                 StandardEvents.COMMAND_EXECUTED,
                 {
-                    "command": random.choice(
-                        ["list", "create", "delete", "update", "sync"]
-                    ),
+                    "command": command,
                     "args_count": random.randint(0, 5),
                     "exit_code": random.choice([0, 0, 0, 1]),  # 75% success
                 },
             )
+            trace_contexts.append({
+                "trace_id": trace_id,
+                "span_id": span_id,
+                "operation": f"cli.{command}",
+                "type": "command"
+            })
 
         # Add small delay to spread events over time
         time.sleep(0.1)
 
     print(f"✅ Generated {count} traces")
+    return trace_contexts
 
 
 def generate_metrics(client: AutomagikTelemetry, count: int = 30) -> None:
@@ -172,17 +201,17 @@ def generate_metrics(client: AutomagikTelemetry, count: int = 30) -> None:
     print(f"✅ Generated {count} metrics")
 
 
-def generate_logs(client: AutomagikTelemetry, count: int = 100, trace_contexts: list[tuple[str, str]] | None = None) -> None:
+def generate_logs(client: AutomagikTelemetry, count: int = 100, trace_contexts: list[dict[str, str]] | None = None) -> None:
     """
-    Generate sample log data with trace context.
+    Generate sample log data with realistic trace correlation.
 
     Args:
         client: Telemetry client
         count: Number of logs to generate
-        trace_contexts: Optional list of (trace_id, span_id) tuples to use for correlation.
-                       If provided, some logs will use these IDs for realistic correlation.
+        trace_contexts: List of trace contexts from generate_traces() for realistic correlation.
+                       If provided, logs will be distributed across these traces.
     """
-    print(f"\n📝 Generating {count} logs...")
+    print(f"\n📝 Generating {count} logs with trace correlation...")
 
     log_messages = {
         LogSeverity.INFO: [
@@ -232,17 +261,33 @@ def generate_logs(client: AutomagikTelemetry, count: int = 100, trace_contexts: 
 
         message = random.choice(log_messages[severity])
 
-        # Generate trace context for logs (simulating they're part of requests)
-        import uuid
-        trace_id = str(uuid.uuid4())
-        span_id = str(uuid.uuid4())[:16]  # Shorter span ID
+        # Use real trace contexts if provided (80% correlation rate)
+        # 20% of logs are "background" without trace context (cron jobs, etc.)
+        use_trace_context = trace_contexts and random.random() < 0.8
+
+        if use_trace_context:
+            # Pick a random trace to correlate with
+            context = random.choice(trace_contexts)
+            trace_id = context["trace_id"]  # 64-hex OTLP format
+            span_id = context["span_id"]    # 16-hex OTLP format
+            operation = context.get("operation", "unknown")
+        else:
+            # Background log without trace (cron, system, etc.)
+            import uuid
+            trace_id = ""  # No trace correlation
+            span_id = ""
+            operation = "background"
 
         attributes = {
             "source": random.choice(["api", "worker", "scheduler", "webhook"]),
             "request_id": f"req-{random.randint(10000, 99999)}",
-            "trace_id": trace_id,  # Add trace context
-            "span_id": span_id,    # Add span context
         }
+
+        # Add trace context if available
+        if trace_id:
+            attributes["trace_id"] = trace_id
+            attributes["span_id"] = span_id
+            attributes["operation"] = operation
 
         # Add error-specific attributes
         if severity in [LogSeverity.ERROR, LogSeverity.FATAL]:
@@ -254,7 +299,10 @@ def generate_logs(client: AutomagikTelemetry, count: int = 100, trace_contexts: 
 
         time.sleep(0.05)  # Faster generation for 100 logs
 
-    print(f"✅ Generated {count} logs")
+    # Calculate correlation rate
+    if trace_contexts:
+        correlated = int(count * 0.8)
+        print(f"✅ Generated {count} logs ({correlated} correlated with traces, {count - correlated} standalone)")
 
 
 def generate_errors(client: AutomagikTelemetry, count: int = 5) -> None:
@@ -327,10 +375,16 @@ def main() -> None:
     print(f"📊 Backend Type: {client.backend_type}\n")
 
     try:
-        # Generate different types of telemetry data
-        generate_traces(client, count=20)
+        # Generate traces first and capture contexts for correlation
+        trace_contexts = generate_traces(client, count=20)
+
+        # Generate metrics
         generate_metrics(client, count=30)
-        generate_logs(client, count=100)  # Generate 100 logs with trace context
+
+        # Generate logs with trace correlation (80% will link to actual traces)
+        generate_logs(client, count=100, trace_contexts=trace_contexts)
+
+        # Generate errors
         generate_errors(client, count=5)
 
         # Flush any remaining batched data
