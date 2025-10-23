@@ -205,14 +205,16 @@ client.track_event("user.login", {
 })
 
 # Track metrics (counters, gauges, histograms)
-client.track_counter("api.requests", value=1, attributes={
+from automagik_telemetry import MetricType
+
+client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER, attributes={
     "endpoint": "/api/users",
     "status": 200
 })
 
-client.track_gauge("system.memory_mb", value=512.5)
+client.track_metric("system.memory_mb", value=512.5, metric_type=MetricType.GAUGE)
 
-client.track_histogram("api.response_time_ms", value=125.3)
+client.track_metric("api.response_time_ms", value=125.3, metric_type=MetricType.HISTOGRAM)
 ```
 
 ### TypeScript SDK
@@ -244,14 +246,16 @@ client.trackEvent('user.login', {
 });
 
 // Track metrics
-client.trackCounter('api.requests', 1, {
+import { MetricType } from '@automagik/telemetry';
+
+client.trackMetric('api.requests', 1, MetricType.COUNTER, {
     endpoint: '/api/users',
     status: 200
 });
 
-client.trackGauge('system.memory_mb', 512.5);
+client.trackMetric('system.memory_mb', 512.5, MetricType.GAUGE);
 
-client.trackHistogram('api.response_time_ms', 125.3);
+client.trackMetric('api.response_time_ms', 125.3, MetricType.HISTOGRAM);
 ```
 
 ### Using ClickHouse Backend (Self-Hosting)
