@@ -39,6 +39,7 @@ class ClickHouseBackend:
         batch_size: int = 100,
         compression_enabled: bool = True,
         max_retries: int = 3,
+        table: str | None = None,  # Backward compatibility
     ):
         """
         Initialize ClickHouse backend.
@@ -55,10 +56,17 @@ class ClickHouseBackend:
             batch_size: Number of rows to batch before inserting
             compression_enabled: Enable gzip compression
             max_retries: Maximum retry attempts
+            table: (Deprecated) Backward compatibility for traces_table
         """
         self.endpoint = endpoint.rstrip("/")
         self.database = database
-        self.traces_table = traces_table
+
+        # Backward compatibility: if 'table' is provided, use it for traces_table
+        if table is not None:
+            self.traces_table = table
+        else:
+            self.traces_table = traces_table
+
         self.metrics_table = metrics_table
         self.logs_table = logs_table
         self.username = username
@@ -72,6 +80,16 @@ class ClickHouseBackend:
         self._trace_batch: list[dict[str, Any]] = []
         self._metric_batch: list[dict[str, Any]] = []
         self._log_batch: list[dict[str, Any]] = []
+
+    @property
+    def table(self) -> str:
+        """Backward compatibility property for traces_table."""
+        return self.traces_table
+
+    @property
+    def _batch(self) -> list[dict[str, Any]]:
+        """Backward compatibility property for _trace_batch."""
+        return self._trace_batch
 
     def transform_otlp_to_clickhouse(self, otlp_span: dict[str, Any]) -> dict[str, Any]:
         """

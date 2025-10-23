@@ -115,8 +115,8 @@ class TestSendMetricBasic:
 
         metric = backend._metric_batch[0]
         assert metric["metric_name"] == "cpu.usage"
-        assert metric["value"] == 75.5
-        assert metric["metric_type"] == "gauge"
+        assert metric["value_double"] == 75.5
+        assert metric["metric_type"] == "GAUGE"
         assert metric["service_name"] == "unknown"
         assert metric["project_name"] == ""
 
@@ -141,9 +141,9 @@ class TestSendMetricBasic:
 
         metric = backend._metric_batch[0]
         assert metric["metric_name"] == "memory.usage"
-        assert metric["value"] == 1024.5
-        assert metric["metric_type"] == "gauge"
-        assert metric["unit"] == "MB"
+        assert metric["value_double"] == 1024.5
+        assert metric["metric_type"] == "GAUGE"
+        assert metric["metric_unit"] == "MB"
         assert metric["service_name"] == "test-service"
         assert metric["project_name"] == "test-project"
         assert metric["project_version"] == "1.0.0"
@@ -166,9 +166,9 @@ class TestSendMetricBasic:
 
         assert result is True
         metric = backend._metric_batch[0]
-        assert metric["metric_type"] == "sum"
-        assert metric["value"] == 1000
-        assert metric["unit"] == "requests"
+        assert metric["metric_type"] == "SUM"
+        assert metric["value_int"] == 1000
+        assert metric["metric_unit"] == "requests"
 
     def test_should_send_histogram_metric(self, backend: ClickHouseBackend) -> None:
         """Test sending a HISTOGRAM metric."""
@@ -181,9 +181,9 @@ class TestSendMetricBasic:
 
         assert result is True
         metric = backend._metric_batch[0]
-        assert metric["metric_type"] == "histogram"
-        assert metric["value"] == 250.5
-        assert metric["unit"] == "ms"
+        assert metric["metric_type"] == "HISTOGRAM"
+        assert metric["value_double"] == 250.5
+        assert metric["metric_unit"] == "ms"
 
     def test_should_send_summary_metric(self, backend: ClickHouseBackend) -> None:
         """Test sending a SUMMARY metric."""
@@ -196,8 +196,8 @@ class TestSendMetricBasic:
 
         assert result is True
         metric = backend._metric_batch[0]
-        assert metric["metric_type"] == "summary"
-        assert metric["value"] == 512.0
+        assert metric["metric_type"] == "SUMMARY"
+        assert metric["value_double"] == 512.0
 
     def test_should_use_current_time_when_timestamp_not_provided(self, backend: ClickHouseBackend) -> None:
         """Test that current time is used when timestamp is not provided."""
@@ -230,29 +230,29 @@ class TestSendMetricBasic:
         backend.send_metric("count", 42, metric_type="sum")
 
         metric = backend._metric_batch[0]
-        assert metric["value"] == 42
-        assert isinstance(metric["value"], (int, float))
+        assert metric["value_int"] == 42
+        assert isinstance(metric["value_int"], int)
 
     def test_should_handle_float_values(self, backend: ClickHouseBackend) -> None:
         """Test handling of float metric values."""
         backend.send_metric("ratio", 0.75, metric_type="gauge")
 
         metric = backend._metric_batch[0]
-        assert metric["value"] == 0.75
+        assert metric["value_double"] == 0.75
 
     def test_should_handle_zero_value(self, backend: ClickHouseBackend) -> None:
         """Test handling of zero metric value."""
         backend.send_metric("zero_metric", 0.0)
 
         metric = backend._metric_batch[0]
-        assert metric["value"] == 0.0
+        assert metric["value_double"] == 0.0
 
     def test_should_handle_negative_value(self, backend: ClickHouseBackend) -> None:
         """Test handling of negative metric value."""
         backend.send_metric("temperature", -5.5, unit="celsius")
 
         metric = backend._metric_batch[0]
-        assert metric["value"] == -5.5
+        assert metric["value_double"] == -5.5
 
 
 # ============================================================================
@@ -508,8 +508,8 @@ class TestSendLogBasic:
         assert len(backend._log_batch) == 1
 
         log = backend._log_batch[0]
-        assert log["message"] == "Test log message"
-        assert log["level"] == "INFO"  # Default level
+        assert log["body"] == "Test log message"
+        assert log["severity_text"] == "INFO"  # Default level
         assert log["service_name"] == "unknown"
         assert log["trace_id"] == ""
         assert log["span_id"] == ""
@@ -534,8 +534,8 @@ class TestSendLogBasic:
         assert len(backend._log_batch) == 1
 
         log = backend._log_batch[0]
-        assert log["message"] == "Error processing request"
-        assert log["level"] == "ERROR"
+        assert log["body"] == "Error processing request"
+        assert log["severity_text"] == "ERROR"
         assert log["service_name"] == "test-service"
         assert log["project_name"] == "test-project"
         assert log["project_version"] == "1.0.0"
@@ -554,42 +554,42 @@ class TestSendLogBasic:
         backend.send_log("Debug message", level="DEBUG")
 
         log = backend._log_batch[0]
-        assert log["level"] == "DEBUG"
+        assert log["severity_text"] == "DEBUG"
 
     def test_should_send_info_level_log(self, backend: ClickHouseBackend) -> None:
         """Test sending an INFO level log."""
         backend.send_log("Info message", level="INFO")
 
         log = backend._log_batch[0]
-        assert log["level"] == "INFO"
+        assert log["severity_text"] == "INFO"
 
     def test_should_send_warning_level_log(self, backend: ClickHouseBackend) -> None:
         """Test sending a WARNING level log."""
         backend.send_log("Warning message", level="WARNING")
 
         log = backend._log_batch[0]
-        assert log["level"] == "WARNING"
+        assert log["severity_text"] == "WARNING"
 
     def test_should_send_error_level_log(self, backend: ClickHouseBackend) -> None:
         """Test sending an ERROR level log."""
         backend.send_log("Error message", level="ERROR")
 
         log = backend._log_batch[0]
-        assert log["level"] == "ERROR"
+        assert log["severity_text"] == "ERROR"
 
     def test_should_send_critical_level_log(self, backend: ClickHouseBackend) -> None:
         """Test sending a CRITICAL level log."""
         backend.send_log("Critical message", level="CRITICAL")
 
         log = backend._log_batch[0]
-        assert log["level"] == "CRITICAL"
+        assert log["severity_text"] == "CRITICAL"
 
     def test_should_normalize_level_to_uppercase(self, backend: ClickHouseBackend) -> None:
         """Test that log level is normalized to uppercase."""
         backend.send_log("Test", level="error")
 
         log = backend._log_batch[0]
-        assert log["level"] == "ERROR"
+        assert log["severity_text"] == "ERROR"
 
     def test_should_use_current_time_when_timestamp_not_provided(self, backend: ClickHouseBackend) -> None:
         """Test that current time is used when timestamp is not provided."""
@@ -618,7 +618,7 @@ class TestSendLogBasic:
         backend.send_log("")
 
         log = backend._log_batch[0]
-        assert log["message"] == ""
+        assert log["body"] == ""
 
     def test_should_handle_multiline_message(self, backend: ClickHouseBackend) -> None:
         """Test handling of multiline log message."""
@@ -626,7 +626,7 @@ class TestSendLogBasic:
         backend.send_log(multiline_msg)
 
         log = backend._log_batch[0]
-        assert log["message"] == multiline_msg
+        assert log["body"] == multiline_msg
 
 
 # ============================================================================
@@ -690,8 +690,8 @@ class TestLogsBatching:
             backend.send_log(f"Log message {i}")
 
         assert len(backend._log_batch) == 5
-        assert backend._log_batch[0]["message"] == "Log message 0"
-        assert backend._log_batch[4]["message"] == "Log message 4"
+        assert backend._log_batch[0]["body"] == "Log message 0"
+        assert backend._log_batch[4]["body"] == "Log message 4"
 
     def test_should_auto_flush_when_batch_size_reached(self, backend: ClickHouseBackend) -> None:
         """Test auto-flush when log batch size is reached."""
@@ -1196,7 +1196,7 @@ class TestEdgeCases:
         backend.send_metric("large.metric", large_value)
 
         metric = backend._metric_batch[0]
-        assert metric["value"] == large_value
+        assert metric["value_double"] == large_value
 
     def test_should_handle_very_small_metric_value(self, backend: ClickHouseBackend) -> None:
         """Test handling of very small metric values."""
@@ -1205,7 +1205,7 @@ class TestEdgeCases:
         backend.send_metric("small.metric", small_value)
 
         metric = backend._metric_batch[0]
-        assert metric["value"] == small_value
+        assert metric["value_double"] == small_value
 
     def test_should_handle_very_long_log_message(self, backend: ClickHouseBackend) -> None:
         """Test handling of very long log messages."""
@@ -1214,8 +1214,8 @@ class TestEdgeCases:
         backend.send_log(long_message)
 
         log = backend._log_batch[0]
-        assert log["message"] == long_message
-        assert len(log["message"]) == 100000
+        assert log["body"] == long_message
+        assert len(log["body"]) == 100000
 
     def test_should_handle_special_characters_in_log_message(self, backend: ClickHouseBackend) -> None:
         """Test handling of special characters in log messages."""
@@ -1224,7 +1224,7 @@ class TestEdgeCases:
         backend.send_log(special_msg)
 
         log = backend._log_batch[0]
-        assert log["message"] == special_msg
+        assert log["body"] == special_msg
 
     def test_should_handle_unicode_in_log_message(self, backend: ClickHouseBackend) -> None:
         """Test handling of Unicode characters in log messages."""
@@ -1233,7 +1233,7 @@ class TestEdgeCases:
         backend.send_log(unicode_msg)
 
         log = backend._log_batch[0]
-        assert log["message"] == unicode_msg
+        assert log["body"] == unicode_msg
 
     def test_should_handle_large_number_of_attributes(self, backend: ClickHouseBackend) -> None:
         """Test handling of many attributes."""

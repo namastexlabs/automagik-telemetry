@@ -51,7 +51,11 @@ class TestMetricsExport:
         assert "/v1/metrics" in request.full_url
 
         # Parse the payload
-        payload = json.loads(request.data.decode("utf-8"))
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+        payload = json.loads(data.decode("utf-8"))
 
         # Verify OTLP metrics structure
         assert "resourceMetrics" in payload
@@ -159,7 +163,11 @@ class TestLogsExport:
         assert "/v1/logs" in request.full_url
 
         # Parse payload
-        payload = json.loads(request.data.decode("utf-8"))
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+        payload = json.loads(data.decode("utf-8"))
 
         # Verify OTLP logs structure
         assert "resourceLogs" in payload
@@ -191,7 +199,12 @@ class TestLogsExport:
         # Get the request
         call_args = mock_urlopen.call_args
         request = call_args[0][0]
-        payload = json.loads(request.data.decode("utf-8"))
+
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+        payload = json.loads(data.decode("utf-8"))
 
         log_record = payload["resourceLogs"][0]["scopeLogs"][0]["logRecords"][0]
         assert log_record["severityNumber"] == LogSeverity.ERROR.value
@@ -279,7 +292,12 @@ class TestBatchProcessing:
         # Verify both events were sent
         call_args = mock_urlopen.call_args
         request = call_args[0][0]
-        payload = json.loads(request.data.decode("utf-8"))
+
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+        payload = json.loads(data.decode("utf-8"))
 
         spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
         assert len(spans) == 2
@@ -345,7 +363,11 @@ class TestCompression:
         assert request.headers.get("Content-encoding") != "gzip"
 
         # Payload should be uncompressed JSON
-        payload = json.loads(request.data.decode("utf-8"))
+        try:
+            data = gzip.decompress(request.data)
+        except gzip.BadGzipFile:
+            data = request.data
+        payload = json.loads(data.decode("utf-8"))
         assert "resourceSpans" in payload
 
     def test_should_respect_compression_disabled(

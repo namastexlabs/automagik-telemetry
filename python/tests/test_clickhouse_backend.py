@@ -604,7 +604,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            result = backend._insert_batch(rows)
+            result = backend._insert_batch(rows, backend.traces_table)
 
         assert result is True
         assert mock_urlopen.called
@@ -631,7 +631,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            backend._insert_batch(rows)
+            backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
         assert "INSERT%20INTO%20test_db.test_table%20FORMAT%20JSONEachRow" in request.full_url or "test_db.test_table" in request.full_url
@@ -649,7 +649,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            backend._insert_batch(rows)
+            backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
         assert request.headers.get("Content-encoding") == "gzip"
@@ -670,7 +670,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            backend._insert_batch(rows)
+            backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
         assert request.headers.get("Content-encoding") is None
@@ -687,7 +687,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            backend._insert_batch(rows)
+            backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
         assert request.headers.get("Content-encoding") is None
@@ -704,7 +704,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            backend._insert_batch(rows)
+            backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
         assert "Authorization" in request.headers
@@ -722,7 +722,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            backend._insert_batch(rows)
+            backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
         assert "Authorization" not in request.headers
@@ -731,7 +731,7 @@ class TestHTTPInsertion:
         """Test that inserting empty batch returns True."""
         backend = ClickHouseBackend()
 
-        result = backend._insert_batch([])
+        result = backend._insert_batch([], backend.traces_table)
 
         assert result is True
 
@@ -747,7 +747,7 @@ class TestHTTPInsertion:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            backend._insert_batch(rows)
+            backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
         assert request.headers.get("Content-type") == "application/x-ndjson"
@@ -766,7 +766,7 @@ class TestErrorHandling:
                 "http://localhost:8123", 500, "Internal Server Error", {}, None
             )
 
-            result = backend._insert_batch(rows)
+            result = backend._insert_batch(rows, backend.traces_table)
 
         assert result is False
         # Should retry max_retries times
@@ -780,7 +780,7 @@ class TestErrorHandling:
         with patch("automagik_telemetry.backends.clickhouse.urlopen") as mock_urlopen:
             mock_urlopen.side_effect = URLError("Network unreachable")
 
-            result = backend._insert_batch(rows)
+            result = backend._insert_batch(rows, backend.traces_table)
 
         assert result is False
         assert mock_urlopen.call_count == 2
@@ -796,7 +796,7 @@ class TestErrorHandling:
             )
 
             with patch("automagik_telemetry.backends.clickhouse.time.sleep") as mock_sleep:
-                backend._insert_batch(rows)
+                backend._insert_batch(rows, backend.traces_table)
 
                 # Should sleep with exponential backoff: 2^0, 2^1
                 assert mock_sleep.call_count == 2
@@ -812,7 +812,7 @@ class TestErrorHandling:
         with patch("automagik_telemetry.backends.clickhouse.urlopen") as mock_urlopen:
             mock_urlopen.side_effect = Exception("Unexpected error")
 
-            result = backend._insert_batch(rows)
+            result = backend._insert_batch(rows, backend.traces_table)
 
         assert result is False
         # Should only try once (no retries for generic exceptions)
@@ -831,7 +831,7 @@ class TestErrorHandling:
             mock_response.__exit__ = Mock(return_value=False)
             mock_urlopen.return_value = mock_response
 
-            result = backend._insert_batch(rows)
+            result = backend._insert_batch(rows, backend.traces_table)
 
         assert result is False
 
@@ -854,7 +854,7 @@ class TestErrorHandling:
             ]
 
             with patch("automagik_telemetry.backends.clickhouse.time.sleep"):
-                result = backend._insert_batch(rows)
+                result = backend._insert_batch(rows, backend.traces_table)
 
         assert result is True
         assert mock_urlopen.call_count == 3
