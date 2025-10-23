@@ -467,6 +467,15 @@ class AutomagikTelemetry:
             # Log any other errors in debug mode
             logger.debug(f"Telemetry {signal_type} error: {e}")
 
+    def _get_sdk_version(self) -> str:
+        """Get SDK version from package metadata (single source of truth)."""
+        try:
+            from importlib.metadata import version
+
+            return version("automagik-telemetry")
+        except Exception:
+            return "0.0.0-dev"
+
     def _get_resource_attributes(self) -> list[dict[str, Any]]:
         """Get common resource attributes for OTLP payloads."""
         return [
@@ -496,7 +505,7 @@ class AutomagikTelemetry:
             },
             {
                 "key": "telemetry.sdk.version",
-                "value": {"stringValue": "0.2.0"},
+                "value": {"stringValue": self._get_sdk_version()},
             },
         ]
 

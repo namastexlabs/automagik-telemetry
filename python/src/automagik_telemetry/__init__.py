@@ -45,7 +45,14 @@ from automagik_telemetry.privacy import (
 )
 from automagik_telemetry.schema import StandardEvents
 
-__version__ = "0.2.0"
+# Version is read from package metadata (single source of truth)
+try:
+    from importlib.metadata import version
+
+    __version__ = version("automagik-telemetry")
+except Exception:
+    # Fallback for development/editable installs
+    __version__ = "0.0.0-dev"
 __all__ = [
     # Core client (primary name)
     "AutomagikTelemetry",
