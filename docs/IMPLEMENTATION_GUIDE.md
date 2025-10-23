@@ -187,7 +187,6 @@ Before merging telemetry implementation:
 - [ ] All standard events implemented
 - [ ] Project-specific events documented
 - [ ] Tests don't send telemetry (auto-disabled in CI)
-- [ ] Updated `docs/telemetry.md` with project specifics
 - [ ] Added to `.env.example`
 
 ## Common Patterns
