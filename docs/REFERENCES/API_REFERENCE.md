@@ -309,6 +309,24 @@ LogSeverity.FATAL  // 21 - Fatal error
 </tr>
 </table>
 
+**Log Severity Level Usage Guide:**
+
+| Level | Numeric Value | When to Use | Example Use Case |
+|-------|---------------|-------------|------------------|
+| **TRACE** | 1 | Extremely detailed tracing | Variable values, loop iterations, method entry/exit |
+| **DEBUG** | 5 | Debugging information | Database queries, cache operations, internal state |
+| **INFO** | 9 | Informational messages (default) | Application startup, configuration loaded, user actions |
+| **WARN** | 13 | Warning conditions | Deprecated API usage, performance degradation, retry attempts |
+| **ERROR** | 17 | Error events | Failed operations, exceptions caught, validation failures |
+| **FATAL** | 21 | Critical errors | System crashes, unrecoverable errors, fatal exceptions |
+
+**Best Practices:**
+- Use `INFO` for normal operations and significant events
+- Use `WARN` for potentially problematic situations that don't break functionality
+- Use `ERROR` for failures that need attention but don't stop the application
+- Use `FATAL` sparingly, only for critical failures requiring immediate attention
+- Avoid `TRACE` and `DEBUG` in production unless troubleshooting
+
 ---
 
 ## Public Methods
