@@ -241,9 +241,9 @@ Point your SDK to the local collector:
 
 **Python:**
 ```python
-from automagik_telemetry import TelemetryClient
+from automagik_telemetry import AutomagikTelemetry
 
-client = TelemetryClient(
+client = AutomagikTelemetry(
     project_name="my-app",
     version="1.0.0",
     backend="otlp",  # Default
@@ -253,9 +253,9 @@ client = TelemetryClient(
 
 **TypeScript:**
 ```typescript
-import { TelemetryClient } from '@automagik/telemetry';
+import { AutomagikTelemetry } from '@automagik/telemetry';
 
-const client = new TelemetryClient({
+const client = new AutomagikTelemetry({
   projectName: 'my-app',
   version: '1.0.0',
   backend: 'otlp',  // Default
@@ -275,9 +275,9 @@ For local development, bypass the collector:
 
 **Python:**
 ```python
-from automagik_telemetry import TelemetryClient
+from automagik_telemetry import AutomagikTelemetry
 
-client = TelemetryClient(
+client = AutomagikTelemetry(
     project_name="my-app",
     version="1.0.0",
     backend="clickhouse",
@@ -291,9 +291,9 @@ client = TelemetryClient(
 
 **TypeScript:**
 ```typescript
-import { TelemetryClient } from '@automagik/telemetry';
+import { AutomagikTelemetry } from '@automagik/telemetry';
 
-const client = new TelemetryClient({
+const client = new AutomagikTelemetry({
   projectName: 'my-app',
   version: '1.0.0',
   backend: 'clickhouse',
@@ -670,7 +670,7 @@ docker exec automagik-clickhouse clickhouse-client \
 **Solutions:**
 1. **Increase batch size** (default: 100):
    ```python
-   client = TelemetryClient(
+   client = AutomagikTelemetry(
        backend="clickhouse",
        clickhouse_batch_size=500  # Higher batching = fewer HTTP requests
    )
@@ -678,7 +678,7 @@ docker exec automagik-clickhouse clickhouse-client \
 
 2. **Enable compression** (default: enabled):
    ```python
-   client = TelemetryClient(
+   client = AutomagikTelemetry(
        backend="clickhouse",
        clickhouse_compression_enabled=True  # Reduces network bandwidth
    )
@@ -727,9 +727,9 @@ curl -u admin:admin http://localhost:3000/api/datasources
 
 **Python:**
 ```python
-from automagik_telemetry import TelemetryClient
+from automagik_telemetry import AutomagikTelemetry
 
-client = TelemetryClient(backend="clickhouse", ...)
+client = AutomagikTelemetry(backend="clickhouse", ...)
 
 # Your application logic
 client.track_event("my.event")
@@ -740,9 +740,9 @@ client.flush()  # Forces immediate insertion
 
 **TypeScript:**
 ```typescript
-import { TelemetryClient } from '@automagik/telemetry';
+import { AutomagikTelemetry } from '@automagik/telemetry';
 
-const client = new TelemetryClient({ backend: 'clickhouse', ... });
+const client = new AutomagikTelemetry({ backend: 'clickhouse', ... });
 
 // Your application logic
 client.trackEvent('my.event');
@@ -753,7 +753,7 @@ await client.flush();  // Forces immediate insertion
 
 Or reduce batch size for testing:
 ```python
-client = TelemetryClient(
+client = AutomagikTelemetry(
     backend="clickhouse",
     clickhouse_batch_size=1  # Flush every event (not recommended for prod)
 )
@@ -766,7 +766,7 @@ client = TelemetryClient(
 **Solutions:**
 1. **Increase timeout**:
    ```python
-   client = TelemetryClient(
+   client = AutomagikTelemetry(
        backend="clickhouse",
        clickhouse_timeout=10  # Increase from default 5 seconds
    )
@@ -787,8 +787,8 @@ client = TelemetryClient(
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from automagik_telemetry import TelemetryClient
-client = TelemetryClient(backend="clickhouse", ...)
+from automagik_telemetry import AutomagikTelemetry
+client = AutomagikTelemetry(backend="clickhouse", ...)
 ```
 
 **Enable verbose logging (TypeScript):**
@@ -796,8 +796,8 @@ client = TelemetryClient(backend="clickhouse", ...)
 // Set environment variable before running
 process.env.DEBUG = 'automagik:*';
 
-import { TelemetryClient } from '@automagik/telemetry';
-const client = new TelemetryClient({ backend: 'clickhouse', ... });
+import { AutomagikTelemetry } from '@automagik/telemetry';
+const client = new AutomagikTelemetry({ backend: 'clickhouse', ... });
 ```
 
 **Monitor ClickHouse query log:**
