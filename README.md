@@ -261,7 +261,7 @@ pip install automagik-telemetry
 
 **Basic Usage:**
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, StandardEvents
 
 # Initialize client
 client = AutomagikTelemetry(
@@ -270,8 +270,10 @@ client = AutomagikTelemetry(
 )
 
 # Track events (traces)
-client.track_event("user.login", {
-    "user_id": "anonymous-123",
+# 💡 TIP: Use StandardEvents constants for consistent event names!
+client.track_event(StandardEvents.FEATURE_USED, {
+    "feature_name": "user_authentication",
+    "feature_category": "security",
     "method": "oauth"
 })
 
@@ -317,7 +319,7 @@ pnpm add @automagik/telemetry
 
 **Basic Usage:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry, StandardEvents } from '@automagik/telemetry';
 
 // Initialize client
 const client = new AutomagikTelemetry({
@@ -326,8 +328,10 @@ const client = new AutomagikTelemetry({
 });
 
 // Track events
-client.trackEvent('user.login', {
-    userId: 'anonymous-123',
+// 💡 TIP: Use StandardEvents constants for consistent event names!
+client.trackEvent(StandardEvents.FEATURE_USED, {
+    feature_name: 'user_authentication',
+    feature_category: 'security',
     method: 'oauth'
 });
 
