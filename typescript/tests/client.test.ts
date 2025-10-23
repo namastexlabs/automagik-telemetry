@@ -125,6 +125,55 @@ describe('AutomagikTelemetry', () => {
       expect(status.endpoint).toBe('https://env.endpoint.com/v1/traces');
     });
 
+    it('should respect metrics endpoint from environment variable', () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENDPOINT = 'https://tempo.endpoint.com/v1/traces';
+      process.env.AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT = 'https://prometheus.endpoint.com/v1/metrics';
+      const client = new AutomagikTelemetry(mockConfig);
+      const status = client.getStatus();
+      expect(status.endpoint).toBe('https://tempo.endpoint.com/v1/traces');
+      expect(status.metricsEndpoint).toBe('https://prometheus.endpoint.com/v1/metrics');
+      delete process.env.AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT;
+    });
+
+    it('should respect logs endpoint from environment variable', () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENDPOINT = 'https://tempo.endpoint.com/v1/traces';
+      process.env.AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT = 'https://loki.endpoint.com/v1/logs';
+      const client = new AutomagikTelemetry(mockConfig);
+      const status = client.getStatus();
+      expect(status.endpoint).toBe('https://tempo.endpoint.com/v1/traces');
+      expect(status.logsEndpoint).toBe('https://loki.endpoint.com/v1/logs');
+      delete process.env.AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT;
+    });
+
+    it('should respect all separate endpoints from environment variables', () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENDPOINT = 'https://tempo.endpoint.com/v1/traces';
+      process.env.AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT = 'https://prometheus.endpoint.com/v1/metrics';
+      process.env.AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT = 'https://loki.endpoint.com/v1/logs';
+      const client = new AutomagikTelemetry(mockConfig);
+      const status = client.getStatus();
+      expect(status.endpoint).toBe('https://tempo.endpoint.com/v1/traces');
+      expect(status.metricsEndpoint).toBe('https://prometheus.endpoint.com/v1/metrics');
+      expect(status.logsEndpoint).toBe('https://loki.endpoint.com/v1/logs');
+      delete process.env.AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT;
+      delete process.env.AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT;
+    });
+
+    it('config params should take precedence over environment variables for endpoints', () => {
+      process.env.AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT = 'https://env-prometheus.endpoint.com/v1/metrics';
+      process.env.AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT = 'https://env-loki.endpoint.com/v1/logs';
+      const customConfig = {
+        ...mockConfig,
+        metricsEndpoint: 'https://config-prometheus.endpoint.com/v1/metrics',
+        logsEndpoint: 'https://config-loki.endpoint.com/v1/logs',
+      };
+      const client = new AutomagikTelemetry(customConfig);
+      const status = client.getStatus();
+      expect(status.metricsEndpoint).toBe('https://config-prometheus.endpoint.com/v1/metrics');
+      expect(status.logsEndpoint).toBe('https://config-loki.endpoint.com/v1/logs');
+      delete process.env.AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT;
+      delete process.env.AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT;
+    });
+
     it('should use default organization', () => {
       const client = new AutomagikTelemetry(mockConfig);
       const status = client.getStatus();

@@ -217,20 +217,42 @@ class AutomagikTelemetry:
             if "/v1/" in base_endpoint:
                 base_for_others = base_endpoint.rsplit("/v1/", 1)[0]
                 self.metrics_endpoint = (
-                    self.config.metrics_endpoint or f"{base_for_others}/v1/metrics"
+                    self.config.metrics_endpoint
+                    or os.getenv("AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT")
+                    or f"{base_for_others}/v1/metrics"
                 )
-                self.logs_endpoint = self.config.logs_endpoint or f"{base_for_others}/v1/logs"
+                self.logs_endpoint = (
+                    self.config.logs_endpoint
+                    or os.getenv("AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT")
+                    or f"{base_for_others}/v1/logs"
+                )
             else:
                 # Custom endpoint without /v1/ - just replace the last path component
                 base_for_others = base_endpoint.rsplit("/", 1)[0]
-                self.metrics_endpoint = self.config.metrics_endpoint or f"{base_for_others}/metrics"
-                self.logs_endpoint = self.config.logs_endpoint or f"{base_for_others}/logs"
+                self.metrics_endpoint = (
+                    self.config.metrics_endpoint
+                    or os.getenv("AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT")
+                    or f"{base_for_others}/metrics"
+                )
+                self.logs_endpoint = (
+                    self.config.logs_endpoint
+                    or os.getenv("AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT")
+                    or f"{base_for_others}/logs"
+                )
         else:
             # New format - just base URL
             base_url = base_endpoint or "https://telemetry.namastex.ai"
             self.endpoint = f"{base_url}/v1/traces"
-            self.metrics_endpoint = self.config.metrics_endpoint or f"{base_url}/v1/metrics"
-            self.logs_endpoint = self.config.logs_endpoint or f"{base_url}/v1/logs"
+            self.metrics_endpoint = (
+                self.config.metrics_endpoint
+                or os.getenv("AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT")
+                or f"{base_url}/v1/metrics"
+            )
+            self.logs_endpoint = (
+                self.config.logs_endpoint
+                or os.getenv("AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT")
+                or f"{base_url}/v1/logs"
+            )
 
         # User & session IDs
         self.user_id = self._get_or_create_user_id()

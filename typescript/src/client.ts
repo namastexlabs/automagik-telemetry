@@ -223,8 +223,13 @@ export class AutomagikTelemetry {
 
     this.endpoint = `${cleanBaseEndpoint}/v1/traces`;
     this.metricsEndpoint =
-      config.metricsEndpoint || `${cleanBaseEndpoint}/v1/metrics`;
-    this.logsEndpoint = config.logsEndpoint || `${cleanBaseEndpoint}/v1/logs`;
+      config.metricsEndpoint ||
+      process.env.AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT ||
+      `${cleanBaseEndpoint}/v1/metrics`;
+    this.logsEndpoint =
+      config.logsEndpoint ||
+      process.env.AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT ||
+      `${cleanBaseEndpoint}/v1/logs`;
 
     // User & session IDs
     this.userId = this.getOrCreateUserId();
@@ -1145,6 +1150,8 @@ export class AutomagikTelemetry {
       project_name: this.projectName,
       project_version: this.projectVersion,
       endpoint: this.endpoint,
+      metricsEndpoint: this.metricsEndpoint,
+      logsEndpoint: this.logsEndpoint,
       opt_out_file_exists: fs.existsSync(optOutFile),
       env_var: process.env.AUTOMAGIK_TELEMETRY_ENABLED,
       verbose: this.verbose,

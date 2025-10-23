@@ -118,6 +118,71 @@ class TestAutomagikTelemetryInitialization:
 
         assert client.endpoint == "https://env.example.com/traces"
 
+    def test_should_use_metrics_endpoint_from_env_var(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that metrics endpoint is read from environment variable."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://tempo.example.com/v1/traces")
+        monkeypatch.setenv(
+            "AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT", "https://prometheus.example.com/v1/metrics"
+        )
+
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+
+        assert client.endpoint == "https://tempo.example.com/v1/traces"
+        assert client.metrics_endpoint == "https://prometheus.example.com/v1/metrics"
+
+    def test_should_use_logs_endpoint_from_env_var(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that logs endpoint is read from environment variable."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://tempo.example.com/v1/traces")
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT", "https://loki.example.com/v1/logs")
+
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+
+        assert client.endpoint == "https://tempo.example.com/v1/traces"
+        assert client.logs_endpoint == "https://loki.example.com/v1/logs"
+
+    def test_should_use_all_separate_endpoints_from_env_vars(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that all signal endpoints can be configured separately via env vars."""
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://tempo.example.com/v1/traces")
+        monkeypatch.setenv(
+            "AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT", "https://prometheus.example.com/v1/metrics"
+        )
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT", "https://loki.example.com/v1/logs")
+
+        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+
+        assert client.endpoint == "https://tempo.example.com/v1/traces"
+        assert client.metrics_endpoint == "https://prometheus.example.com/v1/metrics"
+        assert client.logs_endpoint == "https://loki.example.com/v1/logs"
+
+    def test_config_param_takes_precedence_over_env_var_for_endpoints(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that config parameters take precedence over environment variables."""
+        monkeypatch.setenv(
+            "AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT", "https://env-prometheus.example.com/v1/metrics"
+        )
+        monkeypatch.setenv(
+            "AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT", "https://env-loki.example.com/v1/logs"
+        )
+
+        config = TelemetryConfig(
+            project_name="test-project",
+            version="1.0.0",
+            metrics_endpoint="https://config-prometheus.example.com/v1/metrics",
+            logs_endpoint="https://config-loki.example.com/v1/logs",
+        )
+        client = AutomagikTelemetry(config=config)
+
+        # Config params should win over env vars
+        assert client.metrics_endpoint == "https://config-prometheus.example.com/v1/metrics"
+        assert client.logs_endpoint == "https://config-loki.example.com/v1/logs"
+
     def test_should_use_custom_organization_when_provided(
         self, temp_home: Path, clean_env: None
     ) -> None:
