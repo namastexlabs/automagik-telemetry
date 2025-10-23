@@ -265,6 +265,7 @@ def main() -> None:
     print(f"🎯 Generating comprehensive test data for dashboard validation\n")
 
     # Initialize telemetry client with ClickHouse backend for local dev
+    # Use credentials from docker-compose.yml by default
     config = ClientTelemetryConfig(
         project_name="api-gateway",
         version="1.0.0",
@@ -276,9 +277,11 @@ def main() -> None:
             "AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE", "telemetry"
         ),
         clickhouse_username=os.getenv(
-            "AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME", "default"
+            "AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME", "telemetry"
         ),
-        clickhouse_password=os.getenv("AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD", ""),
+        clickhouse_password=os.getenv(
+            "AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD", "telemetry_password"
+        ),
         batch_size=10,  # Batch for efficiency
         compression_enabled=True,
     )

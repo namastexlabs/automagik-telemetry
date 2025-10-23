@@ -1,3 +1,22 @@
+> [!WARNING]
+> **This document has been deprecated and moved to the archive.**
+> 
+> 📍 **New Location:** See [docs/INDEX.md](../INDEX.md) for updated documentation.
+> 
+> **Replacements:**
+> - Configuration: [docs/USER_GUIDES/CONFIGURATION.md](../USER_GUIDES/CONFIGURATION.md)
+> - Quick Start: [docs/GETTING_STARTED.md](../GETTING_STARTED.md)
+> - Backends: [docs/USER_GUIDES/BACKENDS.md](../USER_GUIDES/BACKENDS.md)
+> - Testing: [docs/DEVELOPER_GUIDES/TESTING.md](../DEVELOPER_GUIDES/TESTING.md)
+> - Architecture: [docs/DEVELOPER_GUIDES/ARCHITECTURE.md](../DEVELOPER_GUIDES/ARCHITECTURE.md)
+> - Privacy: [docs/USER_GUIDES/PRIVACY.md](../USER_GUIDES/PRIVACY.md)
+> 
+> This file is kept for historical reference only.
+
+---
+
+[Original content below...]
+
 # Integration Tests Guide
 
 This document describes the comprehensive integration tests for the Automagik Telemetry SDKs and how to run them.
