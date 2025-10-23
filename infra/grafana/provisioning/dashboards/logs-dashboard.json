@@ -536,6 +536,11 @@
         "tooltip": {
           "mode": "single",
           "sort": "none"
+        },
+        "reduceOptions": {
+          "values": true,
+          "fields": "",
+          "calcs": []
         }
       },
       "pluginVersion": "12.2.1",
@@ -550,11 +555,11 @@
             "builderOptions": {
               "fields": [],
               "limit": 100,
-              "mode": "list"
+              "mode": "aggregate"
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  severity_text as Severity,\n  count() as Count\nFROM telemetry.logs\nWHERE timestamp >= now() - INTERVAL 12 HOUR\nGROUP BY Severity\nORDER BY Count DESC",
+          "rawSql": "SELECT severity_text, count(*) as value FROM telemetry.logs WHERE timestamp >= now() - INTERVAL 12 HOUR GROUP BY severity_text ORDER BY value DESC",
           "refId": "A"
         }
       ],
