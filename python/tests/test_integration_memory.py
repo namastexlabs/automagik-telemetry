@@ -491,7 +491,7 @@ def test_queue_memory_bounds(memory_test_client: AutomagikTelemetry) -> None:
     # Memory behavior after flush can vary due to Python's GC and memory allocator
     # The important check is that queues are empty (above), not memory metrics
     # We just log the memory freed for informational purposes
-    print(f"Note: Memory freed can be negative due to Python's memory allocator behavior")
+    print("Note: Memory freed can be negative due to Python's memory allocator behavior")
 
     # Cleanup
     client.disable()
