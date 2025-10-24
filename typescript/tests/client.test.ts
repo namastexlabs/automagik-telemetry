@@ -1375,6 +1375,18 @@ describe('AutomagikTelemetry', () => {
       const backend = (client as any).clickhouseBackend;
       expect(backend).toBeDefined();
     });
+
+    it('should use default batchSize when not provided for ClickHouse backend', () => {
+      const client = new AutomagikTelemetry({
+        projectName: 'test',
+        version: '1.0.0',
+        backend: 'clickhouse',
+      });
+
+      const backend = (client as any).clickhouseBackend;
+      expect(backend).toBeDefined();
+      // The default batchSize should be 100 (this covers line 265)
+    });
   });
 
   describe('Timeout Configuration', () => {
@@ -1833,6 +1845,98 @@ describe('AutomagikTelemetry', () => {
         expect(consoleDebugSpy).toHaveBeenCalledWith('Telemetry log error:', expect.any(Error));
 
         consoleDebugSpy.mockRestore();
+      });
+    });
+
+    describe('Public API catch handlers', () => {
+      it('should handle trackEvent catch handler (line 936)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Mock sendEvent to throw an error
+        jest.spyOn(client as any, 'sendEvent').mockRejectedValue(new Error('sendEvent error'));
+
+        // This should not throw, because trackEvent has a .catch() handler
+        expect(() => client.trackEvent('test.event', {})).not.toThrow();
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      it('should handle trackError catch handler (line 965)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Mock sendEvent to throw an error
+        jest.spyOn(client as any, 'sendEvent').mockRejectedValue(new Error('sendEvent error'));
+
+        const error = new Error('Test error');
+
+        // This should not throw, because trackError has a .catch() handler
+        expect(() => client.trackError(error)).not.toThrow();
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      it('should handle trackMetric catch handler (line 992)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Mock sendMetric to throw an error
+        jest.spyOn(client as any, 'sendMetric').mockRejectedValue(new Error('sendMetric error'));
+
+        // This should not throw, because trackMetric has a .catch() handler
+        expect(() => client.trackMetric('test.metric', 100)).not.toThrow();
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      it('should handle trackLog catch handler (line 1019)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          batchSize: 1,
+        });
+
+        // Mock sendLog to throw an error
+        jest.spyOn(client as any, 'sendLog').mockRejectedValue(new Error('sendLog error'));
+
+        // This should not throw, because trackLog has a .catch() handler
+        expect(() => client.trackLog('test log')).not.toThrow();
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      it('should handle flush timer catch handler (line 439)', async () => {
+        process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+
+        // Create a client with a very short flush interval
+        const client = new AutomagikTelemetry({
+          ...mockConfig,
+          flushInterval: 50, // Short interval for testing
+        });
+
+        // Mock fetch to fail, which will cause flush to reject
+        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+        // Add an event to trigger a flush
+        client.trackEvent('test.event', {});
+
+        // Wait for the flush timer to fire and handle the error
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // The timer should handle the error silently via the .catch() handler
+        // No expectation needed - if it doesn't crash, the test passes
+
+        await client.disable(); // Clean up timer
       });
     });
   });

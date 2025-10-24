@@ -982,6 +982,48 @@ describe("ClickHouseBackend", () => {
       expect(http.request).not.toHaveBeenCalled();
     });
 
+    it("should use default HTTPS port 443 when no port specified", async () => {
+      // This covers line 438: the || (isHttps ? 443 : 80) fallback
+      backend = new ClickHouseBackend({
+        endpoint: "https://secure.clickhouse.com", // No port specified
+      });
+
+      backend.addToBatch({
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "span-1",
+        startTimeUnixNano: 1000000000000000,
+      });
+
+      await backend.flush();
+
+      expect(https.request).toHaveBeenCalled();
+      const requestCall = mockRequest.mock.calls[mockRequest.mock.calls.length - 1];
+      const options = requestCall[0];
+      expect(options.port).toBe(443);
+    });
+
+    it("should use default HTTP port 80 when no port specified", async () => {
+      // This also covers line 438: the || (isHttps ? 443 : 80) fallback
+      backend = new ClickHouseBackend({
+        endpoint: "http://clickhouse.com", // No port specified
+      });
+
+      backend.addToBatch({
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "span-1",
+        startTimeUnixNano: 1000000000000000,
+      });
+
+      await backend.flush();
+
+      expect(http.request).toHaveBeenCalled();
+      const requestCall = mockRequest.mock.calls[mockRequest.mock.calls.length - 1];
+      const options = requestCall[0];
+      expect(options.port).toBe(80);
+    });
+
     it("should set correct Content-Type header", async () => {
       backend.addToBatch({
         traceId: "trace-1",
@@ -1194,6 +1236,89 @@ describe("ClickHouseBackend", () => {
 
       const metric = (backend as any).metricBatch[0];
       expect(metric.environment).toBe("test-env");
+    });
+
+    it("should handle underscore-style resource attribute keys", () => {
+      // This covers lines 204-215: the second part of OR expressions (service_name, project_name, etc.)
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "count",
+        {},
+        {
+          service_name: "underscore-service",
+          project_name: "underscore-project",
+          project_version: "3.0.0",
+          hostname: "underscore-host",
+        }
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.service_name).toBe("underscore-service");
+      expect(metric.project_name).toBe("underscore-project");
+      expect(metric.project_version).toBe("3.0.0");
+      expect(metric.hostname).toBe("underscore-host");
+    });
+
+    it("should use String(undefined) when resource attributes don't match expected keys", () => {
+      // This tests the behavior when no recognized keys are present
+      // String(undefined) returns "undefined" which is the actual behavior
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "count",
+        {},
+        {
+          // Provide attributes that don't match any of the expected keys
+          random_key: "random_value",
+        }
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      // When keys don't exist, String(undefined) returns "undefined"
+      expect(metric.service_name).toBe("undefined");
+      expect(metric.project_name).toBe("undefined");
+      expect(metric.project_version).toBe("undefined");
+      expect(metric.environment).toBe("undefined");
+      expect(metric.hostname).toBe("undefined");
+    });
+
+    it("should use fallback values when all resource attribute styles are empty strings", () => {
+      // This covers lines 204-215: the final fallback when String(empty) returns ""
+      // We need to provide empty strings for ALL possible keys to make the OR chain return ""
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "count",
+        {},
+        {
+          "service.name": "",
+          service_name: "",
+          "project.name": "",
+          project_name: "",
+          "project.version": "",
+          project_version: "",
+          "deployment.environment": "",
+          environment: "",
+          env: "",
+          "host.name": "",
+          hostname: "",
+        }
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      // Empty string values for all variants should trigger the fallbacks
+      expect(metric.service_name).toBe("unknown"); // Fallback from line 204
+      expect(metric.project_name).toBe(""); // Fallback from line 206 (empty string is the fallback)
+      expect(metric.project_version).toBe(""); // Fallback from line 208
+      expect(metric.environment).toBe("production"); // Fallback from line 214
+      expect(metric.hostname).toBe(""); // Fallback from line 215
     });
 
     it("should handle undefined resource attributes", () => {

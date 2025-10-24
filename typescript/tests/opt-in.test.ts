@@ -384,6 +384,24 @@ describe('TelemetryOptIn', () => {
       expect(readline.createInterface).not.toHaveBeenCalled();
     });
 
+    it('should return false when user decided but preference is null', async () => {
+      // This covers lines 152,156: hasUserDecided() true but getUserPreference() null
+      // Scenario: preference file exists (so hasUserDecided returns true)
+      // but reading it throws an error (so getUserPreference returns null)
+      (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
+        return filePath === mockPreferenceFile;
+      });
+      (fs.readFileSync as jest.Mock).mockImplementation(() => {
+        throw new Error('Read error');
+      });
+
+      const result = await TelemetryOptIn.promptUser('TestProject');
+
+      // Should return false as the preference is null and falls back to false
+      expect(result).toBe(false);
+      expect(readline.createInterface).not.toHaveBeenCalled();
+    });
+
     it('should not prompt in non-interactive environment', async () => {
       Object.defineProperty(process.stdin, 'isTTY', {
         value: false,
@@ -510,6 +528,12 @@ describe('TelemetryOptIn', () => {
         });
         expect(shouldPromptUser('TestProject')).toBe(false);
       });
+
+      it('should use default project name when not provided', () => {
+        // This covers line 285: default parameter value
+        (fs.existsSync as jest.Mock).mockReturnValue(false);
+        expect(shouldPromptUser()).toBe(true);
+      });
     });
 
     describe('promptUserIfNeeded', () => {
@@ -541,6 +565,16 @@ describe('TelemetryOptIn', () => {
         const result = await promptUserIfNeeded('TestProject');
         expect(result).toBe(true);
         expect(readline.createInterface).not.toHaveBeenCalled();
+      });
+
+      it('should use default project name when not provided', async () => {
+        // This covers line 293: default parameter value
+        mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
+          callback('y');
+        });
+
+        const result = await promptUserIfNeeded();
+        expect(result).toBe(true);
       });
     });
   });

@@ -313,6 +313,20 @@ describe('Privacy Module', () => {
       expect(result).not.toContain('192.168.1.1');
     });
 
+    it('should sanitize IP addresses with redact strategy', () => {
+      // This covers line 230: the "X.X.X.X" branch when strategy is not "hash"
+      const result = sanitizeValue('Server: 192.168.1.1', { strategy: 'redact' });
+      expect(result).toContain('X.X.X.X');
+      expect(result).not.toContain('192.168.1.1');
+    });
+
+    it('should sanitize IP addresses with truncate strategy', () => {
+      // This also covers line 230: the "X.X.X.X" branch when strategy is not "hash"
+      const result = sanitizeValue('Server: 192.168.1.1', { strategy: 'truncate' });
+      expect(result).toContain('X.X.X.X');
+      expect(result).not.toContain('192.168.1.1');
+    });
+
     it('should sanitize user paths', () => {
       const result = sanitizeValue('Error in /home/username/project/file.ts');
       expect(result).toContain('[USER_PATH]');
