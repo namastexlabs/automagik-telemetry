@@ -443,7 +443,7 @@ All available configuration parameters with their defaults:
 | `backend` | ✅ | ✅ | `"otlp"` | `"otlp"` | Backend type: `"otlp"` or `"clickhouse"` |
 | `endpoint` | ✅ | ✅ | `"https://telemetry.namastex.ai/v1/traces"` | `"https://telemetry.namastex.ai/v1/traces"` | Main traces endpoint |
 | `organization` | ✅ | ✅ | `"namastex"` | `"namastex"` | Organization name |
-| `timeout` | ✅ | ✅ | `5` (seconds) | `5000` (milliseconds) | HTTP request timeout |
+| `timeout` | ✅ | ✅ | `5` (seconds) | `5` (seconds) | HTTP request timeout |
 | `batch_size` / `batchSize` | ✅ | ✅ | `1` | `100` | Events to batch before sending |
 | `flush_interval` / `flushInterval` | ✅ | ✅ | `5.0` (seconds) | `5000` (milliseconds) | Auto-flush interval |
 | `compression_enabled` / `compressionEnabled` | ✅ | ✅ | `True` | `true` | Enable gzip compression |
@@ -544,7 +544,7 @@ config = TelemetryConfig(
     # Performance
     batch_size=100,  # Batch 100 events before sending
     flush_interval=5.0,  # Auto-flush every 5 seconds
-    timeout=10,  # 10 second timeout
+    timeout=10,  # 10 seconds timeout
 
     # Compression
     compression_enabled=True,
@@ -575,7 +575,7 @@ const client = new AutomagikTelemetry({
     // Performance
     batchSize: 100,  // Batch 100 events before sending
     flushInterval: 5000,  // Auto-flush every 5 seconds
-    timeout: 10000,  // 10 second timeout
+    timeout: 10,  // 10 seconds timeout
 
     // Compression
     compressionEnabled: true,
