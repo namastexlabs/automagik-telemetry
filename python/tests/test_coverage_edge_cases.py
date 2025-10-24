@@ -12,10 +12,8 @@ difficult to trigger in normal testing scenarios.
 
 import os
 import sys
-import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 from automagik_telemetry import TelemetryConfig
 
