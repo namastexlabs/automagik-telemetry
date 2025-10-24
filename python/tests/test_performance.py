@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
 
 @pytest.fixture
@@ -28,11 +28,12 @@ def performance_client():
 
         # Force enable telemetry
         with patch.dict(os.environ, {"AUTOMAGIK_TELEMETRY_ENABLED": "true"}):
-            client = AutomagikTelemetry(
+            config = TelemetryConfig(
                 project_name="benchmark-test",
                 version="1.0.0",
                 timeout=5,
             )
+            client = AutomagikTelemetry(config=config)
             yield client
 
 
@@ -40,10 +41,11 @@ def performance_client():
 def disabled_client():
     """Create a disabled telemetry client for overhead testing."""
     with patch.dict(os.environ, {"AUTOMAGIK_TELEMETRY_ENABLED": "false"}):
-        client = AutomagikTelemetry(
+        config = TelemetryConfig(
             project_name="benchmark-test",
             version="1.0.0",
         )
+        client = AutomagikTelemetry(config=config)
         yield client
 
 
@@ -301,7 +303,8 @@ def test_payload_size_impact():
         mock_urlopen.return_value = mock_response
 
         with patch.dict(os.environ, {"AUTOMAGIK_TELEMETRY_ENABLED": "true"}):
-            client = AutomagikTelemetry(project_name="test", version="1.0.0")
+            config = TelemetryConfig(project_name="test", version="1.0.0")
+            client = AutomagikTelemetry(config=config)
 
             # Test different payload sizes
             payload_sizes = [1, 10, 50, 100]

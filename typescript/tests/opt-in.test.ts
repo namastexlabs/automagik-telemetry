@@ -504,6 +504,31 @@ describe('TelemetryOptIn', () => {
 
       expect(mockReadlineInterface.close).toHaveBeenCalled();
     });
+
+    it('should use default project name when called without arguments', async () => {
+      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
+        callback('y');
+      });
+
+      // Call without any arguments to test the default parameter
+      const result = await TelemetryOptIn.promptUser();
+
+      expect(result).toBe(true);
+      // Verify the default "Automagik" project name is used in the output
+      const consoleSpy = jest.spyOn(console, 'log');
+      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
+        callback('y');
+      });
+
+      await TelemetryOptIn.promptUser();
+
+      // The prompt should contain "Automagik" when no project name is provided
+      const calls = consoleSpy.mock.calls;
+      const promptWithDefault = calls.find((call) => call[0]?.includes('Automagik'));
+      expect(promptWithDefault).toBeDefined();
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('Helper Functions', () => {

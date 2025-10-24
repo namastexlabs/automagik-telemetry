@@ -1912,19 +1912,22 @@ describe('AutomagikTelemetry', () => {
           flushInterval: 50, // Short interval for testing
         });
 
-        // Mock fetch to fail, which will cause flush to reject
-        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+        // Spy on the flush method to make it reject
+        const flushSpy = jest.spyOn(client as any, 'flush').mockRejectedValue(new Error('Forced flush error'));
 
-        // Add an event to trigger a flush
+        // Add an event to trigger the timer
         client.trackEvent('test.event', {});
 
-        // Wait for the flush timer to fire and handle the error
+        // Wait for the flush timer to fire and call the catch handler
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // The timer should handle the error silently via the .catch() handler
-        // No expectation needed - if it doesn't crash, the test passes
+        // The catch handler at line 439 should have been called
+        // Verify flush was called by the timer
+        expect(flushSpy).toHaveBeenCalled();
 
-        await client.disable(); // Clean up timer
+        // Clean up
+        flushSpy.mockRestore();
+        await client.disable();
       });
     });
   });
