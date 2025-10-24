@@ -311,13 +311,14 @@ Python supports **TWO initialization styles**. Choose based on your needs:
 
 | When to Use | Style | Parameters Available |
 |-------------|-------|---------------------|
-| Quick start, prototyping | **Direct Parameters** | 5 basic params only: `project_name`, `version`, `endpoint`, `organization`, `timeout` |
-| Production, batching, ClickHouse | **TelemetryConfig** | ALL 20+ params including `batch_size`, `compression_enabled`, `backend`, `clickhouse_*`, etc. |
+| Quick start, prototyping, defaults are fine | **Direct Parameters** | 5 basic params only: `project_name`, `version`, `endpoint`, `organization`, `timeout`. Uses optimal defaults: `batch_size=100`, `compression_enabled=True` |
+| Production, custom batching, ClickHouse | **TelemetryConfig** | ALL 20+ params including `batch_size`, `compression_enabled`, `backend`, `clickhouse_*`, etc. |
 
 **Simple Style (Direct Parameters):**
 ```python
 # ✅ Best for: Quick start, simple projects
-# ⚠️ Limitations: No batching, compression, or ClickHouse backend
+# ℹ️ Uses defaults: batch_size=100, compression_enabled=True
+# ⚠️ Limitations: Cannot customize batching, compression, or use ClickHouse backend
 
 client = AutomagikTelemetry(
     project_name="my-app",
@@ -331,17 +332,17 @@ client = AutomagikTelemetry(
 ```python
 from automagik_telemetry import TelemetryConfig
 
-# ✅ Best for: Production apps, advanced features
-# ✅ Provides: Batching, compression, ClickHouse, full control
+# ✅ Best for: Production apps, custom configuration
+# ✅ Provides: Full control over batching, compression, ClickHouse, etc.
 
 config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
 
-    # Performance features (NOT available with direct params!)
-    batch_size=100,  # Batch events for better performance
-    compression_enabled=True,  # Gzip compression
-    flush_interval=5.0,  # Auto-flush every 5 seconds
+    # Customize performance features (direct params use these defaults)
+    batch_size=200,  # Custom batch size (default: 100)
+    compression_enabled=True,  # Gzip compression (default: True)
+    flush_interval=5.0,  # Auto-flush every 5 seconds (default: 5.0)
 
     # ClickHouse backend (NOT available with direct params!)
     backend="clickhouse",
@@ -353,20 +354,22 @@ client = AutomagikTelemetry(config=config)
 
 **Migration Path:**
 ```python
-# Start simple
+# Start simple (uses default batch_size=100)
 client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
 
-# Upgrade when you need batching/compression/ClickHouse
+# Upgrade when you need to customize batching/compression/ClickHouse
 from automagik_telemetry import TelemetryConfig
 config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
-    batch_size=100  # Now you can batch!
+    batch_size=200,  # Customize batch size (default: 100)
+    compression_enabled=True,  # Customize compression (default: True)
+    backend="clickhouse"  # Use ClickHouse backend
 )
 client = AutomagikTelemetry(config=config)
 ```
 
-> **💡 TIP:** Start with direct parameters for quick prototyping. Migrate to `TelemetryConfig` when you need batching, compression, or ClickHouse backend.
+> **💡 TIP:** Start with direct parameters for quick prototyping (uses optimal defaults: `batch_size=100`, `compression_enabled=True`). Migrate to `TelemetryConfig` when you need to customize batching, compression settings, or use ClickHouse backend.
 >
 > 📚 **Full Guide:** See [Python Initialization Guide](docs/PYTHON_INITIALIZATION_GUIDE.md) for complete details, decision trees, and examples.
 
@@ -509,7 +512,7 @@ All available configuration parameters with their defaults:
 | `endpoint` | ✅ | ✅ | `"https://telemetry.namastex.ai/v1/traces"` | `"https://telemetry.namastex.ai/v1/traces"` | Main traces endpoint |
 | `organization` | ✅ | ✅ | `"namastex"` | `"namastex"` | Organization name |
 | `timeout` | ✅ | ✅ | `5` (seconds) | `5` (seconds) | HTTP request timeout |
-| `batch_size` / `batchSize` | ✅ | ✅ | `1` | `100` | OTLP: events queued; ClickHouse: rows batched |
+| `batch_size` / `batchSize` | ✅ | ✅ | `100` | `100` | OTLP: events queued; ClickHouse: rows batched |
 | `flush_interval` / `flushInterval` | ✅ | ✅ | `5.0` (seconds) | `5000` (milliseconds) | Auto-flush interval |
 | `compression_enabled` / `compressionEnabled` | ✅ | ✅ | `True` | `true` | Enable gzip compression |
 | `compression_threshold` / `compressionThreshold` | ✅ | ✅ | `1024` (bytes) | `1024` (bytes) | Minimum size for compression |
@@ -525,7 +528,7 @@ The `batch_size` parameter controls batching but works differently per backend:
 **OTLP Backend:**
 - Controls how many **events** are queued in memory before sending an HTTP request
 - Example: `batch_size=100` means send HTTP POST after 100 events queued
-- Python default: `1` (immediate send for backward compatibility)
+- Python default: `100` (optimized for performance)
 - TypeScript default: `100` (optimized for batch processing)
 
 **ClickHouse Backend:**
@@ -533,26 +536,33 @@ The `batch_size` parameter controls batching but works differently per backend:
 - Example: `batch_size=100` means execute INSERT after 100 rows accumulated
 - Default: `100` (both Python and TypeScript)
 
-The Python and TypeScript SDKs have different OTLP defaults to match their typical usage patterns:
+Both Python and TypeScript SDKs now default to `batch_size=100` for optimal performance:
 
-- **Python SDK:** `batch_size=1` (immediate send) - Optimized for low-latency and backward compatibility
+- **Python SDK:** `batch_size=100` (batched send) - Reduces HTTP overhead, optimal performance
 - **TypeScript SDK:** `batchSize=100` (batched send) - Optimized for high-volume web applications
 
-**Python - Enable batching for better performance:**
+**Performance Benefits:**
+- Batches up to 100 events before sending
+- Automatic flush every 5 seconds ensures low latency
+- Significantly reduces HTTP request overhead
+- Better network utilization
+
+**For immediate send (testing/debugging):**
 ```python
+# Python - disable batching for testing
 client = AutomagikTelemetry(
     project_name="my-app",
     version="1.0.0",
-    batch_size=100  # Send in batches instead of immediately
+    batch_size=1  # Send immediately, useful for testing
 )
 ```
 
-**TypeScript - Enable immediate send if needed:**
+**TypeScript - disable batching for testing:**
 ```typescript
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
     version: '1.0.0',
-    batchSize: 1  // Send immediately instead of batching
+    batchSize: 1  // Send immediately, useful for testing
 });
 ```
 
@@ -692,7 +702,7 @@ config = TelemetryConfig(
     clickhouse_database="telemetry",
     clickhouse_username="default",  # Optional
     clickhouse_password="",  # Optional
-    batch_size=100,  # Optional (default: 1 for Python)
+    batch_size=100,  # Optional (default: 100 for both Python and TypeScript)
     compression_enabled=True  # Optional (default: True)
 )
 client = AutomagikTelemetry(config=config)
@@ -726,29 +736,32 @@ While both SDKs provide identical functionality, there are intentional differenc
   - `trackEvent`, `projectName`, `flushInterval`
 
 ### Batch Size Defaults
-- **Python**: `batch_size=1` (immediate send)
-  - Optimized for simplicity and debugging
-  - Each event sent immediately for easier troubleshooting
-  - Better for low-volume applications
+Both SDKs now use `batch_size=100` by default for optimal performance:
+
+- **Python**: `batch_size=100` (batched)
+  - Optimized for performance with automatic batching
+  - Up to 100 events queued before sending
+  - Automatic flush every 5 seconds
+  - Significantly reduces HTTP overhead
 - **TypeScript**: `batchSize=100` (batched)
   - Optimized for performance in high-throughput scenarios
   - Reduces network overhead with batching
   - Better for modern async applications
 
-**How to configure:**
+**For immediate send (testing/debugging):**
 ```python
-# Python - enable batching for better performance
+# Python - disable batching for testing
 client = AutomagikTelemetry(
     project_name="my-app",
-    batch_size=100  # Match TypeScript default
+    batch_size=1  # Send immediately for testing/debugging
 )
 ```
 
 ```typescript
-// TypeScript - disable batching for debugging
+// TypeScript - disable batching for testing
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
-    batchSize: 1  // Match Python default
+    batchSize: 1  // Send immediately for testing/debugging
 });
 ```
 

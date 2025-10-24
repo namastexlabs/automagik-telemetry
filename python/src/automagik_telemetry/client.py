@@ -59,7 +59,7 @@ class TelemetryConfig:
         endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
         organization: Organization name (default: namastex)
         timeout: HTTP timeout in seconds (default: 5)
-        batch_size: Number of events to batch before sending (default: 1 for immediate send)
+        batch_size: Number of events to batch before sending (default: 100 for optimal performance)
         flush_interval: Seconds between automatic flushes (default: 5.0)
         compression_enabled: Enable gzip compression (default: True)
         compression_threshold: Minimum payload size for compression in bytes (default: 1024)
@@ -80,7 +80,7 @@ class TelemetryConfig:
     endpoint: str | None = None
     organization: str = "namastex"
     timeout: int = 5
-    batch_size: int = 1  # Default to immediate send for backward compatibility
+    batch_size: int = 100  # Batch events for better performance
     flush_interval: float = 5.0
     compression_enabled: bool = True
     compression_threshold: int = 1024
@@ -873,10 +873,6 @@ class AutomagikTelemetry:
 
         self._send_with_retry(self.logs_endpoint, payload, "log")
 
-    def _send_event(self, event_type: str, data: dict[str, Any]) -> None:
-        """Send telemetry event (legacy method - uses traces)."""
-        self._send_trace(event_type, data)
-
     # === Public API ===
 
     def track_event(self, event_name: str, attributes: dict[str, Any] | None = None) -> None:
@@ -893,7 +889,7 @@ class AutomagikTelemetry:
             ...     "feature_category": "api_endpoint"
             ... })
         """
-        self._send_event(event_name, attributes or {})
+        self._send_trace(event_name, attributes or {})
 
     def track_error(self, error: Exception, context: dict[str, Any] | None = None) -> None:
         """
@@ -917,7 +913,7 @@ class AutomagikTelemetry:
             "error_message": str(error)[:500],  # Truncate long errors
             **(context or {}),
         }
-        self._send_event("automagik.error", data)
+        self._send_trace("automagik.error", data)
 
     def track_metric(
         self,

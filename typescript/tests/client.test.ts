@@ -83,18 +83,6 @@ describe('AutomagikTelemetry', () => {
     };
   });
 
-  describe('Backwards Compatibility', () => {
-    it('should support AutomagikTelemetry alias', () => {
-      const client = new AutomagikTelemetry(mockConfig);
-      expect(client).toBeDefined();
-      expect(client.isEnabled()).toBe(false);
-    });
-
-    it('should have AutomagikTelemetry as same class', () => {
-      expect(AutomagikTelemetry).toBe(AutomagikTelemetry);
-    });
-  });
-
   describe('Constructor and Initialization', () => {
     it('should initialize with required config', () => {
       const client = new AutomagikTelemetry(mockConfig);

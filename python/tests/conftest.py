@@ -228,3 +228,18 @@ def opt_out_file(temp_home: Path) -> Path:
     opt_out = temp_home / ".automagik-no-telemetry"
     opt_out.touch()
     return opt_out
+
+
+@pytest.fixture
+def immediate_send_config() -> dict[str, Any]:
+    """
+    Telemetry config with batch_size=1 for immediate sending (backward compatibility).
+    Use this for tests that check HTTP calls immediately after track_event().
+    """
+    from automagik_telemetry import TelemetryConfig
+
+    return TelemetryConfig(
+        project_name="test-project",
+        version="1.0.0",
+        batch_size=1,  # Immediate send for testing
+    )

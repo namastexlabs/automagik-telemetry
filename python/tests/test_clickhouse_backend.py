@@ -41,21 +41,21 @@ class TestClickHouseBackendInitialization:
 
         assert backend.endpoint == "http://localhost:8123"
         assert backend.database == "telemetry"
-        assert backend.table == "traces"
+        assert backend.traces_table == "traces"
         assert backend.username == "default"
         assert backend.password == ""
         assert backend.timeout == 5
         assert backend.batch_size == 100
         assert backend.compression_enabled is True
         assert backend.max_retries == 3
-        assert backend._batch == []
+        assert backend._trace_batch == []
 
     def test_should_initialize_with_custom_parameters(self) -> None:
         """Test initialization with custom parameters."""
         backend = ClickHouseBackend(
             endpoint="http://custom-host:9000",
             database="custom_db",
-            table="custom_table",
+            traces_table="custom_table",
             username="custom_user",
             password="secret123",
             timeout=10,
@@ -66,7 +66,7 @@ class TestClickHouseBackendInitialization:
 
         assert backend.endpoint == "http://custom-host:9000"
         assert backend.database == "custom_db"
-        assert backend.table == "custom_table"
+        assert backend.traces_table == "custom_table"
         assert backend.username == "custom_user"
         assert backend.password == "secret123"
         assert backend.timeout == 10
@@ -480,9 +480,9 @@ class TestBatchProcessing:
 
         backend.add_to_batch(otlp_span)
 
-        assert len(backend._batch) == 1
-        assert backend._batch[0]["trace_id"] == "123"
-        assert backend._batch[0]["span_id"] == "456"
+        assert len(backend._trace_batch) == 1
+        assert backend._trace_batch[0]["trace_id"] == "123"
+        assert backend._trace_batch[0]["span_id"] == "456"
 
     def test_should_add_multiple_spans_to_batch(self) -> None:
         """Test adding multiple spans to batch."""
@@ -496,9 +496,9 @@ class TestBatchProcessing:
             }
             backend.add_to_batch(otlp_span)
 
-        assert len(backend._batch) == 5
-        assert backend._batch[0]["trace_id"] == "trace-0"
-        assert backend._batch[4]["trace_id"] == "trace-4"
+        assert len(backend._trace_batch) == 5
+        assert backend._trace_batch[0]["trace_id"] == "trace-0"
+        assert backend._trace_batch[4]["trace_id"] == "trace-4"
 
     def test_should_auto_flush_when_batch_size_reached(self) -> None:
         """Test auto-flush when batch size is reached."""
@@ -533,7 +533,7 @@ class TestBatchProcessing:
 
             # flush should not be called yet
             assert mock_flush.call_count == 0
-            assert len(backend._batch) == 3
+            assert len(backend._trace_batch) == 3
 
     def test_should_clear_batch_after_flush(self) -> None:
         """Test that batch is cleared after flush."""
@@ -548,14 +548,14 @@ class TestBatchProcessing:
             }
             backend.add_to_batch(otlp_span)
 
-        assert len(backend._batch) == 3
+        assert len(backend._trace_batch) == 3
 
         # Mock successful insert
         with patch.object(backend, "_insert_batch", return_value=True):
             result = backend.flush()
 
         assert result is True
-        assert len(backend._batch) == 0
+        assert len(backend._trace_batch) == 0
 
     def test_should_flush_empty_batch_successfully(self) -> None:
         """Test flushing an empty batch doesn't cause errors."""
@@ -564,7 +564,7 @@ class TestBatchProcessing:
         result = backend.flush()
 
         assert result is True
-        assert len(backend._batch) == 0
+        assert len(backend._trace_batch) == 0
 
     def test_should_handle_flush_failure(self) -> None:
         """Test batch clearing even when flush fails."""
@@ -583,7 +583,7 @@ class TestBatchProcessing:
             result = backend.flush()
 
         assert result is False
-        assert len(backend._batch) == 0  # Batch should still be cleared
+        assert len(backend._trace_batch) == 0  # Batch should still be cleared
 
 
 class TestHTTPInsertion:
@@ -620,7 +620,7 @@ class TestHTTPInsertion:
     def test_should_use_correct_endpoint_url(self) -> None:
         """Test that correct ClickHouse endpoint URL is used."""
         backend = ClickHouseBackend(
-            endpoint="http://localhost:8123", database="test_db", table="test_table"
+            endpoint="http://localhost:8123", database="test_db", traces_table="test_table"
         )
         rows = [{"trace_id": "123"}]
 
@@ -890,7 +890,7 @@ class TestSendTrace:
         result = backend.send_trace(otlp_span)
 
         assert result is True
-        assert len(backend._batch) == 1
+        assert len(backend._trace_batch) == 1
 
     def test_should_handle_send_trace_error(self) -> None:
         """Test error handling in send_trace."""

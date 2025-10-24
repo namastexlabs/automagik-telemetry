@@ -429,7 +429,7 @@ def test_backend_configuration_from_env(
     assert client._clickhouse_backend is not None
     assert client._clickhouse_backend.endpoint == clickhouse_endpoint
     assert client._clickhouse_backend.database == "telemetry"
-    assert client._clickhouse_backend.table == "traces"
+    assert client._clickhouse_backend.traces_table == "traces"
 
     print("Environment variable configuration verified successfully")
 
@@ -467,7 +467,7 @@ def test_backend_configuration_from_config(
     assert client._clickhouse_backend is not None
     assert client._clickhouse_backend.endpoint == clickhouse_endpoint
     assert client._clickhouse_backend.database == "telemetry"
-    assert client._clickhouse_backend.table == "traces"
+    assert client._clickhouse_backend.traces_table == "traces"
     assert client._clickhouse_backend.batch_size == 10
     assert client._clickhouse_backend.timeout == 5
 

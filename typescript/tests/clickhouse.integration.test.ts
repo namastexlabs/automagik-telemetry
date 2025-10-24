@@ -458,26 +458,6 @@ describeIntegration("ClickHouse Backend Integration", () => {
       console.log("✅ Backend switching works correctly");
     }, 30000);
 
-    test("should maintain backward compatibility", async () => {
-      // Old code using default OTLP should still work
-      const config: TelemetryConfig = {
-        projectName,
-        version: "1.0.0",
-        // No backend specified - should default to OTLP
-      };
-
-      client = new AutomagikTelemetry(config);
-
-      // Should not throw
-      expect(() => {
-        client.trackEvent("test.backward.compat", { legacy: true });
-      }).not.toThrow();
-
-      await client.flush();
-
-      console.log("✅ Backward compatibility maintained");
-    }, 15000);
-
     test("should handle invalid backend gracefully", async () => {
       const config: TelemetryConfig = {
         projectName,

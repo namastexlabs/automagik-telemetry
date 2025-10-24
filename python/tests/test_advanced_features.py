@@ -35,7 +35,8 @@ class TestMetricsExport:
         """Test sending a gauge metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric(
             "cpu.usage", 75.5, metric_type=MetricType.GAUGE, attributes={"host": "server1"}
@@ -77,7 +78,8 @@ class TestMetricsExport:
         """Test sending a counter metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric(
             "requests.total",
@@ -109,7 +111,8 @@ class TestMetricsExport:
         """Test sending a histogram metric."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric(
             "request.duration",
@@ -145,7 +148,8 @@ class TestLogsExport:
         """Test sending an INFO level log."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_log(
             "User logged in successfully",
@@ -189,7 +193,8 @@ class TestLogsExport:
         """Test sending an ERROR level log."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_log(
             "Database connection failed",
@@ -217,7 +222,8 @@ class TestLogsExport:
         """Test that long log messages are truncated."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(project_name="test-project", version="1.0.0")
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         long_message = "x" * 2000
         client.track_log(long_message)
@@ -316,6 +322,7 @@ class TestCompression:
         config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
+            batch_size=1,
             compression_enabled=True,
             compression_threshold=100,  # Low threshold for testing
         )
@@ -349,6 +356,7 @@ class TestCompression:
         config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
+            batch_size=1,
             compression_enabled=True,
             compression_threshold=5000,  # High threshold
         )
@@ -380,6 +388,7 @@ class TestCompression:
         config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
+            batch_size=1,
             compression_enabled=False,
             compression_threshold=1,  # Even with low threshold, should not compress
         )
@@ -407,6 +416,7 @@ class TestRetryLogic:
         config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
+            batch_size=1,
             max_retries=2,
             retry_backoff_base=0.01,  # Fast retries for testing
         )
@@ -430,7 +440,7 @@ class TestRetryLogic:
         """Test not retrying on 4xx client errors."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", max_retries=3)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1, max_retries=3)
         client = AutomagikTelemetry(config=config)
 
         # Mock HTTPError with 400 status
@@ -449,7 +459,7 @@ class TestRetryLogic:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(
-            project_name="test-project", version="1.0.0", max_retries=3, retry_backoff_base=0.1
+            project_name="test-project", version="1.0.0", batch_size=1, max_retries=3, retry_backoff_base=0.1
         )
         client = AutomagikTelemetry(config=config)
 

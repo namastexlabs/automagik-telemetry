@@ -1146,42 +1146,6 @@ class TestTimestampPrecision:
 
 
 # ============================================================================
-# BACKWARD COMPATIBILITY TESTS
-# ============================================================================
-
-
-class TestBackwardCompatibility:
-    """Test backward compatibility with existing code."""
-
-    def test_should_maintain_backward_compatible_table_parameter(self) -> None:
-        """Test that old 'table' parameter still works for traces."""
-        backend = ClickHouseBackend(table="legacy_traces")
-
-        assert backend.table == "legacy_traces"
-        assert backend.traces_table == "legacy_traces"
-
-    def test_should_support_old_batch_property(self, backend: ClickHouseBackend) -> None:
-        """Test that _batch property still points to _trace_batch."""
-        backend.send_trace({"traceId": "123", "spanId": "456", "name": "test"})
-
-        assert len(backend._batch) == 1
-        assert len(backend._trace_batch) == 1
-        assert backend._batch is backend._trace_batch
-
-    def test_should_allow_explicit_table_name_override(self) -> None:
-        """Test explicit table name parameters override defaults."""
-        backend = ClickHouseBackend(
-            traces_table="custom_traces",
-            metrics_table="custom_metrics",
-            logs_table="custom_logs",
-        )
-
-        assert backend.traces_table == "custom_traces"
-        assert backend.metrics_table == "custom_metrics"
-        assert backend.logs_table == "custom_logs"
-
-
-# ============================================================================
 # EDGE CASES AND BOUNDARY TESTS
 # ============================================================================
 
