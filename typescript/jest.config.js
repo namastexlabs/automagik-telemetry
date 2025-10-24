@@ -10,7 +10,7 @@ module.exports = {
     '!src/schema.ts', // Exclude constants-only file
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
   coverageThreshold: {
     global: {
       branches: 100,
