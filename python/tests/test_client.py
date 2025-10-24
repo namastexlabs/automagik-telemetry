@@ -90,21 +90,23 @@ class TestAutomagikTelemetryInitialization:
         """Test basic client initialization with required parameters."""
         config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
 
-        assert client.project_name == "test-project"
-        assert client.project_version == "1.0.0"
-        assert client.organization == "namastex"
-        assert client.timeout == 5
+        assert client.config.project_name == "test-project"
+        assert client.config.version == "1.0.0"
+        assert client.config.organization == "namastex"
+        assert client.config.timeout == 5
         assert client.endpoint == "https://telemetry.namastex.ai/v1/traces"
 
     def test_should_use_custom_endpoint_when_provided(
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that custom endpoint is used when provided."""
-        client = AutomagikTelemetry(
+        config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
             endpoint="https://custom.example.com/traces",
+            batch_size=1
         )
+        client = AutomagikTelemetry(config=config)
 
         assert client.endpoint == "https://custom.example.com/traces"
 
@@ -187,19 +189,21 @@ class TestAutomagikTelemetryInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that custom organization is used."""
-        client = AutomagikTelemetry(
-            project_name="test-project", version="1.0.0", organization="custom-org"
+        config = TelemetryConfig(
+            project_name="test-project", version="1.0.0", organization="custom-org", batch_size=1
         )
+        client = AutomagikTelemetry(config=config)
 
-        assert client.organization == "custom-org"
+        assert client.config.organization == "custom-org"
 
     def test_should_use_custom_timeout_when_provided(
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that custom timeout is used."""
-        client = AutomagikTelemetry(project_name="test-project", version="1.0.0", timeout=10)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=10, batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
-        assert client.timeout == 10
+        assert client.config.timeout == 10
 
     def test_should_generate_session_id_on_init(self, temp_home: Path, clean_env: None) -> None:
         """Test that session ID is generated on initialization."""
@@ -979,27 +983,12 @@ class TestVerboseMode:
 class TestEdgeCasesAndErrorPaths:
     """Test edge cases and error handling paths for 100% coverage."""
 
-    def test_should_raise_error_when_no_config_and_missing_params(
+    def test_should_raise_error_when_no_config_provided(
         self, temp_home: Path, clean_env: None
     ) -> None:
-        """Test that ValueError is raised when neither config nor required params provided."""
-        with pytest.raises(
-            ValueError,
-            match="Either 'config' or both 'project_name' and 'version' must be provided",
-        ):
-            AutomagikTelemetry(project_name=None, version=None)
-
-        with pytest.raises(
-            ValueError,
-            match="Either 'config' or both 'project_name' and 'version' must be provided",
-        ):
-            AutomagikTelemetry(project_name="test", version=None)
-
-        with pytest.raises(
-            ValueError,
-            match="Either 'config' or both 'project_name' and 'version' must be provided",
-        ):
-            AutomagikTelemetry(project_name=None, version="1.0.0")
+        """Test that TypeError is raised when config parameter is missing."""
+        with pytest.raises(TypeError, match="missing 1 required positional argument: 'config'"):
+            AutomagikTelemetry()
 
     def test_should_handle_custom_endpoint_without_path(
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
@@ -1007,9 +996,10 @@ class TestEdgeCasesAndErrorPaths:
         """Test endpoint handling when custom endpoint is just a base URL."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(
-            project_name="test-project", version="1.0.0", endpoint="https://custom.example.com"
+        config = TelemetryConfig(
+            project_name="test-project", version="1.0.0", endpoint="https://custom.example.com", batch_size=1
         )
+        client = AutomagikTelemetry(config=config)
 
         assert client.endpoint == "https://custom.example.com/v1/traces"
         assert client.metrics_endpoint == "https://custom.example.com/v1/metrics"
@@ -1457,9 +1447,10 @@ class TestEdgeCasesAndErrorPaths:
         """Test that endpoints with trailing slashes are handled correctly."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(
-            project_name="test-project", version="1.0.0", endpoint="https://custom.example.com/"
+        config = TelemetryConfig(
+            project_name="test-project", version="1.0.0", endpoint="https://custom.example.com/", batch_size=1
         )
+        client = AutomagikTelemetry(config=config)
 
         # Trailing slash should be removed and /v1/traces added
         assert client.endpoint == "https://custom.example.com/v1/traces"
@@ -1470,11 +1461,13 @@ class TestEdgeCasesAndErrorPaths:
         """Test endpoint handling when it includes /v1/ path."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(
+        config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
             endpoint="https://custom.example.com/v1/traces",
+            batch_size=1
         )
+        client = AutomagikTelemetry(config=config)
 
         # Should use as-is and derive metrics/logs endpoints
         assert client.endpoint == "https://custom.example.com/v1/traces"
@@ -1487,11 +1480,13 @@ class TestEdgeCasesAndErrorPaths:
         """Test endpoint handling for custom paths without /v1/."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        client = AutomagikTelemetry(
+        config = TelemetryConfig(
             project_name="test-project",
             version="1.0.0",
             endpoint="https://custom.example.com/telemetry/traces",
+            batch_size=1
         )
+        client = AutomagikTelemetry(config=config)
 
         # Should replace last path component for other endpoints
         assert client.endpoint == "https://custom.example.com/telemetry/traces"

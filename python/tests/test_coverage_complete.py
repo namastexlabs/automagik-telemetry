@@ -42,9 +42,10 @@ class TestClientCoverageComplete(unittest.TestCase):
             },
             clear=False,
         ):
-            client = AutomagikTelemetry(project_name="test", version="1.0.0")
+            config = TelemetryConfig(project_name="test", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
             # Should fallback to default timeout of 5
-            self.assertEqual(client.timeout, 5)
+            self.assertEqual(client.config.timeout, 5)
 
     @patch.dict(os.environ, {"HOME": tempfile.mkdtemp()})
     def test_clickhouse_backend_initialization(self):
@@ -174,7 +175,8 @@ class TestClientCoverageComplete(unittest.TestCase):
     def test_enable_opt_out_file_exception_handling(self):
         """Test lines 1026-1027: Exception handling when removing opt-out file fails."""
         with patch.dict(os.environ, {"AUTOMAGIK_TELEMETRY_ENABLED": "false"}, clear=False):
-            client = AutomagikTelemetry(project_name="test", version="1.0.0")
+            config = TelemetryConfig(project_name="test", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
 
             # Create a mock opt-out file that will fail to delete
             opt_out_file = Path.home() / ".automagik-no-telemetry"

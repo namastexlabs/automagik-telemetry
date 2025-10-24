@@ -59,7 +59,7 @@ class TelemetryConfig:
         endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
         organization: Organization name (default: namastex)
         timeout: HTTP timeout in seconds (default: 5)
-        batch_size: Number of events to batch before sending (default: 100 for optimal performance)
+        batch_size: Number of events to batch before sending (default: 1 for immediate sending)
         flush_interval: Seconds between automatic flushes (default: 5.0)
         compression_enabled: Enable gzip compression (default: True)
         compression_threshold: Minimum payload size for compression in bytes (default: 1024)
@@ -80,7 +80,7 @@ class TelemetryConfig:
     endpoint: str | None = None
     organization: str = "namastex"
     timeout: int = 5
-    batch_size: int = 100  # Batch events for better performance
+    batch_size: int = 1  # Send events immediately
     flush_interval: float = 5.0
     compression_enabled: bool = True
     compression_threshold: int = 1024
@@ -111,16 +111,9 @@ class AutomagikTelemetry:
     - Auto-disables in CI/test environments
 
     Example:
-        >>> from automagik_telemetry import AutomagikTelemetry, StandardEvents
+        >>> from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, StandardEvents
         >>>
-        >>> # Simple initialization (backward compatible)
-        >>> telemetry = AutomagikTelemetry(
-        ...     project_name="omni",
-        ...     version="1.0.0"
-        ... )
-        >>>
-        >>> # Advanced initialization with custom config
-        >>> from automagik_telemetry import TelemetryConfig
+        >>> # Initialize with TelemetryConfig
         >>> config = TelemetryConfig(
         ...     project_name="omni",
         ...     version="1.0.0",
@@ -134,59 +127,24 @@ class AutomagikTelemetry:
         ... })
     """
 
-    def __init__(
-        self,
-        project_name: str | None = None,
-        version: str | None = None,
-        endpoint: str | None = None,
-        organization: str = "namastex",
-        timeout: int | None = None,
-        config: TelemetryConfig | None = None,
-    ):
+    def __init__(self, config: TelemetryConfig):
         """
-        Initialize telemetry client.
+        Initialize telemetry client with TelemetryConfig object.
 
         Args:
-            project_name: Name of the Automagik project (omni, hive, forge, etc.)
-            version: Version of the project
-            endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
-            organization: Organization name (default: namastex)
-            timeout: HTTP timeout in seconds (default: 5, or AUTOMAGIK_TELEMETRY_TIMEOUT env var)
-            config: TelemetryConfig instance for advanced configuration (overrides individual params)
+            config: TelemetryConfig instance with all configuration options
+
+        Example:
+            >>> from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+            >>> config = TelemetryConfig(
+            ...     project_name="omni",
+            ...     version="1.0.0",
+            ...     batch_size=50,
+            ...     compression_enabled=True
+            ... )
+            >>> telemetry = AutomagikTelemetry(config=config)
         """
-        # Support both old and new initialization styles
-        if config is not None:
-            self.config = config
-        else:
-            if project_name is None or version is None:
-                raise ValueError(
-                    "Either 'config' or both 'project_name' and 'version' must be provided"
-                )
-
-            # Read timeout from environment variable if not provided via constructor
-            if timeout is None:
-                timeout_env = os.getenv("AUTOMAGIK_TELEMETRY_TIMEOUT")
-                if timeout_env is not None:
-                    try:
-                        timeout = float(timeout_env)
-                    except ValueError:
-                        timeout = 5  # Fallback to default if invalid
-                else:
-                    timeout = 5  # Default timeout
-
-            self.config = TelemetryConfig(
-                project_name=project_name,
-                version=version,
-                endpoint=endpoint,
-                organization=organization,
-                timeout=int(timeout),
-            )
-
-        # Convenience properties for backward compatibility
-        self.project_name = self.config.project_name
-        self.project_version = self.config.version
-        self.organization = self.config.organization
-        self.timeout = self.config.timeout
+        self.config = config
 
         # Determine backend from config or environment variable
         self.backend_type = (
@@ -290,7 +248,7 @@ class AutomagikTelemetry:
                 logs_table="logs",
                 username=clickhouse_username,
                 password=clickhouse_password,
-                timeout=self.timeout,
+                timeout=self.config.timeout,
                 batch_size=self.config.batch_size,
                 compression_enabled=self.config.compression_enabled,
                 max_retries=self.config.max_retries,
@@ -374,9 +332,9 @@ class AutomagikTelemetry:
             "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             "architecture": platform.machine(),
             "is_docker": os.path.exists("/.dockerenv"),
-            "project_name": self.project_name,
-            "project_version": self.project_version,
-            "organization": self.organization,
+            "project_name": self.config.project_name,
+            "project_version": self.config.version,
+            "organization": self.config.organization,
         }
 
     def _create_attributes(
@@ -467,7 +425,7 @@ class AutomagikTelemetry:
                 try:
                     request = Request(endpoint, data=payload_bytes, headers=headers)
 
-                    with urlopen(request, timeout=self.timeout) as response:
+                    with urlopen(request, timeout=self.config.timeout) as response:
                         if response.status == 200:
                             return  # Success
                         elif response.status >= 500:
@@ -517,23 +475,23 @@ class AutomagikTelemetry:
         return [
             {
                 "key": "service.name",
-                "value": {"stringValue": self.project_name},
+                "value": {"stringValue": self.config.project_name},
             },
             {
                 "key": "service.version",
-                "value": {"stringValue": self.project_version},
+                "value": {"stringValue": self.config.version},
             },
             {
                 "key": "project.name",  # ClickHouse backend uses this
-                "value": {"stringValue": self.project_name},
+                "value": {"stringValue": self.config.project_name},
             },
             {
                 "key": "project.version",  # ClickHouse backend uses this
-                "value": {"stringValue": self.project_version},
+                "value": {"stringValue": self.config.version},
             },
             {
                 "key": "service.organization",
-                "value": {"stringValue": self.organization},
+                "value": {"stringValue": self.config.organization},
             },
             {
                 "key": "user.id",
@@ -805,8 +763,8 @@ class AutomagikTelemetry:
                     "scopeSpans": [
                         {
                             "scope": {
-                                "name": f"{self.project_name}.telemetry",
-                                "version": self.project_version,
+                                "name": f"{self.config.project_name}.telemetry",
+                                "version": self.config.version,
                             },
                             "spans": spans,
                         }
@@ -833,8 +791,8 @@ class AutomagikTelemetry:
                     "scopeMetrics": [
                         {
                             "scope": {
-                                "name": f"{self.project_name}.telemetry",
-                                "version": self.project_version,
+                                "name": f"{self.config.project_name}.telemetry",
+                                "version": self.config.version,
                             },
                             "metrics": metrics,
                         }
@@ -861,8 +819,8 @@ class AutomagikTelemetry:
                     "scopeLogs": [
                         {
                             "scope": {
-                                "name": f"{self.project_name}.telemetry",
-                                "version": self.project_version,
+                                "name": f"{self.config.project_name}.telemetry",
+                                "version": self.config.version,
                             },
                             "logRecords": log_records,
                         }
@@ -1049,8 +1007,8 @@ class AutomagikTelemetry:
             "enabled": self.enabled,
             "user_id": self.user_id,
             "session_id": self.session_id,
-            "project_name": self.project_name,
-            "project_version": self.project_version,
+            "project_name": self.config.project_name,
+            "project_version": self.config.version,
             "endpoint": self.endpoint,
             "metrics_endpoint": self.metrics_endpoint,
             "logs_endpoint": self.logs_endpoint,

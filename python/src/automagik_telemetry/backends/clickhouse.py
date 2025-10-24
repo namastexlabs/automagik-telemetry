@@ -429,7 +429,7 @@ class ClickHouseBackend:
 
         Args:
             message: The log message
-            level: Severity level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+            level: Severity level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
             attributes: Log-specific attributes/context
             resource_attributes: Service/application resource attributes
             timestamp: Timestamp for the log (default: now)
@@ -469,9 +469,7 @@ class ClickHouseBackend:
                 "DEBUG": (5, 5),
                 "INFO": (9, 9),
                 "WARN": (13, 13),
-                "WARNING": (13, 13),
                 "ERROR": (17, 17),
-                "CRITICAL": (21, 21),
                 "FATAL": (21, 21),
             }
 
