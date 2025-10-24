@@ -86,7 +86,6 @@ class TestVersionFallbackInInit(unittest.TestCase):
 class TestEnvironmentVariableCheck(unittest.TestCase):
     """Test ENVIRONMENT variable check in client.py."""
 
-    @patch.dict(os.environ, {"HOME": tempfile.mkdtemp()})
     def test_environment_development_disables_telemetry(self):
         """
         Test client.py:320 - ENVIRONMENT variable check for 'development'.
@@ -94,11 +93,13 @@ class TestEnvironmentVariableCheck(unittest.TestCase):
         This tests the branch where ENVIRONMENT="development" causes
         telemetry to be disabled.
         """
-        with patch.dict(
-            os.environ,
-            {"ENVIRONMENT": "development"},
-            clear=False,
-        ):
+        # Clear CI environment variables to allow testing line 320
+        ci_vars = ["CI", "GITHUB_ACTIONS", "TRAVIS", "JENKINS", "GITLAB_CI", "CIRCLECI"]
+        env_without_ci = {k: v for k, v in os.environ.items() if k not in ci_vars}
+        env_without_ci["ENVIRONMENT"] = "development"
+        env_without_ci["HOME"] = tempfile.mkdtemp()
+
+        with patch.dict(os.environ, env_without_ci, clear=True):
             from automagik_telemetry import AutomagikTelemetry
 
             config = TelemetryConfig(
@@ -112,7 +113,6 @@ class TestEnvironmentVariableCheck(unittest.TestCase):
             self.assertFalse(client.enabled)
             self.assertFalse(client.is_enabled())
 
-    @patch.dict(os.environ, {"HOME": tempfile.mkdtemp()})
     def test_environment_dev_disables_telemetry(self):
         """
         Test client.py:320 - ENVIRONMENT variable check for 'dev'.
@@ -120,11 +120,13 @@ class TestEnvironmentVariableCheck(unittest.TestCase):
         This tests the branch where ENVIRONMENT="dev" causes
         telemetry to be disabled.
         """
-        with patch.dict(
-            os.environ,
-            {"ENVIRONMENT": "dev"},
-            clear=False,
-        ):
+        # Clear CI environment variables to allow testing line 320
+        ci_vars = ["CI", "GITHUB_ACTIONS", "TRAVIS", "JENKINS", "GITLAB_CI", "CIRCLECI"]
+        env_without_ci = {k: v for k, v in os.environ.items() if k not in ci_vars}
+        env_without_ci["ENVIRONMENT"] = "dev"
+        env_without_ci["HOME"] = tempfile.mkdtemp()
+
+        with patch.dict(os.environ, env_without_ci, clear=True):
             from automagik_telemetry import AutomagikTelemetry
 
             config = TelemetryConfig(
@@ -137,7 +139,6 @@ class TestEnvironmentVariableCheck(unittest.TestCase):
             # Telemetry should be disabled due to ENVIRONMENT=dev
             self.assertFalse(client.enabled)
 
-    @patch.dict(os.environ, {"HOME": tempfile.mkdtemp()})
     def test_environment_test_disables_telemetry(self):
         """
         Test client.py:320 - ENVIRONMENT variable check for 'test'.
@@ -145,11 +146,13 @@ class TestEnvironmentVariableCheck(unittest.TestCase):
         This tests the branch where ENVIRONMENT="test" causes
         telemetry to be disabled.
         """
-        with patch.dict(
-            os.environ,
-            {"ENVIRONMENT": "test"},
-            clear=False,
-        ):
+        # Clear CI environment variables to allow testing line 320
+        ci_vars = ["CI", "GITHUB_ACTIONS", "TRAVIS", "JENKINS", "GITLAB_CI", "CIRCLECI"]
+        env_without_ci = {k: v for k, v in os.environ.items() if k not in ci_vars}
+        env_without_ci["ENVIRONMENT"] = "test"
+        env_without_ci["HOME"] = tempfile.mkdtemp()
+
+        with patch.dict(os.environ, env_without_ci, clear=True):
             from automagik_telemetry import AutomagikTelemetry
 
             config = TelemetryConfig(
@@ -162,7 +165,6 @@ class TestEnvironmentVariableCheck(unittest.TestCase):
             # Telemetry should be disabled due to ENVIRONMENT=test
             self.assertFalse(client.enabled)
 
-    @patch.dict(os.environ, {"HOME": tempfile.mkdtemp()})
     def test_environment_testing_disables_telemetry(self):
         """
         Test client.py:320 - ENVIRONMENT variable check for 'testing'.
@@ -170,11 +172,13 @@ class TestEnvironmentVariableCheck(unittest.TestCase):
         This tests the branch where ENVIRONMENT="testing" causes
         telemetry to be disabled.
         """
-        with patch.dict(
-            os.environ,
-            {"ENVIRONMENT": "testing"},
-            clear=False,
-        ):
+        # Clear CI environment variables to allow testing line 320
+        ci_vars = ["CI", "GITHUB_ACTIONS", "TRAVIS", "JENKINS", "GITLAB_CI", "CIRCLECI"]
+        env_without_ci = {k: v for k, v in os.environ.items() if k not in ci_vars}
+        env_without_ci["ENVIRONMENT"] = "testing"
+        env_without_ci["HOME"] = tempfile.mkdtemp()
+
+        with patch.dict(os.environ, env_without_ci, clear=True):
             from automagik_telemetry import AutomagikTelemetry
 
             config = TelemetryConfig(
@@ -300,7 +304,6 @@ class TestGetVersionFallback(unittest.TestCase):
 class TestCombinedEdgeCases(unittest.TestCase):
     """Test combined edge cases to ensure robustness."""
 
-    @patch.dict(os.environ, {"HOME": tempfile.mkdtemp()})
     def test_all_edge_cases_together(self):
         """
         Test all edge cases in a single scenario.
@@ -311,11 +314,13 @@ class TestCombinedEdgeCases(unittest.TestCase):
 
         to ensure they work correctly together.
         """
-        with patch.dict(
-            os.environ,
-            {"ENVIRONMENT": "development"},
-            clear=False,
-        ):
+        # Clear CI environment variables to allow testing line 320
+        ci_vars = ["CI", "GITHUB_ACTIONS", "TRAVIS", "JENKINS", "GITLAB_CI", "CIRCLECI"]
+        env_without_ci = {k: v for k, v in os.environ.items() if k not in ci_vars}
+        env_without_ci["ENVIRONMENT"] = "development"
+        env_without_ci["HOME"] = tempfile.mkdtemp()
+
+        with patch.dict(os.environ, env_without_ci, clear=True):
             from automagik_telemetry import AutomagikTelemetry
 
             config = TelemetryConfig(
