@@ -176,7 +176,10 @@ export function validateConfig(config: TelemetryConfig): void {
     } catch (error: unknown) {
       // Handle URL parsing errors
       // Check both instanceof TypeError and error name for better compatibility
-      if (error instanceof TypeError || (error as Error)?.name === 'TypeError') {
+      if (
+        error instanceof TypeError ||
+        (error as Error)?.name === "TypeError"
+      ) {
         throw new Error(
           `TelemetryConfig: endpoint must be a valid URL (got: ${config.endpoint})`,
         );
@@ -188,7 +191,7 @@ export function validateConfig(config: TelemetryConfig): void {
 
   // Validate timeout if provided (in seconds)
   if (config.timeout !== undefined) {
-    if (typeof config.timeout !== 'number' || config.timeout <= 0) {
+    if (typeof config.timeout !== "number" || config.timeout <= 0) {
       throw new Error(
         `TelemetryConfig: timeout must be a positive number in seconds (got: ${config.timeout})`,
       );

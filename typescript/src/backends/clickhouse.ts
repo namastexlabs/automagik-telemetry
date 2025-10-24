@@ -175,7 +175,7 @@ export class ClickHouseBackend {
    * @returns Flattened attributes with string values
    */
   private flattenAttributes(
-    attributes?: Record<string, unknown>
+    attributes?: Record<string, unknown>,
   ): Record<string, string> {
     const flatAttrs: Record<string, string> = {};
     if (attributes) {
@@ -191,7 +191,9 @@ export class ClickHouseBackend {
    * @param resourceAttributes - Optional resource attributes
    * @returns Object with extracted resource attributes
    */
-  private extractResourceAttributes(resourceAttributes?: Record<string, unknown>): {
+  private extractResourceAttributes(
+    resourceAttributes?: Record<string, unknown>,
+  ): {
     serviceName: string;
     projectName: string;
     projectVersion: string;
@@ -210,7 +212,7 @@ export class ClickHouseBackend {
         String(
           resAttrs["deployment.environment"] ||
             resAttrs.environment ||
-            resAttrs.env
+            resAttrs.env,
         ) || "production",
       hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
     };
@@ -219,7 +221,9 @@ export class ClickHouseBackend {
   /**
    * Transform OTLP span format to our ClickHouse schema.
    */
-  private transformOTLPToClickHouse(otlpSpan: Record<string, unknown>): ClickHouseTraceRow {
+  private transformOTLPToClickHouse(
+    otlpSpan: Record<string, unknown>,
+  ): ClickHouseTraceRow {
     // Extract timestamp (use start time or current time)
     const timestampNs = otlpSpan.startTimeUnixNano || Date.now() * 1_000_000;
     const timestamp = new Date(Number(timestampNs) / 1_000_000);
@@ -231,12 +235,23 @@ export class ClickHouseBackend {
       endNs > startNs ? Math.floor((endNs - startNs) / 1_000_000) : 0;
 
     // Extract status
-    const status = (otlpSpan.status || {}) as { code?: number; message?: string };
+    const status = (otlpSpan.status || {}) as {
+      code?: number;
+      message?: string;
+    };
     const statusCode = status.code === 1 ? "OK" : status.message || "OK";
 
     // Transform attributes from OTLP format to flat dict
     const attributes: Record<string, string> = {};
-    const attrs = (otlpSpan.attributes || []) as Array<{ key?: string; value?: { stringValue?: string; intValue?: number; doubleValue?: number; boolValue?: boolean } }>;
+    const attrs = (otlpSpan.attributes || []) as Array<{
+      key?: string;
+      value?: {
+        stringValue?: string;
+        intValue?: number;
+        doubleValue?: number;
+        boolValue?: boolean;
+      };
+    }>;
     for (const attr of attrs) {
       const key = attr.key || "";
       const value = attr.value || {};
@@ -255,7 +270,9 @@ export class ClickHouseBackend {
 
     // Extract resource attributes
     const resourceAttrs: Record<string, string> = {};
-    const resource = (otlpSpan.resource || {}) as { attributes?: Array<{ key?: string; value?: { stringValue?: string } }> };
+    const resource = (otlpSpan.resource || {}) as {
+      attributes?: Array<{ key?: string; value?: { stringValue?: string } }>;
+    };
     const resourceAttributes = resource.attributes || [];
     for (const attr of resourceAttributes) {
       const key = attr.key || "";
@@ -345,7 +362,7 @@ export class ClickHouseBackend {
    */
   private async insertBatch(
     rows: Array<ClickHouseTraceRow | ClickHouseMetricRow | ClickHouseLogRow>,
-    tableName: string
+    tableName: string,
   ): Promise<boolean> {
     if (rows.length === 0) {
       return true;
@@ -370,7 +387,7 @@ export class ClickHouseBackend {
     let authHeader: string | undefined;
     if (this.username) {
       const auth = Buffer.from(`${this.username}:${this.password}`).toString(
-        "base64"
+        "base64",
       );
       authHeader = `Basic ${auth}`;
     }
@@ -382,24 +399,24 @@ export class ClickHouseBackend {
           parsedUrl.toString(),
           data,
           contentEncoding,
-          authHeader
+          authHeader,
         );
 
         if (success) {
           console.debug(
-            `Inserted ${rows.length} rows to ClickHouse successfully`
+            `Inserted ${rows.length} rows to ClickHouse successfully`,
           );
           return true;
         }
       } catch (error) {
         console.error(
           `Error inserting to ClickHouse (attempt ${attempt + 1}/${this.maxRetries}):`,
-          error
+          error,
         );
 
         if (attempt < this.maxRetries - 1) {
           await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, attempt) * 1000)
+            setTimeout(resolve, Math.pow(2, attempt) * 1000),
           );
           continue;
         }
@@ -416,7 +433,7 @@ export class ClickHouseBackend {
     url: string,
     data: Buffer,
     contentEncoding?: string,
-    authHeader?: string
+    authHeader?: string,
   ): Promise<boolean> {
     return new Promise((resolve, reject) => {
       const parsedUrl = new URL(url);
@@ -456,7 +473,7 @@ export class ClickHouseBackend {
             resolve(true);
           } else {
             console.warn(
-              `ClickHouse returned status ${res.statusCode}: ${responseData}`
+              `ClickHouse returned status ${res.statusCode}: ${responseData}`,
             );
             resolve(false);
           }
@@ -511,7 +528,7 @@ export class ClickHouseBackend {
     unit: string = "",
     attributes?: Record<string, unknown>,
     resourceAttributes?: Record<string, unknown>,
-    timestamp?: Date
+    timestamp?: Date,
   ): boolean {
     try {
       // Map COUNTER to SUM for ClickHouse enum compatibility
@@ -524,7 +541,7 @@ export class ClickHouseBackend {
       const validTypes = ["GAUGE", "SUM", "HISTOGRAM", "SUMMARY"];
       if (!validTypes.includes(mappedType)) {
         console.warn(
-          `Invalid metric type: ${metricType}. Using GAUGE as fallback.`
+          `Invalid metric type: ${metricType}. Using GAUGE as fallback.`,
         );
         mappedType = "GAUGE";
       }
@@ -596,7 +613,7 @@ export class ClickHouseBackend {
     resourceAttributes?: Record<string, unknown>,
     timestamp?: Date,
     traceId: string = "",
-    spanId: string = ""
+    spanId: string = "",
   ): boolean {
     try {
       // Map severity level to number (OpenTelemetry severity numbers)

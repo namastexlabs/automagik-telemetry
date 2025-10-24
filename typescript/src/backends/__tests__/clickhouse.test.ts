@@ -39,9 +39,10 @@ describe("ClickHouseBackend", () => {
     jest.spyOn(https, "request").mockImplementation(mockRequest as any);
 
     // Mock gzipSync
-    jest.spyOn(zlib, "gzipSync").mockImplementation(
-      ((data: any) => Buffer.from("gzipped-" + data.toString())) as any
-    );
+    jest
+      .spyOn(zlib, "gzipSync")
+      .mockImplementation(((data: any) =>
+        Buffer.from("gzipped-" + data.toString())) as any);
 
     // Initialize backend with default config
     backend = new ClickHouseBackend();
@@ -115,7 +116,9 @@ describe("ClickHouseBackend", () => {
       backend.addToBatch(otlpSpan);
       const batchData = (backend as any).traceBatch;
 
-      expect(batchData[0].timestamp).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+      expect(batchData[0].timestamp).toMatch(
+        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/,
+      );
       expect(batchData[0].timestamp_ns).toBe(1609459200000000000);
     });
 
@@ -476,11 +479,13 @@ describe("ClickHouseBackend", () => {
       backend = new ClickHouseBackend({ batchSize: 3 });
 
       // Mock successful HTTP response
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -529,11 +534,13 @@ describe("ClickHouseBackend", () => {
 
     it("should handle manual flush", async () => {
       // Mock successful HTTP response
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -575,12 +582,14 @@ describe("ClickHouseBackend", () => {
 
     it("should preserve batch on failed flush", async () => {
       // Mock failed HTTP response
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") {
-          callback(new Error("Network error"));
-        }
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") {
+            callback(new Error("Network error"));
+          }
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockReturnValue(mockRequestObject);
 
@@ -602,11 +611,13 @@ describe("ClickHouseBackend", () => {
   describe("compression", () => {
     beforeEach(() => {
       // Mock successful HTTP response
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -720,12 +731,14 @@ describe("ClickHouseBackend", () => {
   describe("error handling", () => {
     it("should handle HTTP errors", async () => {
       // Mock error response
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") {
-          callback(new Error("Connection refused"));
-        }
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") {
+            callback(new Error("Connection refused"));
+          }
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockReturnValue(mockRequestObject);
 
@@ -742,11 +755,13 @@ describe("ClickHouseBackend", () => {
     });
 
     it("should handle non-200 status codes", async () => {
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -781,12 +796,14 @@ describe("ClickHouseBackend", () => {
 
       let attemptCount = 0;
 
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") {
-          callback(new Error("Network error"));
-        }
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") {
+            callback(new Error("Network error"));
+          }
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation(() => {
         attemptCount++;
@@ -816,14 +833,12 @@ describe("ClickHouseBackend", () => {
 
         if (attemptCount === 1) {
           // First attempt fails
-          mockRequestObject.on.mockImplementation(
-            (event: string, cb: any) => {
-              if (event === "error") {
-                cb(new Error("Network error"));
-              }
-              return mockRequestObject;
+          mockRequestObject.on.mockImplementation((event: string, cb: any) => {
+            if (event === "error") {
+              cb(new Error("Network error"));
             }
-          );
+            return mockRequestObject;
+          });
           return mockRequestObject;
         } else {
           // Second attempt succeeds
@@ -857,12 +872,14 @@ describe("ClickHouseBackend", () => {
     });
 
     it("should handle timeout errors", async () => {
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "timeout") {
-          callback();
-        }
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "timeout") {
+            callback();
+          }
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockReturnValue(mockRequestObject);
 
@@ -894,11 +911,13 @@ describe("ClickHouseBackend", () => {
 
   describe("HTTP request construction", () => {
     beforeEach(() => {
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -938,7 +957,7 @@ describe("ClickHouseBackend", () => {
       expect(options.hostname).toBe("localhost");
       expect(options.port).toBe("8123");
       expect(options.path).toContain(
-        "query=INSERT+INTO+test_db.traces+FORMAT+JSONEachRow"
+        "query=INSERT+INTO+test_db.traces+FORMAT+JSONEachRow",
       );
     });
 
@@ -998,7 +1017,8 @@ describe("ClickHouseBackend", () => {
       await backend.flush();
 
       expect(https.request).toHaveBeenCalled();
-      const requestCall = mockRequest.mock.calls[mockRequest.mock.calls.length - 1];
+      const requestCall =
+        mockRequest.mock.calls[mockRequest.mock.calls.length - 1];
       const options = requestCall[0];
       expect(options.port).toBe(443);
     });
@@ -1019,7 +1039,8 @@ describe("ClickHouseBackend", () => {
       await backend.flush();
 
       expect(http.request).toHaveBeenCalled();
-      const requestCall = mockRequest.mock.calls[mockRequest.mock.calls.length - 1];
+      const requestCall =
+        mockRequest.mock.calls[mockRequest.mock.calls.length - 1];
       const options = requestCall[0];
       expect(options.port).toBe(80);
     });
@@ -1093,11 +1114,13 @@ describe("ClickHouseBackend", () => {
 
   describe("sendMetric method", () => {
     beforeEach(() => {
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -1136,7 +1159,12 @@ describe("ClickHouseBackend", () => {
     });
 
     it("should send histogram metric", () => {
-      const result = backend.sendMetric("request.duration", 123, "HISTOGRAM", "ms");
+      const result = backend.sendMetric(
+        "request.duration",
+        123,
+        "HISTOGRAM",
+        "ms",
+      );
       expect(result).toBe(true);
 
       const metric = (backend as any).metricBatch[0];
@@ -1145,7 +1173,12 @@ describe("ClickHouseBackend", () => {
     });
 
     it("should send summary metric", () => {
-      const result = backend.sendMetric("response.size", 1024, "SUMMARY", "bytes");
+      const result = backend.sendMetric(
+        "response.size",
+        1024,
+        "SUMMARY",
+        "bytes",
+      );
       expect(result).toBe(true);
 
       const metric = (backend as any).metricBatch[0];
@@ -1187,7 +1220,7 @@ describe("ClickHouseBackend", () => {
           "project.version": "1.0.0",
           "deployment.environment": "production",
           "host.name": "server-01",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1212,7 +1245,7 @@ describe("ClickHouseBackend", () => {
           project_version: "2.0.0",
           environment: "staging",
           hostname: "alt-server",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1230,7 +1263,7 @@ describe("ClickHouseBackend", () => {
         {},
         {
           env: "test-env",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1251,7 +1284,7 @@ describe("ClickHouseBackend", () => {
           project_name: "underscore-project",
           project_version: "3.0.0",
           hostname: "underscore-host",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1274,7 +1307,7 @@ describe("ClickHouseBackend", () => {
         {
           // Provide attributes that don't match any of the expected keys
           random_key: "random_value",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1308,7 +1341,7 @@ describe("ClickHouseBackend", () => {
           env: "",
           "host.name": "",
           hostname: "",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1328,7 +1361,7 @@ describe("ClickHouseBackend", () => {
         "GAUGE",
         "count",
         undefined, // attributes
-        undefined  // resourceAttributes = undefined
+        undefined, // resourceAttributes = undefined
       );
       expect(result).toBe(true);
 
@@ -1348,7 +1381,7 @@ describe("ClickHouseBackend", () => {
         "",
         {},
         {},
-        customDate
+        customDate,
       );
       expect(result).toBe(true);
 
@@ -1397,11 +1430,13 @@ describe("ClickHouseBackend", () => {
 
   describe("sendLog method", () => {
     beforeEach(() => {
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -1503,14 +1538,10 @@ describe("ClickHouseBackend", () => {
     });
 
     it("should include log attributes", () => {
-      const result = backend.sendLog(
-        "Test message",
-        "INFO",
-        {
-          request_id: "123",
-          user_action: "login",
-        }
-      );
+      const result = backend.sendLog("Test message", "INFO", {
+        request_id: "123",
+        user_action: "login",
+      });
       expect(result).toBe(true);
 
       const log = (backend as any).logBatch[0];
@@ -1531,7 +1562,7 @@ describe("ClickHouseBackend", () => {
           "project.version": "1.0.0",
           "deployment.environment": "production",
           "host.name": "server-01",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1551,7 +1582,7 @@ describe("ClickHouseBackend", () => {
         {
           service_name: "alt-service",
           env: "dev",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1567,7 +1598,7 @@ describe("ClickHouseBackend", () => {
         {},
         {
           environment: "test-environment",
-        }
+        },
       );
       expect(result).toBe(true);
 
@@ -1580,7 +1611,7 @@ describe("ClickHouseBackend", () => {
         "Test message",
         "INFO",
         undefined, // attributes
-        undefined  // resourceAttributes = undefined
+        undefined, // resourceAttributes = undefined
       );
       expect(result).toBe(true);
 
@@ -1598,7 +1629,7 @@ describe("ClickHouseBackend", () => {
         "INFO",
         {},
         {},
-        customDate
+        customDate,
       );
       expect(result).toBe(true);
 
@@ -1614,7 +1645,7 @@ describe("ClickHouseBackend", () => {
         {},
         undefined,
         "trace-123",
-        "span-456"
+        "span-456",
       );
       expect(result).toBe(true);
 
@@ -1664,11 +1695,13 @@ describe("ClickHouseBackend", () => {
 
   describe("flush with metrics and logs", () => {
     beforeEach(() => {
-      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
-        if (event === "error") return mockRequestObject;
-        if (event === "timeout") return mockRequestObject;
-        return mockRequestObject;
-      });
+      mockRequestObject.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === "error") return mockRequestObject;
+          if (event === "timeout") return mockRequestObject;
+          return mockRequestObject;
+        },
+      );
 
       mockRequest.mockImplementation((options: any, callback: any) => {
         const mockResponse: any = {
@@ -1756,7 +1789,8 @@ describe("ClickHouseBackend", () => {
       expect(uuid1).not.toBe(uuid2);
 
       // UUIDs should match the UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       expect(uuid1).toMatch(uuidRegex);
       expect(uuid2).toMatch(uuidRegex);
     });
