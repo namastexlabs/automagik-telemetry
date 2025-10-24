@@ -62,6 +62,20 @@ jobs:
           cd typescript
           pnpm run test
 
+      - name: Verify 100% coverage
+        run: |
+          cd typescript
+          node << 'EOF'
+          const coverage = require('./coverage/coverage-summary.json');
+          const total = coverage.total;
+          console.log(`Coverage: ${total.lines.pct}% lines, ${total.statements.pct}% statements, ${total.functions.pct}% functions, ${total.branches.pct}% branches`);
+
+          if (total.statements.pct !== 100 || total.lines.pct !== 100) {
+              throw new Error(`Coverage below 100%: ${JSON.stringify(total, null, 2)}`);
+          }
+          console.log('✅ 100% coverage verified!');
+          EOF
+
       - name: Upload coverage HTML report
         uses: actions/upload-artifact@v4
         if: matrix.node-version == '20'

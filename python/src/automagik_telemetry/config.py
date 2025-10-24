@@ -40,7 +40,7 @@ class TelemetryConfig:
     version: str
     endpoint: str | None = None
     organization: str | None = None
-    timeout: int | None = None
+    timeout: int | None = None  # seconds
     enabled: bool | None = None
     verbose: bool | None = None
 
@@ -57,7 +57,7 @@ class ValidatedConfig:
     version: str
     endpoint: str
     organization: str
-    timeout: int
+    timeout: int  # seconds
     enabled: bool
     verbose: bool
 
@@ -66,7 +66,7 @@ class ValidatedConfig:
 DEFAULT_CONFIG: dict[str, str | int | bool] = {
     "endpoint": "https://telemetry.namastex.ai/v1/traces",
     "organization": "namastex",
-    "timeout": 5,  # seconds (changed from 5000ms for consistency with client.py)
+    "timeout": 5,  # seconds
     "enabled": False,  # Disabled by default - opt-in only
     "verbose": False,
 }

@@ -289,7 +289,7 @@ telemetry = AutomagikTelemetry(
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
     version: '1.0.0',
-    timeout: 10000  // 10 seconds
+    timeout: 10  // 10 seconds
 });
 ```
 
@@ -795,7 +795,7 @@ const telemetry = new AutomagikTelemetry({
 | `AUTOMAGIK_TELEMETRY_VERBOSE` | boolean | `false` | Enable verbose debug logging |
 | `AUTOMAGIK_TELEMETRY_BACKEND` | string | `"otlp"` | Backend type: `"otlp"` or `"clickhouse"` |
 | `AUTOMAGIK_TELEMETRY_ENDPOINT` | string | Production URL | Main OTLP endpoint |
-| `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | `5000` | HTTP timeout (milliseconds) |
+| `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | `5` | HTTP timeout (seconds) |
 
 ### ClickHouse Environment Variables
 

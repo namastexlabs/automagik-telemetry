@@ -271,7 +271,7 @@ telemetry = AutomagikTelemetry(config=config)
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
     version: '1.0.0',
-    timeout: 30000  // 30 seconds (was 5000)
+    timeout: 30  // 30 seconds (was 5)
 });
 ```
 
@@ -398,7 +398,7 @@ endpoint="https://telemetry.example.com/v1/traces"
 
 | Parameter | Expected | Common Mistake |
 |-----------|----------|----------------|
-| `timeout` | Python: `int` (seconds)<br>TypeScript: `number` (ms) | `timeout="5"` (string) |
+| `timeout` | Python: `int` (seconds)<br>TypeScript: `number` (seconds) | `timeout="5"` (string) |
 | `batch_size` | `int` | `batch_size="100"` (string) |
 | `compression_enabled` | `bool` | `compression_enabled="true"` (string) |
 
@@ -681,7 +681,7 @@ curl 'http://localhost:8123/' --data-binary \
 | `project_name is required` | Missing required parameter | Add `project_name` parameter |
 | `version is required` | Missing required parameter | Add `version` parameter |
 | `endpoint must be a valid URL` | Invalid URL format | Use `http://` or `https://` protocol |
-| `timeout must be a positive integer` | Invalid timeout value | Use positive integer (Python: seconds, TypeScript: ms) |
+| `timeout must be a positive integer` | Invalid timeout value | Use positive integer in seconds (both SDKs) |
 | `Connection refused` | Endpoint not accessible | Check if backend is running, verify firewall |
 | `Table doesn't exist` | ClickHouse table missing | Run `infra/clickhouse/init-db.sql` |
 | `Authentication failed` | Wrong credentials | Check username/password |

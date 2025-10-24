@@ -120,6 +120,7 @@ For developers integrating Automagik Telemetry into applications.
 | Document | Description | When to Use |
 |----------|-------------|-------------|
 | **[Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md)** | Step-by-step guide to add telemetry to your project | Adding telemetry to Automagik projects |
+| **[Python Initialization Guide](PYTHON_INITIALIZATION_GUIDE.md)** | Choose between simple direct parameters or advanced TelemetryConfig | Configuring Python SDK (simple vs advanced) |
 | **[Configuration Reference](USER_GUIDES/CONFIGURATION.md)** | Complete configuration options for both SDKs | Customizing SDK behavior |
 | **[ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md)** | Using ClickHouse for self-hosted telemetry | Self-hosting with direct ClickHouse writes |
 
@@ -261,6 +262,7 @@ graph TB
 <details>
 <summary><h3>⚙️ Configuration</h3></summary>
 
+- **Python Initialization Styles**: [Python Initialization Guide](PYTHON_INITIALIZATION_GUIDE.md)
 - **Environment Variables**: [Configuration Reference](USER_GUIDES/CONFIGURATION.md)
 - **OTLP Backend**: [Quickstart](GETTING_STARTED.md#configuration)
 - **ClickHouse Backend**: [ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md)
@@ -496,6 +498,7 @@ Using telemetry for the first time? Follow this checklist:
 
 ### User Guides
 - [Implementation Guide](DEVELOPER_GUIDES/IMPLEMENTATION.md) - Integrate into your project
+- [Python Initialization Guide](PYTHON_INITIALIZATION_GUIDE.md) - Simple vs Advanced initialization
 - [Configuration Reference](USER_GUIDES/CONFIGURATION.md) - All configuration options
 - [ClickHouse Backend Guide](USER_GUIDES/BACKENDS.md) - Self-hosted ClickHouse setup
 

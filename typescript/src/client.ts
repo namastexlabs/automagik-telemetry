@@ -104,6 +104,8 @@ interface QueuedEvent {
 
 /**
  * Log severity levels (OTLP format).
+ * All severity levels are exported as part of the public API,
+ * following the OpenTelemetry specification for log severity numbers.
  */
 export enum LogSeverity {
   TRACE = 1,

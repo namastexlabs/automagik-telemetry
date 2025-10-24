@@ -231,8 +231,9 @@ export AUTOMAGIK_TELEMETRY_ENABLED=true
 ### TypeScript
 
 **Time Units:**
-- `AUTOMAGIK_TELEMETRY_TIMEOUT`: **milliseconds** (integer)
-- Example: `5000` = 5 seconds
+- `AUTOMAGIK_TELEMETRY_TIMEOUT`: **seconds** (integer)
+- Example: `5` = 5 seconds
+- Note: Internally converted to milliseconds by the SDK
 
 **Default Batch Size:**
 - `batchSize=100` (batched send)

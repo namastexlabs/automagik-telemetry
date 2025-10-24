@@ -13,6 +13,7 @@ import * as crypto from "crypto";
 
 /**
  * Configuration options for ClickHouse backend.
+ * Exported as part of the public API for users who want to use ClickHouseBackend directly.
  */
 export interface ClickHouseBackendConfig {
   /** ClickHouse HTTP endpoint (e.g. http://localhost:8123) */
@@ -147,6 +148,72 @@ export class ClickHouseBackend {
    */
   private generateUUID(): string {
     return crypto.randomUUID();
+  }
+
+  /**
+   * Generate timestamp and nanosecond timestamp from optional Date.
+   * @param timestamp - Optional timestamp (defaults to current time)
+   * @returns Object with formatted timestamp string and nanosecond timestamp
+   */
+  private generateTimestamp(timestamp?: Date): {
+    ts: Date;
+    timestamp: string;
+    timestampNs: number;
+  } {
+    const ts = timestamp || new Date();
+    const timestampNs = ts.getTime() * 1_000_000;
+    return {
+      ts,
+      timestamp: ts.toISOString().replace("T", " ").substring(0, 19),
+      timestampNs,
+    };
+  }
+
+  /**
+   * Flatten attributes to string key-value pairs.
+   * @param attributes - Optional attributes object
+   * @returns Flattened attributes with string values
+   */
+  private flattenAttributes(
+    attributes?: Record<string, any>
+  ): Record<string, string> {
+    const flatAttrs: Record<string, string> = {};
+    if (attributes) {
+      for (const [key, val] of Object.entries(attributes)) {
+        flatAttrs[key] = String(val);
+      }
+    }
+    return flatAttrs;
+  }
+
+  /**
+   * Extract and normalize resource attributes for telemetry data.
+   * @param resourceAttributes - Optional resource attributes
+   * @returns Object with extracted resource attributes
+   */
+  private extractResourceAttributes(resourceAttributes?: Record<string, any>): {
+    serviceName: string;
+    projectName: string;
+    projectVersion: string;
+    environment: string;
+    hostname: string;
+  } {
+    const resAttrs = resourceAttributes || {};
+    return {
+      serviceName:
+        String(resAttrs["service.name"] || resAttrs.service_name) || "unknown",
+      projectName:
+        String(resAttrs["project.name"] || resAttrs.project_name) || "",
+      projectVersion:
+        String(resAttrs["project.version"] || resAttrs.project_version) || "",
+      environment:
+        String(
+          resAttrs["deployment.environment"] ||
+            resAttrs.environment ||
+            resAttrs.env
+        ) || "production",
+      hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
+    };
   }
 
   /**
@@ -460,45 +527,36 @@ export class ClickHouseBackend {
         mappedType = "GAUGE";
       }
 
-      // Generate timestamp
-      const ts = timestamp || new Date();
-      const timestampNs = ts.getTime() * 1_000_000;
+      // Generate timestamp using helper
+      const { timestamp: formattedTimestamp, timestampNs } =
+        this.generateTimestamp(timestamp);
 
-      // Flatten attributes
-      const flatAttrs: Record<string, string> = {};
-      if (attributes) {
-        for (const [key, val] of Object.entries(attributes)) {
-          flatAttrs[key] = String(val);
-        }
-      }
+      // Flatten attributes using helper
+      const flatAttrs = this.flattenAttributes(attributes);
 
-      // Extract resource attributes
-      const resAttrs = resourceAttributes || {};
+      // Extract resource attributes using helper
+      const {
+        serviceName,
+        projectName,
+        projectVersion,
+        environment,
+        hostname,
+      } = this.extractResourceAttributes(resourceAttributes);
 
       // Build metric row
       const metricRow: ClickHouseMetricRow = {
         metric_id: this.generateUUID(),
-        timestamp: ts.toISOString().replace("T", " ").substring(0, 19),
+        timestamp: formattedTimestamp,
         timestamp_ns: timestampNs,
-        service_name:
-          String(resAttrs["service.name"] || resAttrs.service_name) ||
-          "unknown",
+        service_name: serviceName,
         metric_name: metricName,
         metric_type: mappedType,
         value: value,
         unit: unit,
-        project_name:
-          String(resAttrs["project.name"] || resAttrs.project_name) || "",
-        project_version:
-          String(resAttrs["project.version"] || resAttrs.project_version) ||
-          "",
-        environment:
-          String(
-            resAttrs["deployment.environment"] ||
-              resAttrs.environment ||
-              resAttrs.env
-          ) || "production",
-        hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
+        project_name: projectName,
+        project_version: projectVersion,
+        environment: environment,
+        hostname: hostname,
         attributes: flatAttrs,
       };
 
@@ -554,46 +612,37 @@ export class ClickHouseBackend {
       const upperLevel = level.toUpperCase();
       const severityNumber = severityMap[upperLevel] || 9; // Default to INFO
 
-      // Generate timestamp
-      const ts = timestamp || new Date();
-      const timestampNs = ts.getTime() * 1_000_000;
+      // Generate timestamp using helper
+      const { timestamp: formattedTimestamp, timestampNs } =
+        this.generateTimestamp(timestamp);
 
-      // Flatten attributes
-      const flatAttrs: Record<string, string> = {};
-      if (attributes) {
-        for (const [key, val] of Object.entries(attributes)) {
-          flatAttrs[key] = String(val);
-        }
-      }
+      // Flatten attributes using helper
+      const flatAttrs = this.flattenAttributes(attributes);
 
-      // Extract resource attributes
-      const resAttrs = resourceAttributes || {};
+      // Extract resource attributes using helper
+      const {
+        serviceName,
+        projectName,
+        projectVersion,
+        environment,
+        hostname,
+      } = this.extractResourceAttributes(resourceAttributes);
 
       // Build log row
       const logRow: ClickHouseLogRow = {
         log_id: this.generateUUID(),
-        timestamp: ts.toISOString().replace("T", " ").substring(0, 19),
+        timestamp: formattedTimestamp,
         timestamp_ns: timestampNs,
         trace_id: traceId,
         span_id: spanId,
         severity_number: severityNumber,
         severity_text: upperLevel,
         body: message,
-        service_name:
-          String(resAttrs["service.name"] || resAttrs.service_name) ||
-          "unknown",
-        project_name:
-          String(resAttrs["project.name"] || resAttrs.project_name) || "",
-        project_version:
-          String(resAttrs["project.version"] || resAttrs.project_version) ||
-          "",
-        environment:
-          String(
-            resAttrs["deployment.environment"] ||
-              resAttrs.environment ||
-              resAttrs.env
-          ) || "production",
-        hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
+        service_name: serviceName,
+        project_name: projectName,
+        project_version: projectVersion,
+        environment: environment,
+        hostname: hostname,
         attributes: flatAttrs,
       };
 

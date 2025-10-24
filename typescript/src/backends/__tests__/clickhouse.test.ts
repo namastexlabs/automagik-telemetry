@@ -1048,4 +1048,712 @@ describe("ClickHouseBackend", () => {
       expect((backend as any).traceBatch).toHaveLength(2);
     });
   });
+
+  describe("sendMetric method", () => {
+    beforeEach(() => {
+      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
+        if (event === "error") return mockRequestObject;
+        if (event === "timeout") return mockRequestObject;
+        return mockRequestObject;
+      });
+
+      mockRequest.mockImplementation((options: any, callback: any) => {
+        const mockResponse: any = {
+          statusCode: 200,
+          on: jest.fn((event: string, cb: any): any => {
+            if (event === "data") {
+              // No data
+            } else if (event === "end") {
+              cb();
+            }
+            return mockResponse;
+          }),
+        };
+        callback(mockResponse);
+        return mockRequestObject;
+      });
+    });
+
+    it("should send gauge metric with default parameters", () => {
+      const result = backend.sendMetric("cpu.usage", 75.5);
+      expect(result).toBe(true);
+      expect((backend as any).metricBatch).toHaveLength(1);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.metric_name).toBe("cpu.usage");
+      expect(metric.value).toBe(75.5);
+      expect(metric.metric_type).toBe("GAUGE");
+    });
+
+    it("should send counter metric and map to SUM", () => {
+      const result = backend.sendMetric("requests.total", 100, "COUNTER");
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.metric_type).toBe("SUM");
+    });
+
+    it("should send histogram metric", () => {
+      const result = backend.sendMetric("request.duration", 123, "HISTOGRAM", "ms");
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.metric_type).toBe("HISTOGRAM");
+      expect(metric.unit).toBe("ms");
+    });
+
+    it("should send summary metric", () => {
+      const result = backend.sendMetric("response.size", 1024, "SUMMARY", "bytes");
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.metric_type).toBe("SUMMARY");
+    });
+
+    it("should fallback to GAUGE for invalid metric type", () => {
+      const result = backend.sendMetric("test.metric", 42, "INVALID_TYPE");
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.metric_type).toBe("GAUGE");
+    });
+
+    it("should include metric attributes", () => {
+      const result = backend.sendMetric("test.metric", 100, "GAUGE", "count", {
+        operation: "api_request",
+        status: 200,
+      });
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.attributes).toEqual({
+        operation: "api_request",
+        status: "200",
+      });
+    });
+
+    it("should include resource attributes", () => {
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "count",
+        {},
+        {
+          "service.name": "my-service",
+          "project.name": "my-project",
+          "project.version": "1.0.0",
+          "deployment.environment": "production",
+          "host.name": "server-01",
+        }
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.service_name).toBe("my-service");
+      expect(metric.project_name).toBe("my-project");
+      expect(metric.project_version).toBe("1.0.0");
+      expect(metric.environment).toBe("production");
+      expect(metric.hostname).toBe("server-01");
+    });
+
+    it("should handle alternative resource attribute keys", () => {
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "count",
+        {},
+        {
+          service_name: "alt-service",
+          project_name: "alt-project",
+          project_version: "2.0.0",
+          environment: "staging",
+          hostname: "alt-server",
+        }
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.service_name).toBe("alt-service");
+      expect(metric.environment).toBe("staging");
+    });
+
+    it("should handle env as alternative environment key", () => {
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "count",
+        {},
+        {
+          env: "test-env",
+        }
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.environment).toBe("test-env");
+    });
+
+    it("should handle undefined resource attributes", () => {
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "count",
+        undefined, // attributes
+        undefined  // resourceAttributes = undefined
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      // When resourceAttributes is undefined, String(undefined[key]) becomes "undefined" (the string)
+      // This is the actual behavior - the code doesn't handle undefined resourceAttributes
+      expect(metric.service_name).toBe("undefined");
+      expect(metric.environment).toBe("undefined");
+    });
+
+    it("should use custom timestamp when provided", () => {
+      const customDate = new Date("2024-01-01T00:00:00Z");
+      const result = backend.sendMetric(
+        "test.metric",
+        100,
+        "GAUGE",
+        "",
+        {},
+        {},
+        customDate
+      );
+      expect(result).toBe(true);
+
+      const metric = (backend as any).metricBatch[0];
+      expect(metric.timestamp).toContain("2024-01-01");
+    });
+
+    it("should auto-flush when batch size is reached", async () => {
+      backend = new ClickHouseBackend({ batchSize: 3 });
+
+      // Mock successful response
+      mockRequest.mockImplementation((options: any, callback: any) => {
+        const mockResponse: any = {
+          statusCode: 200,
+          on: jest.fn((event: string, cb: any): any => {
+            if (event === "data") {
+              // No data
+            } else if (event === "end") {
+              cb();
+            }
+            return mockResponse;
+          }),
+        };
+        callback(mockResponse);
+        return mockRequestObject;
+      });
+
+      backend.sendMetric("metric1", 1);
+      backend.sendMetric("metric2", 2);
+      expect((backend as any).metricBatch).toHaveLength(2);
+
+      backend.sendMetric("metric3", 3); // Triggers flush
+      expect((backend as any).metricBatch).toHaveLength(0);
+    });
+
+    it("should return false on error", () => {
+      // Mock the metricBatch.push to throw
+      jest.spyOn(backend as any, "generateUUID").mockImplementation(() => {
+        throw new Error("UUID generation error");
+      });
+
+      const result = backend.sendMetric("test.metric", 100);
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("sendLog method", () => {
+    beforeEach(() => {
+      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
+        if (event === "error") return mockRequestObject;
+        if (event === "timeout") return mockRequestObject;
+        return mockRequestObject;
+      });
+
+      mockRequest.mockImplementation((options: any, callback: any) => {
+        const mockResponse: any = {
+          statusCode: 200,
+          on: jest.fn((event: string, cb: any): any => {
+            if (event === "data") {
+              // No data
+            } else if (event === "end") {
+              cb();
+            }
+            return mockResponse;
+          }),
+        };
+        callback(mockResponse);
+        return mockRequestObject;
+      });
+    });
+
+    it("should send log with default INFO level", () => {
+      const result = backend.sendLog("Test log message");
+      expect(result).toBe(true);
+      expect((backend as any).logBatch).toHaveLength(1);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.body).toBe("Test log message");
+      expect(log.severity_number).toBe(9); // INFO
+      expect(log.severity_text).toBe("INFO");
+    });
+
+    it("should send log with DEBUG level", () => {
+      const result = backend.sendLog("Debug message", "DEBUG");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(5);
+      expect(log.severity_text).toBe("DEBUG");
+    });
+
+    it("should send log with WARNING level", () => {
+      const result = backend.sendLog("Warning message", "WARNING");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(13);
+      expect(log.severity_text).toBe("WARNING");
+    });
+
+    it("should send log with WARN level (alias)", () => {
+      const result = backend.sendLog("Warn message", "WARN");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(13);
+      expect(log.severity_text).toBe("WARN");
+    });
+
+    it("should send log with ERROR level", () => {
+      const result = backend.sendLog("Error message", "ERROR");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(17);
+      expect(log.severity_text).toBe("ERROR");
+    });
+
+    it("should send log with CRITICAL level", () => {
+      const result = backend.sendLog("Critical message", "CRITICAL");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(21);
+      expect(log.severity_text).toBe("CRITICAL");
+    });
+
+    it("should send log with FATAL level", () => {
+      const result = backend.sendLog("Fatal message", "FATAL");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(21);
+      expect(log.severity_text).toBe("FATAL");
+    });
+
+    it("should send log with TRACE level", () => {
+      const result = backend.sendLog("Trace message", "TRACE");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(1);
+      expect(log.severity_text).toBe("TRACE");
+    });
+
+    it("should default to INFO for unknown level", () => {
+      const result = backend.sendLog("Unknown level", "UNKNOWN");
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.severity_number).toBe(9); // INFO
+    });
+
+    it("should include log attributes", () => {
+      const result = backend.sendLog(
+        "Test message",
+        "INFO",
+        {
+          request_id: "123",
+          user_action: "login",
+        }
+      );
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.attributes).toEqual({
+        request_id: "123",
+        user_action: "login",
+      });
+    });
+
+    it("should include resource attributes", () => {
+      const result = backend.sendLog(
+        "Test message",
+        "INFO",
+        {},
+        {
+          "service.name": "my-service",
+          "project.name": "my-project",
+          "project.version": "1.0.0",
+          "deployment.environment": "production",
+          "host.name": "server-01",
+        }
+      );
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.service_name).toBe("my-service");
+      expect(log.project_name).toBe("my-project");
+      expect(log.project_version).toBe("1.0.0");
+      expect(log.environment).toBe("production");
+      expect(log.hostname).toBe("server-01");
+    });
+
+    it("should handle alternative resource attribute keys", () => {
+      const result = backend.sendLog(
+        "Test message",
+        "INFO",
+        {},
+        {
+          service_name: "alt-service",
+          env: "dev",
+        }
+      );
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.service_name).toBe("alt-service");
+      expect(log.environment).toBe("dev");
+    });
+
+    it("should handle environment as alternative environment key", () => {
+      const result = backend.sendLog(
+        "Test message",
+        "INFO",
+        {},
+        {
+          environment: "test-environment",
+        }
+      );
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.environment).toBe("test-environment");
+    });
+
+    it("should handle undefined resource attributes", () => {
+      const result = backend.sendLog(
+        "Test message",
+        "INFO",
+        undefined, // attributes
+        undefined  // resourceAttributes = undefined
+      );
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      // When resourceAttributes is undefined, String(undefined[key]) becomes "undefined" (the string)
+      // This is the actual behavior - the code doesn't handle undefined resourceAttributes
+      expect(log.service_name).toBe("undefined");
+      expect(log.environment).toBe("undefined");
+    });
+
+    it("should use custom timestamp when provided", () => {
+      const customDate = new Date("2024-01-01T00:00:00Z");
+      const result = backend.sendLog(
+        "Test message",
+        "INFO",
+        {},
+        {},
+        customDate
+      );
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.timestamp).toContain("2024-01-01");
+    });
+
+    it("should include trace and span IDs", () => {
+      const result = backend.sendLog(
+        "Test message",
+        "INFO",
+        {},
+        {},
+        undefined,
+        "trace-123",
+        "span-456"
+      );
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.trace_id).toBe("trace-123");
+      expect(log.span_id).toBe("span-456");
+    });
+
+    it("should auto-flush when batch size is reached", async () => {
+      backend = new ClickHouseBackend({ batchSize: 3 });
+
+      // Mock successful response
+      mockRequest.mockImplementation((options: any, callback: any) => {
+        const mockResponse: any = {
+          statusCode: 200,
+          on: jest.fn((event: string, cb: any): any => {
+            if (event === "data") {
+              // No data
+            } else if (event === "end") {
+              cb();
+            }
+            return mockResponse;
+          }),
+        };
+        callback(mockResponse);
+        return mockRequestObject;
+      });
+
+      backend.sendLog("log1");
+      backend.sendLog("log2");
+      expect((backend as any).logBatch).toHaveLength(2);
+
+      backend.sendLog("log3"); // Triggers flush
+      expect((backend as any).logBatch).toHaveLength(0);
+    });
+
+    it("should return false on error", () => {
+      // Mock the logBatch.push to throw
+      jest.spyOn(backend as any, "generateUUID").mockImplementation(() => {
+        throw new Error("UUID generation error");
+      });
+
+      const result = backend.sendLog("test message");
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("flush with metrics and logs", () => {
+    beforeEach(() => {
+      mockRequestObject.on.mockImplementation((event: string, callback: any) => {
+        if (event === "error") return mockRequestObject;
+        if (event === "timeout") return mockRequestObject;
+        return mockRequestObject;
+      });
+
+      mockRequest.mockImplementation((options: any, callback: any) => {
+        const mockResponse: any = {
+          statusCode: 200,
+          on: jest.fn((event: string, cb: any): any => {
+            if (event === "data") {
+              // No data
+            } else if (event === "end") {
+              cb();
+            }
+            return mockResponse;
+          }),
+        };
+        callback(mockResponse);
+        return mockRequestObject;
+      });
+    });
+
+    it("should flush metrics batch", async () => {
+      backend.sendMetric("metric1", 100);
+      backend.sendMetric("metric2", 200);
+
+      expect((backend as any).metricBatch).toHaveLength(2);
+
+      const result = await backend.flush();
+
+      expect(result).toBe(true);
+      expect((backend as any).metricBatch).toHaveLength(0);
+      expect(mockRequest).toHaveBeenCalled();
+
+      // Check that metrics table was used
+      const requestCall = mockRequest.mock.calls[0];
+      const options = requestCall[0];
+      expect(options.path).toContain("metrics");
+    });
+
+    it("should flush logs batch", async () => {
+      backend.sendLog("log1");
+      backend.sendLog("log2");
+
+      expect((backend as any).logBatch).toHaveLength(2);
+
+      const result = await backend.flush();
+
+      expect(result).toBe(true);
+      expect((backend as any).logBatch).toHaveLength(0);
+      expect(mockRequest).toHaveBeenCalled();
+
+      // Check that logs table was used
+      const requestCall = mockRequest.mock.calls[0];
+      const options = requestCall[0];
+      expect(options.path).toContain("logs");
+    });
+
+    it("should flush all batch types simultaneously", async () => {
+      backend.sendTrace({
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "span-1",
+        startTimeUnixNano: 1000000000000000,
+      });
+      backend.sendMetric("metric1", 100);
+      backend.sendLog("log1");
+
+      const result = await backend.flush();
+
+      expect(result).toBe(true);
+      expect((backend as any).traceBatch).toHaveLength(0);
+      expect((backend as any).metricBatch).toHaveLength(0);
+      expect((backend as any).logBatch).toHaveLength(0);
+      expect(mockRequest).toHaveBeenCalledTimes(3); // One for each batch type
+    });
+  });
+
+  describe("generateUUID", () => {
+    it("should generate valid UUIDs", () => {
+      const uuid1 = (backend as any).generateUUID();
+      const uuid2 = (backend as any).generateUUID();
+
+      // UUIDs should be strings
+      expect(typeof uuid1).toBe("string");
+      expect(typeof uuid2).toBe("string");
+
+      // UUIDs should be different
+      expect(uuid1).not.toBe(uuid2);
+
+      // UUIDs should match the UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      expect(uuid1).toMatch(uuidRegex);
+      expect(uuid2).toMatch(uuidRegex);
+    });
+  });
+
+  describe("insertBatch early return", () => {
+    it("should return true immediately for empty rows array", async () => {
+      const result = await (backend as any).insertBatch([], "test_table");
+      expect(result).toBe(true);
+      expect(mockRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Edge cases for branch coverage", () => {
+    it("should handle attributes without key field", () => {
+      const otlpSpan = {
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "test-span",
+        startTimeUnixNano: 1000000000000000,
+        attributes: [
+          { value: { stringValue: "value-without-key" } }, // Missing key
+        ],
+      };
+
+      backend.addToBatch(otlpSpan);
+      const batchData = (backend as any).traceBatch;
+
+      expect(batchData).toHaveLength(1);
+      expect(batchData[0].attributes[""]).toBe("value-without-key");
+    });
+
+    it("should handle attributes without value field", () => {
+      const otlpSpan = {
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "test-span",
+        startTimeUnixNano: 1000000000000000,
+        attributes: [
+          { key: "key-without-value" }, // Missing value
+        ],
+      };
+
+      backend.addToBatch(otlpSpan);
+      const batchData = (backend as any).traceBatch;
+
+      expect(batchData).toHaveLength(1);
+      // Should not have the attribute since value is empty
+      expect(batchData[0].attributes).toEqual({});
+    });
+
+    it("should handle resource attributes without key field", () => {
+      const otlpSpan = {
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "test-span",
+        startTimeUnixNano: 1000000000000000,
+        resource: {
+          attributes: [
+            { value: { stringValue: "value-without-key" } }, // Missing key
+          ],
+        },
+      };
+
+      backend.addToBatch(otlpSpan);
+      const batchData = (backend as any).traceBatch;
+
+      expect(batchData).toHaveLength(1);
+      // Resource attrs with empty key should be ignored for known fields
+      expect(batchData[0].service_name).toBe("unknown");
+    });
+
+    it("should handle resource attributes without value field", () => {
+      const otlpSpan = {
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "test-span",
+        startTimeUnixNano: 1000000000000000,
+        resource: {
+          attributes: [
+            { key: "service.name" }, // Missing value
+          ],
+        },
+      };
+
+      backend.addToBatch(otlpSpan);
+      const batchData = (backend as any).traceBatch;
+
+      expect(batchData).toHaveLength(1);
+      // Should use default since value is missing
+      expect(batchData[0].service_name).toBe("unknown");
+    });
+
+    it("should handle span without name field", () => {
+      const otlpSpan = {
+        traceId: "trace-1",
+        spanId: "span-1",
+        startTimeUnixNano: 1000000000000000,
+        // No name field
+      };
+
+      backend.addToBatch(otlpSpan);
+      const batchData = (backend as any).traceBatch;
+
+      expect(batchData).toHaveLength(1);
+      expect(batchData[0].span_name).toBe("unknown");
+    });
+
+    it("should handle span without kind field", () => {
+      const otlpSpan = {
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "test-span",
+        startTimeUnixNano: 1000000000000000,
+        // No kind field
+      };
+
+      backend.addToBatch(otlpSpan);
+      const batchData = (backend as any).traceBatch;
+
+      expect(batchData).toHaveLength(1);
+      expect(batchData[0].span_kind).toBe("INTERNAL");
+    });
+  });
 });

@@ -33,6 +33,10 @@ export {
   SENSITIVE_KEYS,
 } from "./privacy";
 
+// Export backend types for advanced users who want direct backend access
+export type { ClickHouseBackendConfig } from "./backends/clickhouse";
+export { ClickHouseBackend } from "./backends/clickhouse";
+
 // Version is read from package.json (single source of truth)
 import packageJson from "../package.json";
 export const VERSION = packageJson.version;

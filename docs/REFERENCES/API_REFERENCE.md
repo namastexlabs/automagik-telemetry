@@ -168,7 +168,7 @@ const config = {
     clickhousePassword: '',
 
     // Performance tuning
-    timeout: 10000,  // milliseconds
+    timeout: 10,  // seconds (converted to ms internally)
     batchSize: 100,
     flushInterval: 5000,  // milliseconds
 

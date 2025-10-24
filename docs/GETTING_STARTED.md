@@ -265,22 +265,53 @@ export AUTOMAGIK_TELEMETRY_VERBOSE=true
 ```python
 from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-# Option 1: Simple initialization (uses defaults)
+# Option 1: Direct Parameters (Simple - LIMITED to 5 params)
+# ✅ Best for: Quick start, prototyping
+# ⚠️ Limitations: No batching, compression, or ClickHouse backend
 client = AutomagikTelemetry(
     project_name="my-app",
     version="1.0.0",
-    endpoint="https://custom-collector.com"  # Optional
+    endpoint="https://custom-collector.com",  # Optional
+    organization="my-org",  # Optional
+    timeout=10  # Optional (seconds)
 )
 
-# Option 2: Advanced configuration
+# Option 2: TelemetryConfig (Advanced - ALL params available)
+# ✅ Best for: Production, batching, compression, ClickHouse
+# ✅ Provides: 20+ configuration parameters
 config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     endpoint="https://custom-collector.com",  # Optional
-    batch_size=100,  # Send in batches (default: 1 = immediate send)
-    flush_interval=5.0  # Auto-flush every 5 seconds (default: 5.0)
+
+    # Performance features (NOT available in Option 1!)
+    batch_size=100,  # Batch 100 events before sending
+    flush_interval=5.0,  # Auto-flush every 5 seconds
+    compression_enabled=True,  # Gzip compression
+    compression_threshold=1024,  # Compress payloads > 1KB
+
+    # ClickHouse backend (NOT available in Option 1!)
+    backend="clickhouse",  # or "otlp" (default)
+    clickhouse_endpoint="http://localhost:8123"
 )
 client = AutomagikTelemetry(config=config)
+```
+
+**Which style should you use?**
+
+| Use Case | Recommended Style |
+|----------|------------------|
+| Just getting started | Direct Parameters (Option 1) |
+| Simple project, low volume | Direct Parameters (Option 1) |
+| Need batching or compression | TelemetryConfig (Option 2) |
+| Self-hosting with ClickHouse | TelemetryConfig (Option 2) |
+| Production application | TelemetryConfig (Option 2) |
+| High volume (100+ events/sec) | TelemetryConfig (Option 2) |
+
+> **💡 TIP:** Start with **Direct Parameters** for quick prototyping. Migrate to **TelemetryConfig** when you need better performance or advanced features.
+>
+> 📚 **Full Details:** See [Python Initialization Guide](PYTHON_INITIALIZATION_GUIDE.md) for complete documentation.
+
 ```
 
 </details>

@@ -71,3 +71,19 @@ repos:
         files: ^(python/pyproject\.toml|typescript/package\.json)$
         pass_filenames: false
         stages: [pre-commit]
+
+      - id: python-coverage-check
+        name: Python test coverage check (100%)
+        entry: bash -c 'cd python && python3 -m pytest --cov=automagik_telemetry --cov-report=term --cov-fail-under=100 -m "not integration" -q'
+        language: system
+        files: ^python/(src|tests)/.*\.py$
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: typescript-coverage-check
+        name: TypeScript test coverage check (100%)
+        entry: bash -c 'cd typescript && pnpm test:unit'
+        language: system
+        files: ^typescript/(src|tests)/.*\.ts$
+        pass_filenames: false
+        stages: [pre-push]

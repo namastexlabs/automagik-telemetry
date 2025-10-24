@@ -70,7 +70,7 @@ class TestAsyncEventTracking:
 
     async def test_track_event_async_basic(self, enabled_telemetry):
         """Test basic async event tracking."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -84,7 +84,7 @@ class TestAsyncEventTracking:
 
     async def test_track_event_async_without_attributes(self, enabled_telemetry):
         """Test async event tracking without attributes."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -95,7 +95,7 @@ class TestAsyncEventTracking:
 
     async def test_track_event_async_disabled(self, disabled_telemetry):
         """Test that async event tracking is a no-op when disabled."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             await disabled_telemetry.track_event_async("test.event", {"key": "value"})
 
             # Should not make any HTTP requests
@@ -103,7 +103,7 @@ class TestAsyncEventTracking:
 
     async def test_track_event_async_non_blocking(self, enabled_telemetry):
         """Test that async event tracking doesn't block event loop."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             # Simulate slow network
             def slow_response(*args, **kwargs):
                 time.sleep(0.1)  # 100ms delay
@@ -132,7 +132,7 @@ class TestAsyncErrorTracking:
 
     async def test_track_error_async_basic(self, enabled_telemetry):
         """Test basic async error tracking."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -146,7 +146,7 @@ class TestAsyncErrorTracking:
 
     async def test_track_error_async_without_context(self, enabled_telemetry):
         """Test async error tracking without context."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -158,7 +158,7 @@ class TestAsyncErrorTracking:
 
     async def test_track_error_async_with_exception_context(self, enabled_telemetry):
         """Test async error tracking within try-except block."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -176,7 +176,7 @@ class TestAsyncMetricTracking:
 
     async def test_track_metric_async_gauge(self, enabled_telemetry):
         """Test async gauge metric tracking."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -189,7 +189,7 @@ class TestAsyncMetricTracking:
 
     async def test_track_metric_async_counter(self, enabled_telemetry):
         """Test async counter metric tracking."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -200,7 +200,7 @@ class TestAsyncMetricTracking:
 
     async def test_track_metric_async_histogram(self, enabled_telemetry):
         """Test async histogram metric tracking."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -213,7 +213,7 @@ class TestAsyncMetricTracking:
 
     async def test_track_metric_async_default_gauge(self, enabled_telemetry):
         """Test async metric tracking with default GAUGE type."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -228,7 +228,7 @@ class TestAsyncLogTracking:
 
     async def test_track_log_async_info(self, enabled_telemetry):
         """Test async log tracking with INFO severity."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -241,7 +241,7 @@ class TestAsyncLogTracking:
 
     async def test_track_log_async_error(self, enabled_telemetry):
         """Test async log tracking with ERROR severity."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -254,7 +254,7 @@ class TestAsyncLogTracking:
 
     async def test_track_log_async_default_severity(self, enabled_telemetry):
         """Test async log tracking with default INFO severity."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -265,7 +265,7 @@ class TestAsyncLogTracking:
 
     async def test_track_log_async_without_attributes(self, enabled_telemetry):
         """Test async log tracking without attributes."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -280,7 +280,7 @@ class TestAsyncFlush:
 
     async def test_flush_async_basic(self, enabled_telemetry):
         """Test basic async flush operation."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -294,7 +294,7 @@ class TestAsyncFlush:
 
     async def test_flush_async_disabled(self, disabled_telemetry):
         """Test that async flush is a no-op when disabled."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             await disabled_telemetry.flush_async()
 
             # Should not make any HTTP requests
@@ -306,7 +306,7 @@ class TestConcurrentAsyncOperations:
 
     async def test_concurrent_event_tracking(self, enabled_telemetry):
         """Test concurrent async event tracking."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -322,7 +322,7 @@ class TestConcurrentAsyncOperations:
 
     async def test_concurrent_mixed_operations(self, enabled_telemetry):
         """Test concurrent mixed async operations."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -342,7 +342,7 @@ class TestConcurrentAsyncOperations:
 
     async def test_concurrent_with_errors(self, enabled_telemetry):
         """Test concurrent operations with some errors."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             # First call succeeds, second fails, third succeeds
             mock_response_ok = MagicMock()
             mock_response_ok.status = 200
@@ -372,7 +372,7 @@ class TestAsyncNonBlockingBehavior:
 
     async def test_event_tracking_non_blocking(self, enabled_telemetry):
         """Verify event tracking doesn't block event loop."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             # Simulate slow network (100ms delay)
             def slow_response(*args, **kwargs):
                 time.sleep(0.1)
@@ -401,7 +401,7 @@ class TestAsyncNonBlockingBehavior:
 
     async def test_flush_non_blocking(self, enabled_telemetry):
         """Verify flush doesn't block event loop."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             # Simulate slow network
             def slow_response(*args, **kwargs):
                 time.sleep(0.1)
@@ -435,7 +435,7 @@ class TestAsyncErrorHandling:
 
     async def test_network_error_silent_failure(self, enabled_telemetry):
         """Test that network errors don't raise exceptions."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             # Simulate network error
             mock_urlopen.side_effect = Exception("Network error")
 
@@ -444,7 +444,7 @@ class TestAsyncErrorHandling:
 
     async def test_timeout_silent_failure(self, enabled_telemetry):
         """Test that timeouts don't raise exceptions."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             # Simulate timeout
             from urllib.error import URLError
 
@@ -459,7 +459,7 @@ class TestAsyncWithAsyncioLoop:
 
     async def test_in_async_context_manager(self, enabled_telemetry):
         """Test async methods work in async context manager."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -476,7 +476,7 @@ class TestAsyncWithAsyncioLoop:
 
     async def test_with_asyncio_tasks(self, enabled_telemetry):
         """Test async methods work with asyncio.create_task."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             mock_response = MagicMock()
             mock_response.status = 200
             mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -497,7 +497,7 @@ class TestAsyncPerformance:
 
     async def test_concurrent_better_than_sequential(self, enabled_telemetry):
         """Test that concurrent execution is faster than sequential."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
             # Simulate 50ms network delay
             def slow_response(*args, **kwargs):
                 time.sleep(0.05)

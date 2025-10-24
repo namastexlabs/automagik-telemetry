@@ -50,7 +50,19 @@ jobs:
       - name: Run pytest with coverage
         run: |
           cd python
-          pytest --cov=automagik_telemetry --cov-report=html --cov-report=term-missing
+          pytest --cov=automagik_telemetry --cov-report=html --cov-report=term-missing --cov-report=json --cov-fail-under=100 -m "not integration"
+
+      - name: Verify 100% coverage
+        run: |
+          cd python
+          python3 << 'EOF'
+          import json
+          with open('coverage.json') as f:
+              data = json.load(f)
+              coverage_pct = data['totals']['percent_covered']
+              print(f"Coverage: {coverage_pct}%")
+              assert coverage_pct == 100.0, f"Coverage is {coverage_pct}%, expected 100%"
+          EOF
 
       - name: Upload coverage HTML report
         uses: actions/upload-artifact@v4
@@ -65,8 +77,8 @@ jobs:
         if: github.event_name == 'pull_request' && matrix.python-version == '3.12'
         with:
           GITHUB_TOKEN: ${{ github.token }}
-          MINIMUM_GREEN: 90
-          MINIMUM_ORANGE: 80
+          MINIMUM_GREEN: 100
+          MINIMUM_ORANGE: 95
 
   lint-format:
     name: Lint and Format Check

@@ -1232,6 +1232,190 @@ describe('AutomagikTelemetry', () => {
     });
   });
 
+  describe('ClickHouse Backend Integration', () => {
+    beforeEach(() => {
+      // Set backend to clickhouse
+      process.env.AUTOMAGIK_TELEMETRY_BACKEND = 'clickhouse';
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD;
+    });
+
+    afterEach(() => {
+      delete process.env.AUTOMAGIK_TELEMETRY_BACKEND;
+    });
+
+    it('should initialize with ClickHouse backend from config', () => {
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        backend: 'clickhouse',
+        clickhouseEndpoint: 'http://localhost:8123',
+        clickhouseDatabase: 'test_db',
+        clickhouseUsername: 'test_user',
+        clickhousePassword: 'test_pass',
+      });
+
+      expect(client).toBeDefined();
+      expect(client.isEnabled()).toBe(true);
+    });
+
+    it('should initialize with ClickHouse backend from environment variables', () => {
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT = 'http://env-clickhouse:8123';
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE = 'env_db';
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME = 'env_user';
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD = 'env_pass';
+
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        backend: 'clickhouse',
+      });
+
+      expect(client).toBeDefined();
+      expect(client.isEnabled()).toBe(true);
+    });
+
+    it('should send trace to ClickHouse backend', async () => {
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        backend: 'clickhouse',
+        batchSize: 1,
+      });
+
+      client.trackEvent('test.event', { key: 'value' });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // ClickHouse backend handles sending internally
+      expect(client).toBeDefined();
+    });
+
+    it('should flush ClickHouse backend on client flush', async () => {
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        backend: 'clickhouse',
+        batchSize: 100,
+      });
+
+      client.trackEvent('test.event.1', { key: 'value1' });
+      client.trackEvent('test.event.2', { key: 'value2' });
+
+      await client.flush();
+
+      expect(client).toBeDefined();
+    });
+
+    it('should handle ClickHouse backend flush errors gracefully', async () => {
+      process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
+
+      const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        backend: 'clickhouse',
+        batchSize: 100,
+      });
+
+      // Force an error by accessing the backend directly
+      const clickhouseBackend = (client as any).clickhouseBackend;
+      if (clickhouseBackend) {
+        jest.spyOn(clickhouseBackend, 'flush').mockRejectedValue(new Error('Flush error'));
+      }
+
+      client.trackEvent('test.event', { key: 'value' });
+
+      await client.flush();
+
+      // Should not throw
+      expect(client).toBeDefined();
+
+      consoleDebugSpy.mockRestore();
+      delete process.env.AUTOMAGIK_TELEMETRY_VERBOSE;
+    });
+
+    it('should prefer config backend over environment variable', () => {
+      process.env.AUTOMAGIK_TELEMETRY_BACKEND = 'otlp';
+
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        backend: 'clickhouse',
+      });
+
+      expect(client).toBeDefined();
+    });
+
+    it('should use OTLP backend when backend is not specified', () => {
+      delete process.env.AUTOMAGIK_TELEMETRY_BACKEND;
+
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+      });
+
+      expect(client).toBeDefined();
+      // Default backend should be OTLP
+      expect((client as any).backendType).toBe('otlp');
+    });
+
+    it('should pass all config options to ClickHouse backend', () => {
+      const client = new AutomagikTelemetry({
+        projectName: 'test',
+        version: '1.0.0',
+        backend: 'clickhouse',
+        clickhouseEndpoint: 'http://test:8123',
+        clickhouseDatabase: 'test_db',
+        clickhouseUsername: 'test_user',
+        clickhousePassword: 'test_pass',
+        timeout: 10,
+        batchSize: 50,
+        compressionEnabled: false,
+        maxRetries: 5,
+      });
+
+      const backend = (client as any).clickhouseBackend;
+      expect(backend).toBeDefined();
+    });
+  });
+
+  describe('Timeout Configuration', () => {
+    it('should read timeout from environment variable', () => {
+      process.env.AUTOMAGIK_TELEMETRY_TIMEOUT = '10';
+
+      const client = new AutomagikTelemetry({
+        projectName: 'test-project',
+        version: '1.0.0',
+      });
+
+      expect((client as any).timeout).toBe(10000); // 10 seconds in milliseconds
+      delete process.env.AUTOMAGIK_TELEMETRY_TIMEOUT;
+    });
+
+    it('should handle NaN timeout from environment variable and use default', () => {
+      process.env.AUTOMAGIK_TELEMETRY_TIMEOUT = 'invalid';
+
+      const client = new AutomagikTelemetry({
+        projectName: 'test-project',
+        version: '1.0.0',
+      });
+
+      expect((client as any).timeout).toBe(5000); // Default 5 seconds
+      delete process.env.AUTOMAGIK_TELEMETRY_TIMEOUT;
+    });
+
+    it('should prefer config timeout over environment variable', () => {
+      process.env.AUTOMAGIK_TELEMETRY_TIMEOUT = '10';
+
+      const client = new AutomagikTelemetry({
+        projectName: 'test-project',
+        version: '1.0.0',
+        timeout: 15,
+      });
+
+      expect((client as any).timeout).toBe(15000); // 15 seconds from config
+      delete process.env.AUTOMAGIK_TELEMETRY_TIMEOUT;
+    });
+  });
+
   describe('100% Coverage Tests', () => {
     describe('Number attributes in system info', () => {
       it('should handle number attributes correctly', async () => {

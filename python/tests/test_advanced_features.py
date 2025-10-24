@@ -9,6 +9,7 @@ Tests cover:
 - Retry logic with exponential backoff
 """
 
+import gc
 import gzip
 import json
 from pathlib import Path
@@ -417,7 +418,7 @@ class TestRetryLogic:
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=False)
 
-        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+        with patch("automagik_telemetry.client.urlopen", return_value=mock_response) as mock_urlopen:
             client.track_event("test.event")
 
             # Should retry 3 times total (initial + 2 retries)
@@ -434,7 +435,7 @@ class TestRetryLogic:
 
         # Mock HTTPError with 400 status
         with patch(
-            "urllib.request.urlopen", side_effect=HTTPError("url", 400, "Bad Request", {}, None)
+            "automagik_telemetry.client.urlopen", side_effect=HTTPError("url", 400, "Bad Request", {}, None)
         ) as mock_urlopen:
             client.track_event("test.event")
 
@@ -463,7 +464,7 @@ class TestRetryLogic:
         def mock_sleep(duration):
             sleep_times.append(duration)
 
-        with patch("urllib.request.urlopen", return_value=mock_response):
+        with patch("automagik_telemetry.client.urlopen", return_value=mock_response):
             with patch("time.sleep", side_effect=mock_sleep):
                 client.track_event("test.event")
 
@@ -478,9 +479,9 @@ class TestCleanup:
     """Test cleanup on client destruction."""
 
     def test_should_flush_on_del(
-        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch, mock_urlopen: Mock
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test that queued events are flushed when client is destroyed."""
+        """Test that the __del__ method properly flushes queued events."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(
@@ -488,13 +489,22 @@ class TestCleanup:
             version="1.0.0",
             batch_size=10,  # Won't auto-flush
         )
-        client = AutomagikTelemetry(config=config)
 
-        client.track_event("event1")
-        mock_urlopen.assert_not_called()
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.__enter__ = Mock(return_value=mock_response)
+        mock_response.__exit__ = Mock(return_value=False)
 
-        # Destroy client - should trigger flush
-        del client
+        with patch("automagik_telemetry.client.urlopen", return_value=mock_response) as mock_urlopen:
+            client = AutomagikTelemetry(config=config)
 
-        # Should have flushed
-        mock_urlopen.assert_called_once()
+            client.track_event("event1")
+            mock_urlopen.assert_not_called()
+
+            # Explicitly call __del__ to test cleanup behavior
+            # This simulates what would happen when the object is garbage collected
+            client.__del__()
+
+            # Should have flushed the queued event
+            mock_urlopen.assert_called_once()

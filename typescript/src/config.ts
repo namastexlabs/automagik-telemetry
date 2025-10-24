@@ -21,7 +21,7 @@ export interface TelemetryConfig {
   /** Organization name */
   organization?: string;
 
-  /** HTTP timeout in milliseconds */
+  /** HTTP timeout in seconds (converted to milliseconds internally) */
   timeout?: number;
 
   /** Whether telemetry is enabled (opt-in only) */
@@ -50,7 +50,7 @@ export interface ValidatedConfig {
 export const DEFAULT_CONFIG = {
   endpoint: "https://telemetry.namastex.ai/v1/traces",
   organization: "namastex",
-  timeout: 5000, // milliseconds
+  timeout: 5, // seconds (converted to milliseconds internally)
   enabled: false, // Disabled by default - opt-in only
   verbose: false,
 } as const;
@@ -72,7 +72,7 @@ export const ENV_VARS = {
  * - AUTOMAGIK_TELEMETRY_ENABLED: Enable/disable telemetry (true/false/1/0/yes/no/on/off)
  * - AUTOMAGIK_TELEMETRY_ENDPOINT: Custom telemetry endpoint URL
  * - AUTOMAGIK_TELEMETRY_VERBOSE: Enable verbose logging (true/false/1/0/yes/no/on/off)
- * - AUTOMAGIK_TELEMETRY_TIMEOUT: HTTP timeout in milliseconds
+ * - AUTOMAGIK_TELEMETRY_TIMEOUT: HTTP timeout in seconds
  *
  * @returns Partial configuration from environment variables
  */
@@ -186,16 +186,16 @@ export function validateConfig(config: TelemetryConfig): void {
     }
   }
 
-  // Validate timeout if provided
+  // Validate timeout if provided (in seconds)
   if (config.timeout !== undefined) {
-    if (!Number.isInteger(config.timeout) || config.timeout <= 0) {
+    if (typeof config.timeout !== 'number' || config.timeout <= 0) {
       throw new Error(
-        `TelemetryConfig: timeout must be a positive integer (got: ${config.timeout})`,
+        `TelemetryConfig: timeout must be a positive number in seconds (got: ${config.timeout})`,
       );
     }
-    if (config.timeout > 60000) {
+    if (config.timeout > 60) {
       throw new Error(
-        `TelemetryConfig: timeout should not exceed 60000ms (got: ${config.timeout})`,
+        `TelemetryConfig: timeout should not exceed 60 seconds (got: ${config.timeout})`,
       );
     }
   }

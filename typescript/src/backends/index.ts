@@ -6,4 +6,4 @@
  * - clickhouse: Direct ClickHouse insertion via HTTP API
  */
 
-export { ClickHouseBackend } from "./clickhouse";
+export { ClickHouseBackend, ClickHouseBackendConfig } from "./clickhouse";

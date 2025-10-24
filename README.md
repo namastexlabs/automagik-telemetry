@@ -305,6 +305,71 @@ client.track_log("Database connection failed", LogSeverity.ERROR, {
 })
 ```
 
+**🔧 Python Initialization: Simple vs Advanced**
+
+Python supports **TWO initialization styles**. Choose based on your needs:
+
+| When to Use | Style | Parameters Available |
+|-------------|-------|---------------------|
+| Quick start, prototyping | **Direct Parameters** | 5 basic params only: `project_name`, `version`, `endpoint`, `organization`, `timeout` |
+| Production, batching, ClickHouse | **TelemetryConfig** | ALL 20+ params including `batch_size`, `compression_enabled`, `backend`, `clickhouse_*`, etc. |
+
+**Simple Style (Direct Parameters):**
+```python
+# ✅ Best for: Quick start, simple projects
+# ⚠️ Limitations: No batching, compression, or ClickHouse backend
+
+client = AutomagikTelemetry(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://custom.com",  # Optional
+    timeout=10  # Optional
+)
+```
+
+**Advanced Style (TelemetryConfig):**
+```python
+from automagik_telemetry import TelemetryConfig
+
+# ✅ Best for: Production apps, advanced features
+# ✅ Provides: Batching, compression, ClickHouse, full control
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+
+    # Performance features (NOT available with direct params!)
+    batch_size=100,  # Batch events for better performance
+    compression_enabled=True,  # Gzip compression
+    flush_interval=5.0,  # Auto-flush every 5 seconds
+
+    # ClickHouse backend (NOT available with direct params!)
+    backend="clickhouse",
+    clickhouse_endpoint="http://localhost:8123"
+)
+
+client = AutomagikTelemetry(config=config)
+```
+
+**Migration Path:**
+```python
+# Start simple
+client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+
+# Upgrade when you need batching/compression/ClickHouse
+from automagik_telemetry import TelemetryConfig
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=100  # Now you can batch!
+)
+client = AutomagikTelemetry(config=config)
+```
+
+> **💡 TIP:** Start with direct parameters for quick prototyping. Migrate to `TelemetryConfig` when you need batching, compression, or ClickHouse backend.
+>
+> 📚 **Full Guide:** See [Python Initialization Guide](docs/PYTHON_INITIALIZATION_GUIDE.md) for complete details, decision trees, and examples.
+
 ### TypeScript SDK
 
 **Prerequisites:**
@@ -395,7 +460,7 @@ config = TelemetryConfig(
     backend="clickhouse",  # Use ClickHouse instead of OTLP
     clickhouse_endpoint="http://localhost:8123",
     clickhouse_database="telemetry",
-    batch_size=100  # Optional: batch rows before insert (applies to all backends)
+    batch_size=100  # Batch database rows before INSERT
 )
 client = AutomagikTelemetry(config=config)
 
@@ -414,7 +479,7 @@ const client = new AutomagikTelemetry({
     backend: 'clickhouse',  // Use ClickHouse instead of OTLP
     clickhouseEndpoint: 'http://localhost:8123',
     clickhouseDatabase: 'telemetry',
-    batchSize: 100  // Optional: batch rows before insert (applies to all backends)
+    batchSize: 100  // Batch database rows before INSERT
 });
 
 // Use normally - data goes directly to ClickHouse
@@ -444,7 +509,7 @@ All available configuration parameters with their defaults:
 | `endpoint` | ✅ | ✅ | `"https://telemetry.namastex.ai/v1/traces"` | `"https://telemetry.namastex.ai/v1/traces"` | Main traces endpoint |
 | `organization` | ✅ | ✅ | `"namastex"` | `"namastex"` | Organization name |
 | `timeout` | ✅ | ✅ | `5` (seconds) | `5` (seconds) | HTTP request timeout |
-| `batch_size` / `batchSize` | ✅ | ✅ | `1` | `100` | Events to batch before sending |
+| `batch_size` / `batchSize` | ✅ | ✅ | `1` | `100` | OTLP: events queued; ClickHouse: rows batched |
 | `flush_interval` / `flushInterval` | ✅ | ✅ | `5.0` (seconds) | `5000` (milliseconds) | Auto-flush interval |
 | `compression_enabled` / `compressionEnabled` | ✅ | ✅ | `True` | `true` | Enable gzip compression |
 | `compression_threshold` / `compressionThreshold` | ✅ | ✅ | `1024` (bytes) | `1024` (bytes) | Minimum size for compression |
@@ -453,9 +518,22 @@ All available configuration parameters with their defaults:
 | `metrics_endpoint` / `metricsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | Custom metrics endpoint |
 | `logs_endpoint` / `logsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | Custom logs endpoint |
 
-**Batch Size Defaults**
+**Understanding batch_size**
 
-The Python and TypeScript SDKs have different default batch sizes to match their typical usage patterns:
+The `batch_size` parameter controls batching but works differently per backend:
+
+**OTLP Backend:**
+- Controls how many **events** are queued in memory before sending an HTTP request
+- Example: `batch_size=100` means send HTTP POST after 100 events queued
+- Python default: `1` (immediate send for backward compatibility)
+- TypeScript default: `100` (optimized for batch processing)
+
+**ClickHouse Backend:**
+- Controls how many **rows** are batched before executing a database INSERT
+- Example: `batch_size=100` means execute INSERT after 100 rows accumulated
+- Default: `100` (both Python and TypeScript)
+
+The Python and TypeScript SDKs have different OTLP defaults to match their typical usage patterns:
 
 - **Python SDK:** `batch_size=1` (immediate send) - Optimized for low-latency and backward compatibility
 - **TypeScript SDK:** `batchSize=100` (batched send) - Optimized for high-volume web applications
@@ -480,29 +558,45 @@ const client = new AutomagikTelemetry({
 
 **Environment Variables (OTLP Backend - Default):**
 ```bash
-# Disable telemetry completely
-export AUTOMAGIK_TELEMETRY_ENABLED=false
+# Enable/disable telemetry (default: false, opt-in required)
+export AUTOMAGIK_TELEMETRY_ENABLED=true
 
-# Custom OTLP endpoint
+# Custom OTLP endpoint (default: https://telemetry.namastex.ai)
 export AUTOMAGIK_TELEMETRY_ENDPOINT=https://your-collector.com
 
-# Auto-disable in development
+# Custom metrics endpoint (optional, auto-derived from base endpoint)
+export AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT=https://your-collector.com/v1/metrics
+
+# Custom logs endpoint (optional, auto-derived from base endpoint)
+export AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT=https://your-collector.com/v1/logs
+
+# HTTP timeout in seconds (default: 5)
+export AUTOMAGIK_TELEMETRY_TIMEOUT=10
+
+# Enable verbose logging for debugging (default: false)
+export AUTOMAGIK_TELEMETRY_VERBOSE=true
+
+# Auto-disable in development/test environments
 export ENVIRONMENT=development
 ```
 
 **Environment Variables (ClickHouse Backend):**
 ```bash
-# Use ClickHouse backend
+# Use ClickHouse backend instead of OTLP
 export AUTOMAGIK_TELEMETRY_BACKEND=clickhouse
+
+# ClickHouse endpoint (default: http://localhost:8123)
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://localhost:8123
+
+# ClickHouse database name (default: telemetry)
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE=telemetry
+
+# ClickHouse table name (default: traces, Python only)
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE=traces
 
 # Optional ClickHouse authentication
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=default
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=your-password
-
-# Optional performance tuning
-export AUTOMAGIK_TELEMETRY_CLICKHOUSE_BATCH_SIZE=100
 ```
 
 **Code Configuration (OTLP - Basic):**

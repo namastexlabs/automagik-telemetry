@@ -78,11 +78,11 @@ class TestLoadConfigFromEnv:
 
     def test_should_load_timeout_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading timeout from environment."""
-        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "10000")
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "10")
 
         config = load_config_from_env()
 
-        assert config.timeout == 10000
+        assert config.timeout == 10
 
     def test_should_ignore_invalid_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that invalid timeout values are ignored."""
@@ -114,14 +114,14 @@ class TestLoadConfigFromEnv:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://custom.example.com/traces")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
-        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "8000")
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "8")
 
         config = load_config_from_env()
 
         assert config.enabled is True
         assert config.endpoint == "https://custom.example.com/traces"
         assert config.verbose is True
-        assert config.timeout == 8000
+        assert config.timeout == 8
 
     def test_should_ignore_zero_timeout_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that zero timeout from environment is ignored."""
@@ -236,14 +236,14 @@ class TestValidateConfig:
 
     def test_should_reject_excessive_timeout(self) -> None:
         """Test that timeout over 60 seconds raises error."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=70000)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=70)
 
-        with pytest.raises(ValueError, match="timeout should not exceed 60000ms"):
+        with pytest.raises(ValueError, match="timeout should not exceed 60 seconds"):
             validate_config(config)
 
     def test_should_accept_valid_timeout(self) -> None:
         """Test that valid timeout is accepted."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=5000)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=5)
 
         # Should not raise
         validate_config(config)
@@ -319,7 +319,7 @@ class TestMergeConfig:
             version="1.0.0",
             endpoint="https://custom.example.com/traces",
             organization="custom-org",
-            timeout=8000,
+            timeout=8,
             enabled=True,
             verbose=True,
         )
@@ -330,7 +330,7 @@ class TestMergeConfig:
         assert result.version == "1.0.0"
         assert result.endpoint == "https://custom.example.com/traces"
         assert result.organization == "custom-org"
-        assert result.timeout == 8000
+        assert result.timeout == 8
         assert result.enabled is True
         assert result.verbose is True
 
@@ -367,7 +367,7 @@ class TestMergeConfig:
         """Test that env vars take precedence over defaults."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://env.example.com/traces")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
-        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "7000")
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "7")
 
         user_config = TelemetryConfig(project_name="test-project", version="1.0.0")
 
@@ -375,7 +375,7 @@ class TestMergeConfig:
 
         assert result.endpoint == "https://env.example.com/traces"
         assert result.enabled is True
-        assert result.timeout == 7000
+        assert result.timeout == 7
 
     def test_should_handle_boolean_merge_correctly(self, clean_env: None) -> None:
         """Test that boolean merging handles None vs False correctly."""
@@ -468,7 +468,7 @@ class TestCreateConfig:
             version="2.0.0",
             endpoint="https://telemetry.custom.com/v1/traces",
             organization="custom-org",
-            timeout=10000,
+            timeout=10,
             enabled=True,
             verbose=False,
         )
@@ -479,7 +479,7 @@ class TestCreateConfig:
         assert result.version == "2.0.0"
         assert result.endpoint == "https://telemetry.custom.com/v1/traces"
         assert result.organization == "custom-org"
-        assert result.timeout == 10000
+        assert result.timeout == 10
         assert result.enabled is True
         assert result.verbose is False
 
@@ -496,8 +496,8 @@ class TestDefaultConfig:
         assert DEFAULT_CONFIG["organization"] == "namastex"
 
     def test_should_have_correct_default_timeout(self) -> None:
-        """Test that default timeout is 5000ms."""
-        assert DEFAULT_CONFIG["timeout"] == 5000
+        """Test that default timeout is 5 seconds."""
+        assert DEFAULT_CONFIG["timeout"] == 5
 
     def test_should_be_disabled_by_default(self) -> None:
         """Test that telemetry is disabled by default (opt-in only)."""
@@ -526,7 +526,7 @@ class TestConfigPriority:
         """Test priority when all three sources provide values."""
         # Set environment variables
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://env.example.com/traces")
-        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "6000")
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_TIMEOUT", "6")
 
         # User config
         user_config = TelemetryConfig(
@@ -542,7 +542,7 @@ class TestConfigPriority:
         # User config wins for endpoint
         assert result.endpoint == "https://user.example.com/traces"
         # Env wins for timeout
-        assert result.timeout == 6000
+        assert result.timeout == 6
         # Default wins for organization
         assert result.organization == DEFAULT_CONFIG["organization"]
 

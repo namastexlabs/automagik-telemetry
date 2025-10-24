@@ -549,15 +549,25 @@ client.trackLog(
 #### Detailed Explanation
 
 **Timeout (Consistent Across SDKs):**
+
+> **Design Note:** The `timeout` parameter uses **seconds** in both SDKs for API consistency, even though TypeScript conventionally uses milliseconds for time values. The TypeScript SDK automatically converts the seconds value to milliseconds internally when making HTTP requests. This design decision means users don't need to remember different units when switching between SDKs.
+
 ```python
 # Python - timeout in SECONDS
 timeout=5  # 5 seconds (int)
 ```
 
 ```typescript
-// TypeScript - timeout in SECONDS (converted to ms internally)
-timeout: 5  // 5 seconds (number) - internally converted to 5000ms
+// TypeScript - timeout in SECONDS (API accepts seconds for consistency)
+timeout: 5  // 5 seconds (number)
+           // Note: Internally converted to 5000ms for HTTP client
+           // You don't need to do this conversion yourself!
 ```
+
+**Why timeout isn't in the "different units" table:**
+- The parameter ACCEPTS the same unit (seconds) in both SDKs
+- The internal conversion to milliseconds in TypeScript is transparent to users
+- From a user's perspective, both SDKs work identically with timeout values
 
 **Flush Interval (Different Units!):**
 ```python
@@ -721,7 +731,13 @@ flushInterval: 100
 **Design Rationale:**
 - **Python Convention**: Python's standard library typically uses seconds (e.g., `time.sleep()`, `socket.settimeout()`)
 - **TypeScript Convention**: JavaScript/Node.js typically uses milliseconds (e.g., `setTimeout()`, `setInterval()`)
-- **Internal Implementation**: TypeScript SDK converts `timeout` parameter from seconds to milliseconds internally to maintain consistency with JavaScript conventions
+
+**Special Case - Timeout Parameter:**
+The `timeout` parameter is intentionally **the same unit (seconds) in both SDKs** to provide a consistent API:
+- **User-Facing API**: Both SDKs accept timeout in seconds
+- **Internal Implementation**: TypeScript SDK converts timeout from seconds to milliseconds internally for HTTP client compatibility
+- **Benefit**: Users don't need to remember different units when switching between SDKs
+- **Contrast**: Other timing parameters (`flushInterval`, `retryBackoffBase`) follow their respective platform conventions for consistency with internal timers
 
 **Best Practice:**
 Always check parameter names and documentation when migrating between SDKs to avoid timing issues!
