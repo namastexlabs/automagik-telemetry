@@ -253,8 +253,8 @@ class TestColorize:
 class TestInteractiveDetection:
     """Test interactive terminal detection."""
 
-    def test_should_be_interactive_with_tty(self) -> None:
-        """Test that interactive is True with TTY."""
+    def test_should_be_interactive_with_tty(self, clean_env: None) -> None:
+        """Test that interactive is True with TTY and no CI env vars."""
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
                 assert TelemetryOptIn._is_interactive() is True
