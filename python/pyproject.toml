@@ -42,7 +42,7 @@ integration = [
 Homepage = "https://github.com/namastexlabs/automagik-telemetry"
 Documentation = "https://github.com/namastexlabs/automagik-telemetry#readme"
 Repository = "https://github.com/namastexlabs/automagik-telemetry"
-Directory = "python"
+"Source Code" = "https://github.com/namastexlabs/automagik-telemetry/tree/main/python"
 Issues = "https://github.com/namastexlabs/automagik-telemetry/issues"
 
 [build-system]
