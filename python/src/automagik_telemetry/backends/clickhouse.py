@@ -10,7 +10,7 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -85,7 +85,7 @@ class ClickHouseBackend:
         """
         # Extract timestamp (use start time or current time)
         timestamp_ns = otlp_span.get("startTimeUnixNano", time.time_ns())
-        timestamp = datetime.fromtimestamp(timestamp_ns / 1_000_000_000, tz=timezone.utc)
+        timestamp = datetime.fromtimestamp(timestamp_ns / 1_000_000_000, tz=UTC)
 
         # Calculate duration in milliseconds
         start_ns = otlp_span.get("startTimeUnixNano", 0)
@@ -221,12 +221,13 @@ class ClickHouseBackend:
 
         # Build URL with query
         from urllib.parse import quote
+
         query = f"INSERT INTO {self.database}.{table_name} FORMAT JSONEachRow"
         url = f"{self.endpoint}/?query={quote(query)}"
 
         # Add authentication if provided
         if self.username:
-            auth_string = f"{self.username}:{self.password}".encode("utf-8")
+            auth_string = f"{self.username}:{self.password}".encode()
             import base64
 
             auth_header = b"Basic " + base64.b64encode(auth_string)
@@ -328,7 +329,7 @@ class ClickHouseBackend:
             if resource_attributes is None:
                 resource_attributes = {}
             if timestamp is None:
-                timestamp = datetime.now(timezone.utc)
+                timestamp = datetime.now(UTC)
 
             # Map COUNTER to SUM for ClickHouse enum compatibility
             clickhouse_type = metric_type.upper()
@@ -397,7 +398,9 @@ class ClickHouseBackend:
                 "cloud_region": resource_attributes.get("cloud.region", ""),
                 "cloud_availability_zone": resource_attributes.get("cloud.availability_zone", ""),
                 "instrumentation_library_name": resource_attributes.get("telemetry.sdk.name", ""),
-                "instrumentation_library_version": resource_attributes.get("telemetry.sdk.version", ""),
+                "instrumentation_library_version": resource_attributes.get(
+                    "telemetry.sdk.version", ""
+                ),
                 "schema_url": "",
             }
 
@@ -446,7 +449,7 @@ class ClickHouseBackend:
             if resource_attributes is None:
                 resource_attributes = {}
             if timestamp is None:
-                timestamp = datetime.now(timezone.utc)
+                timestamp = datetime.now(UTC)
 
             # Extract trace_id and span_id from attributes if not provided
             # This allows logs to be correlated with traces
@@ -460,7 +463,7 @@ class ClickHouseBackend:
 
             # Calculate timestamps
             timestamp_ns = int(timestamp.timestamp() * 1_000_000_000)
-            observed_timestamp = datetime.now(timezone.utc)
+            observed_timestamp = datetime.now(UTC)
             observed_timestamp_ns = int(observed_timestamp.timestamp() * 1_000_000_000)
 
             # Map severity levels to OTLP standard numbers
@@ -518,7 +521,9 @@ class ClickHouseBackend:
                 "cloud_region": resource_attributes.get("cloud.region", ""),
                 "cloud_availability_zone": resource_attributes.get("cloud.availability_zone", ""),
                 "instrumentation_library_name": resource_attributes.get("telemetry.sdk.name", ""),
-                "instrumentation_library_version": resource_attributes.get("telemetry.sdk.version", ""),
+                "instrumentation_library_version": resource_attributes.get(
+                    "telemetry.sdk.version", ""
+                ),
                 "schema_url": "",
                 "exception_type": attributes.get("exception.type", ""),
                 "exception_message": attributes.get("exception.message", ""),

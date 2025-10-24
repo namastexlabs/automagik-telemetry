@@ -173,10 +173,10 @@ export function validateConfig(config: TelemetryConfig): void {
           "TelemetryConfig: endpoint must use http or https protocol",
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle URL parsing errors
       // Check both instanceof TypeError and error name for better compatibility
-      if (error instanceof TypeError || error?.name === 'TypeError') {
+      if (error instanceof TypeError || (error as Error)?.name === 'TypeError') {
         throw new Error(
           `TelemetryConfig: endpoint must be a valid URL (got: ${config.endpoint})`,
         );

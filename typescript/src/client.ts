@@ -94,11 +94,113 @@ interface SystemInfo {
 type EventType = "trace" | "metric" | "log";
 
 /**
+ * OTLP span structure for traces.
+ */
+interface OTLPSpan {
+  traceId: string;
+  spanId: string;
+  name: string;
+  kind: string;
+  startTimeUnixNano: string;
+  endTimeUnixNano: string;
+  attributes: OTLPAttribute[];
+  status: { code: number };
+  resource: { attributes: OTLPAttribute[] };
+  [key: string]: unknown;
+}
+
+/**
+ * OTLP resource spans payload structure.
+ */
+interface OTLPResourceSpans {
+  resourceSpans: Array<{
+    resource: { attributes: OTLPAttribute[] };
+    scopeSpans: Array<{
+      scope: { name: string; version: string };
+      spans: OTLPSpan[];
+    }>;
+  }>;
+}
+
+/**
+ * OTLP metric data point structure.
+ */
+interface OTLPMetricDataPoint {
+  attributes: OTLPAttribute[];
+  timeUnixNano: string;
+  asDouble?: number;
+  count?: number;
+  sum?: number;
+  bucketCounts?: number[];
+  explicitBounds?: number[];
+}
+
+/**
+ * OTLP metric structure.
+ */
+interface OTLPMetric {
+  name: string;
+  unit: string;
+  gauge?: { dataPoints: OTLPMetricDataPoint[] };
+  sum?: {
+    dataPoints: OTLPMetricDataPoint[];
+    aggregationTemporality: string;
+    isMonotonic: boolean;
+  };
+  histogram?: {
+    dataPoints: OTLPMetricDataPoint[];
+    aggregationTemporality: string;
+  };
+}
+
+/**
+ * OTLP resource metrics payload structure.
+ */
+interface OTLPResourceMetrics {
+  resourceMetrics: Array<{
+    resource: { attributes: OTLPAttribute[] };
+    scopeMetrics: Array<{
+      scope: { name: string; version: string };
+      metrics: OTLPMetric[];
+    }>;
+  }>;
+}
+
+/**
+ * OTLP log record structure.
+ */
+interface OTLPLogRecord {
+  timeUnixNano: string;
+  severityNumber: number;
+  severityText: string;
+  body: { stringValue: string };
+  attributes: OTLPAttribute[];
+}
+
+/**
+ * OTLP resource logs payload structure.
+ */
+interface OTLPResourceLogs {
+  resourceLogs: Array<{
+    resource: { attributes: OTLPAttribute[] };
+    scopeLogs: Array<{
+      scope: { name: string; version: string };
+      logRecords: OTLPLogRecord[];
+    }>;
+  }>;
+}
+
+/**
+ * Union type for all OTLP payloads.
+ */
+type OTLPPayload = OTLPResourceSpans | OTLPResourceMetrics | OTLPResourceLogs;
+
+/**
  * Queued event structure for batch processing.
  */
 interface QueuedEvent {
   type: EventType;
-  payload: any;
+  payload: OTLPPayload;
   endpoint: string;
 }
 
@@ -394,7 +496,7 @@ export class AutomagikTelemetry {
    * @param data - Event data to convert
    * @returns OTLP-formatted attributes
    */
-  private createAttributes(data: Record<string, any>): OTLPAttribute[] {
+  private createAttributes(data: Record<string, unknown>): OTLPAttribute[] {
     const attributes: OTLPAttribute[] = [];
 
     // Add system information
@@ -479,7 +581,7 @@ export class AutomagikTelemetry {
    */
   private async sendWithRetry(
     endpoint: string,
-    payload: any,
+    payload: OTLPPayload,
     attempt: number = 0,
   ): Promise<void> {
     try {
@@ -591,7 +693,7 @@ export class AutomagikTelemetry {
    */
   private async sendEvent(
     eventType: string,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
   ): Promise<void> {
     if (!this.enabled) {
       return; // Silent no-op when disabled
@@ -640,7 +742,7 @@ export class AutomagikTelemetry {
       ];
 
       // Create OTLP-compatible span
-      const span: any = {
+      const span: OTLPSpan = {
         traceId: traceId,
         spanId: spanId,
         name: eventType,
@@ -711,7 +813,7 @@ export class AutomagikTelemetry {
     metricName: string,
     value: number,
     metricType: MetricType,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
   ): Promise<void> {
     if (!this.enabled) {
       return; // Silent no-op when disabled
@@ -722,7 +824,7 @@ export class AutomagikTelemetry {
       const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
 
       // Create OTLP-compatible metric payload
-      const dataPoint: any = {
+      const dataPoint: OTLPMetricDataPoint = {
         attributes: this.createAttributes(data),
         timeUnixNano: timeNano.toString(),
       };
@@ -740,9 +842,9 @@ export class AutomagikTelemetry {
         dataPoint.explicitBounds = [];
       }
 
-      const metricData: any = {
+      const metricData: OTLPMetric = {
         name: metricName,
-        unit: data.unit || "",
+        unit: (typeof data.unit === "string" ? data.unit : "") || "",
       };
 
       // Set metric type-specific structure
@@ -834,7 +936,7 @@ export class AutomagikTelemetry {
   private async sendLog(
     message: string,
     severity: LogSeverity,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
   ): Promise<void> {
     if (!this.enabled) {
       return; // Silent no-op when disabled
@@ -931,7 +1033,7 @@ export class AutomagikTelemetry {
    * });
    * ```
    */
-  trackEvent(eventName: string, attributes?: Record<string, any>): void {
+  trackEvent(eventName: string, attributes?: Record<string, unknown>): void {
     this.sendEvent(eventName, attributes || {}).catch(() => {
       // Silent failure
     });
@@ -955,7 +1057,7 @@ export class AutomagikTelemetry {
    * }
    * ```
    */
-  trackError(error: Error, context?: Record<string, any>): void {
+  trackError(error: Error, context?: Record<string, unknown>): void {
     const data = {
       error_type: error.name,
       error_message: error.message.slice(0, 500), // Truncate long errors
@@ -986,7 +1088,7 @@ export class AutomagikTelemetry {
     metricName: string,
     value: number,
     metricType: MetricType = MetricType.GAUGE,
-    attributes?: Record<string, any>,
+    attributes?: Record<string, unknown>,
   ): void {
     this.sendMetric(metricName, value, metricType, attributes || {}).catch(
       () => {
@@ -1013,7 +1115,7 @@ export class AutomagikTelemetry {
   trackLog(
     message: string,
     severity: LogSeverity = LogSeverity.INFO,
-    attributes?: Record<string, any>,
+    attributes?: Record<string, unknown>,
   ): void {
     this.sendLog(message, severity, attributes || {}).catch(() => {
       // Silent failure
@@ -1143,7 +1245,7 @@ export class AutomagikTelemetry {
    *
    * @returns Status object with configuration and state
    */
-  getStatus(): Record<string, any> {
+  getStatus(): Record<string, unknown> {
     const optOutFile = path.join(os.homedir(), ".automagik-no-telemetry");
     return {
       enabled: this.enabled,

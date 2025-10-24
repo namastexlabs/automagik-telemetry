@@ -175,7 +175,7 @@ export class ClickHouseBackend {
    * @returns Flattened attributes with string values
    */
   private flattenAttributes(
-    attributes?: Record<string, any>
+    attributes?: Record<string, unknown>
   ): Record<string, string> {
     const flatAttrs: Record<string, string> = {};
     if (attributes) {
@@ -191,7 +191,7 @@ export class ClickHouseBackend {
    * @param resourceAttributes - Optional resource attributes
    * @returns Object with extracted resource attributes
    */
-  private extractResourceAttributes(resourceAttributes?: Record<string, any>): {
+  private extractResourceAttributes(resourceAttributes?: Record<string, unknown>): {
     serviceName: string;
     projectName: string;
     projectVersion: string;
@@ -219,24 +219,25 @@ export class ClickHouseBackend {
   /**
    * Transform OTLP span format to our ClickHouse schema.
    */
-  private transformOTLPToClickHouse(otlpSpan: any): ClickHouseTraceRow {
+  private transformOTLPToClickHouse(otlpSpan: Record<string, unknown>): ClickHouseTraceRow {
     // Extract timestamp (use start time or current time)
     const timestampNs = otlpSpan.startTimeUnixNano || Date.now() * 1_000_000;
     const timestamp = new Date(Number(timestampNs) / 1_000_000);
 
     // Calculate duration in milliseconds
-    const startNs = otlpSpan.startTimeUnixNano || 0;
-    const endNs = otlpSpan.endTimeUnixNano || startNs;
+    const startNs = Number(otlpSpan.startTimeUnixNano) || 0;
+    const endNs = Number(otlpSpan.endTimeUnixNano) || startNs;
     const durationMs =
       endNs > startNs ? Math.floor((endNs - startNs) / 1_000_000) : 0;
 
     // Extract status
-    const status = otlpSpan.status || {};
+    const status = (otlpSpan.status || {}) as { code?: number; message?: string };
     const statusCode = status.code === 1 ? "OK" : status.message || "OK";
 
     // Transform attributes from OTLP format to flat dict
     const attributes: Record<string, string> = {};
-    for (const attr of otlpSpan.attributes || []) {
+    const attrs = (otlpSpan.attributes || []) as Array<{ key?: string; value?: { stringValue?: string; intValue?: number; doubleValue?: number; boolValue?: boolean } }>;
+    for (const attr of attrs) {
       const key = attr.key || "";
       const value = attr.value || {};
 
@@ -254,8 +255,9 @@ export class ClickHouseBackend {
 
     // Extract resource attributes
     const resourceAttrs: Record<string, string> = {};
-    const resource = otlpSpan.resource || {};
-    for (const attr of resource.attributes || []) {
+    const resource = (otlpSpan.resource || {}) as { attributes?: Array<{ key?: string; value?: { stringValue?: string } }> };
+    const resourceAttributes = resource.attributes || [];
+    for (const attr of resourceAttributes) {
       const key = attr.key || "";
       const value = attr.value || {};
       if (value.stringValue !== undefined) {
@@ -265,15 +267,15 @@ export class ClickHouseBackend {
 
     // Build ClickHouse row
     return {
-      trace_id: otlpSpan.traceId || "",
-      span_id: otlpSpan.spanId || "",
-      parent_span_id: otlpSpan.parentSpanId || "",
+      trace_id: String(otlpSpan.traceId || ""),
+      span_id: String(otlpSpan.spanId || ""),
+      parent_span_id: String(otlpSpan.parentSpanId || ""),
       timestamp: timestamp.toISOString().replace("T", " ").substring(0, 19),
-      timestamp_ns: timestampNs,
+      timestamp_ns: Number(timestampNs),
       duration_ms: durationMs,
       service_name: resourceAttrs["service.name"] || "unknown",
-      span_name: otlpSpan.name || "unknown",
-      span_kind: otlpSpan.kind || "INTERNAL",
+      span_name: String(otlpSpan.name || "unknown"),
+      span_kind: String(otlpSpan.kind || "INTERNAL"),
       status_code: statusCode,
       status_message: status.message || "",
       project_name: resourceAttrs["project.name"] || "",
@@ -293,7 +295,7 @@ export class ClickHouseBackend {
   /**
    * Add a span to the trace batch queue.
    */
-  public addToBatch(otlpSpan: any): void {
+  public addToBatch(otlpSpan: Record<string, unknown>): void {
     const row = this.transformOTLPToClickHouse(otlpSpan);
     this.traceBatch.push(row);
 
@@ -480,7 +482,7 @@ export class ClickHouseBackend {
    *
    * This is a convenience method that batches internally.
    */
-  public sendTrace(otlpSpan: any): boolean {
+  public sendTrace(otlpSpan: Record<string, unknown>): boolean {
     try {
       this.addToBatch(otlpSpan);
       return true;
@@ -507,8 +509,8 @@ export class ClickHouseBackend {
     value: number,
     metricType: string = "GAUGE",
     unit: string = "",
-    attributes?: Record<string, any>,
-    resourceAttributes?: Record<string, any>,
+    attributes?: Record<string, unknown>,
+    resourceAttributes?: Record<string, unknown>,
     timestamp?: Date
   ): boolean {
     try {
@@ -590,8 +592,8 @@ export class ClickHouseBackend {
   public sendLog(
     message: string,
     level: string = "INFO",
-    attributes?: Record<string, any>,
-    resourceAttributes?: Record<string, any>,
+    attributes?: Record<string, unknown>,
+    resourceAttributes?: Record<string, unknown>,
     timestamp?: Date,
     traceId: string = "",
     spanId: string = ""

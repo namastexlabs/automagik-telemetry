@@ -27,7 +27,6 @@ from automagik_telemetry.client import (
     AutomagikTelemetry,
     LogSeverity,
     MetricType,
-    AutomagikTelemetry,
     TelemetryConfig,
 )
 
@@ -88,7 +87,8 @@ class TestAutomagikTelemetryInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test basic client initialization with required parameters."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.config.project_name == "test-project"
         assert client.config.version == "1.0.0"
@@ -104,7 +104,7 @@ class TestAutomagikTelemetryInitialization:
             project_name="test-project",
             version="1.0.0",
             endpoint="https://custom.example.com/traces",
-            batch_size=1
+            batch_size=1,
         )
         client = AutomagikTelemetry(config=config)
 
@@ -116,7 +116,8 @@ class TestAutomagikTelemetryInitialization:
         """Test that endpoint is read from environment variable."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://env.example.com/traces")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.endpoint == "https://env.example.com/traces"
 
@@ -129,7 +130,8 @@ class TestAutomagikTelemetryInitialization:
             "AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT", "https://prometheus.example.com/v1/metrics"
         )
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.endpoint == "https://tempo.example.com/v1/traces"
         assert client.metrics_endpoint == "https://prometheus.example.com/v1/metrics"
@@ -141,7 +143,8 @@ class TestAutomagikTelemetryInitialization:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENDPOINT", "https://tempo.example.com/v1/traces")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT", "https://loki.example.com/v1/logs")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.endpoint == "https://tempo.example.com/v1/traces"
         assert client.logs_endpoint == "https://loki.example.com/v1/logs"
@@ -156,7 +159,8 @@ class TestAutomagikTelemetryInitialization:
         )
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT", "https://loki.example.com/v1/logs")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.endpoint == "https://tempo.example.com/v1/traces"
         assert client.metrics_endpoint == "https://prometheus.example.com/v1/metrics"
@@ -200,21 +204,25 @@ class TestAutomagikTelemetryInitialization:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that custom timeout is used."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", timeout=10, batch_size=1)
+        config = TelemetryConfig(
+            project_name="test-project", version="1.0.0", timeout=10, batch_size=1
+        )
         client = AutomagikTelemetry(config=config)
 
         assert client.config.timeout == 10
 
     def test_should_generate_session_id_on_init(self, temp_home: Path, clean_env: None) -> None:
         """Test that session ID is generated on initialization."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.session_id is not None
         assert len(client.session_id) > 0
 
     def test_should_be_disabled_by_default(self, temp_home: Path, clean_env: None) -> None:
         """Test that telemetry is disabled by default (opt-in only)."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is False
 
@@ -224,7 +232,8 @@ class TestAutomagikTelemetryInitialization:
         """Test that verbose mode is read from environment variable."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.verbose is True
 
@@ -239,7 +248,8 @@ class TestUserIdPersistence:
         user_id_file = temp_home / ".automagik" / "user_id"
         assert not user_id_file.exists()
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert user_id_file.exists()
         assert len(client.user_id) > 0
@@ -248,7 +258,8 @@ class TestUserIdPersistence:
         self, temp_home: Path, user_id_file: Path, clean_env: None
     ) -> None:
         """Test that existing user ID is reused."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.user_id == "test-user-id-12345"
 
@@ -259,7 +270,8 @@ class TestUserIdPersistence:
         user_id_path.parent.mkdir(parents=True, exist_ok=True)
         user_id_path.mkdir()
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Should generate new ID when read fails
         assert client.user_id is not None
@@ -268,7 +280,8 @@ class TestUserIdPersistence:
     def test_should_handle_user_id_file_write_error(self, temp_home: Path, clean_env: None) -> None:
         """Test graceful handling of user ID file write errors."""
         with patch("pathlib.Path.write_text", side_effect=PermissionError):
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
 
             # Should still have in-memory user ID
             assert client.user_id is not None
@@ -284,7 +297,8 @@ class TestTelemetryEnabled:
         """Test enabling via environment variable."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is True
 
@@ -295,7 +309,8 @@ class TestTelemetryEnabled:
         """Test that various truthy values are accepted."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", value)
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is True
 
@@ -303,7 +318,8 @@ class TestTelemetryEnabled:
         self, temp_home: Path, opt_out_file: Path, clean_env: None
     ) -> None:
         """Test that opt-out file disables telemetry."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is False
 
@@ -316,7 +332,8 @@ class TestTelemetryEnabled:
         """Test that telemetry is disabled in CI environments."""
         monkeypatch.setenv(ci_var, "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is False
 
@@ -327,7 +344,8 @@ class TestTelemetryEnabled:
         """Test that telemetry is disabled in development environments."""
         monkeypatch.setenv("ENVIRONMENT", env_value)
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is False
 
@@ -339,7 +357,8 @@ class TestEventTracking:
         self, temp_home: Path, clean_env: None, mock_urlopen: Mock
     ) -> None:
         """Test that events are not sent when telemetry is disabled."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("test.event", {"key": "value"})
 
@@ -411,7 +430,8 @@ class TestEventTracking:
         """Test that system information is included in attributes."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("test.event", {})
 
@@ -437,7 +457,8 @@ class TestEventTracking:
         """Test that different attribute types are correctly encoded."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event(
             "test.event",
@@ -476,7 +497,8 @@ class TestEventTracking:
         """Test that long strings are truncated to prevent payload bloat."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         long_string = "x" * 1000
         client.track_event("test.event", {"long_value": long_string})
@@ -503,7 +525,8 @@ class TestErrorTracking:
         """Test tracking an error with exception details."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         try:
             raise ValueError("Test error message")
@@ -533,7 +556,8 @@ class TestErrorTracking:
         """Test that long error messages are truncated."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         long_message = "x" * 1000
         try:
@@ -564,7 +588,8 @@ class TestMetricTracking:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric(
             "operation.latency", 123.45, MetricType.GAUGE, {"operation_type": "api_request"}
@@ -592,7 +617,8 @@ class TestMetricTracking:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric("cpu.usage", 75.5, MetricType.GAUGE, {"core": "0"})
 
@@ -613,7 +639,8 @@ class TestMetricTracking:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric("requests.total", 100, MetricType.COUNTER)
 
@@ -635,7 +662,8 @@ class TestMetricTracking:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric(
             "api.latency", 123.45, MetricType.HISTOGRAM, {"endpoint": "/v1/contacts"}
@@ -657,7 +685,8 @@ class TestMetricTracking:
         """Test that string metric types are converted to enum."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric("test.metric", 42.0, "counter")
 
@@ -674,7 +703,8 @@ class TestMetricTracking:
         """Test that invalid metric types default to GAUGE."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_metric("test.metric", 42.0, "invalid_type")
 
@@ -691,7 +721,8 @@ class TestEnableDisable:
 
     def test_should_enable_telemetry(self, temp_home: Path, clean_env: None) -> None:
         """Test enabling telemetry."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is False
 
@@ -703,7 +734,8 @@ class TestEnableDisable:
         self, temp_home: Path, opt_out_file: Path, clean_env: None
     ) -> None:
         """Test that opt-out file is removed when enabling."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.enable()
 
@@ -715,7 +747,8 @@ class TestEnableDisable:
         """Test disabling telemetry."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.enabled is True
 
@@ -729,7 +762,8 @@ class TestEnableDisable:
         """Test that opt-out file is created when disabling."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.disable()
 
@@ -742,7 +776,8 @@ class TestEnableDisable:
         """Test is_enabled() method."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         assert client.is_enabled() is True
 
@@ -756,7 +791,8 @@ class TestStatusInfo:
 
     def test_should_return_complete_status(self, temp_home: Path, clean_env: None) -> None:
         """Test get_status() returns complete information."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         status = client.get_status()
 
@@ -784,7 +820,8 @@ class TestSilentFailure:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         with patch("urllib.request.urlopen", side_effect=URLError("Network error")):
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
 
             # Should not raise exception
             client.track_event("test.event", {"key": "value"})
@@ -798,7 +835,8 @@ class TestSilentFailure:
         with patch(
             "urllib.request.urlopen", side_effect=HTTPError("url", 500, "Server error", {}, None)
         ):
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
 
             # Should not raise exception
             client.track_event("test.event", {"key": "value"})
@@ -810,7 +848,8 @@ class TestSilentFailure:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         with patch("urllib.request.urlopen", side_effect=TimeoutError("Request timed out")):
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
 
             # Should not raise exception
             client.track_event("test.event", {"key": "value"})
@@ -822,7 +861,8 @@ class TestSilentFailure:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         with patch("urllib.request.urlopen", side_effect=Exception("Unexpected error")):
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
 
             # Should not raise exception
             client.track_event("test.event", {"key": "value"})
@@ -839,7 +879,8 @@ class TestLogTracking:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_log(
             "User authentication successful", LogSeverity.INFO, {"user_id": "anonymous-uuid"}
@@ -863,7 +904,8 @@ class TestLogTracking:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Test each severity level
         severities = [
@@ -893,7 +935,8 @@ class TestLogTracking:
         """Test that string severity levels are converted to enum."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_log("Error message", "error")
 
@@ -910,7 +953,8 @@ class TestLogTracking:
         """Test that invalid severity defaults to INFO."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_log("Test message", "invalid_severity")
 
@@ -927,7 +971,8 @@ class TestLogTracking:
         """Test that long log messages are truncated to 1000 chars."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         long_message = "x" * 2000
         client.track_log(long_message)
@@ -954,7 +999,8 @@ class TestVerboseMode:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_VERBOSE", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("test.event", {"key": "value"})
 
@@ -972,7 +1018,8 @@ class TestVerboseMode:
         """Test that events are not printed when verbose mode is off."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         client.track_event("test.event", {"key": "value"})
 
@@ -997,7 +1044,10 @@ class TestEdgeCasesAndErrorPaths:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(
-            project_name="test-project", version="1.0.0", endpoint="https://custom.example.com", batch_size=1
+            project_name="test-project",
+            version="1.0.0",
+            endpoint="https://custom.example.com",
+            batch_size=1,
         )
         client = AutomagikTelemetry(config=config)
 
@@ -1027,7 +1077,8 @@ class TestEdgeCasesAndErrorPaths:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Patch the instance method to return number values
         original_get_system_info = client._get_system_info
@@ -1095,7 +1146,8 @@ class TestEdgeCasesAndErrorPaths:
                 "https://example.com", 400, "Bad Request", {}, None
             )
 
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+            client = AutomagikTelemetry(config=config)
 
             # Should not raise, just fail silently
             client.track_event("test.event", {})
@@ -1115,7 +1167,9 @@ class TestEdgeCasesAndErrorPaths:
                 "https://example.com", 500, "Internal Server Error", {}, None
             )
 
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1, max_retries=3)
+            config = TelemetryConfig(
+                project_name="test-project", version="1.0.0", batch_size=1, max_retries=3
+            )
             client = track_client(AutomagikTelemetry(config=config))
 
             # Should not raise, just fail silently after retries
@@ -1134,7 +1188,9 @@ class TestEdgeCasesAndErrorPaths:
             # Simulate network error
             mock_urlopen.side_effect = URLError("Network unreachable")
 
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1, max_retries=2)
+            config = TelemetryConfig(
+                project_name="test-project", version="1.0.0", batch_size=1, max_retries=2
+            )
             client = track_client(AutomagikTelemetry(config=config))
 
             # Should not raise, just fail silently after retries
@@ -1387,7 +1443,9 @@ class TestEdgeCasesAndErrorPaths:
         with patch(
             "automagik_telemetry.client.urlopen", return_value=mock_response
         ) as mock_urlopen:
-            config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1, max_retries=3)
+            config = TelemetryConfig(
+                project_name="test-project", version="1.0.0", batch_size=1, max_retries=3
+            )
             client = track_client(AutomagikTelemetry(config=config))
 
             # Should not retry on 400 error
@@ -1400,7 +1458,8 @@ class TestEdgeCasesAndErrorPaths:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that enable/disable handle file errors gracefully."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Test enable with file unlink error
         with patch("pathlib.Path.unlink", side_effect=PermissionError):
@@ -1434,7 +1493,8 @@ class TestEdgeCasesAndErrorPaths:
 
     def test_should_handle_del_exceptions_silently(self, temp_home: Path, clean_env: None) -> None:
         """Test that __del__ handles exceptions silently."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Mock flush to raise exception
         with patch.object(client, "flush", side_effect=Exception("Test error")):
@@ -1448,7 +1508,10 @@ class TestEdgeCasesAndErrorPaths:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(
-            project_name="test-project", version="1.0.0", endpoint="https://custom.example.com/", batch_size=1
+            project_name="test-project",
+            version="1.0.0",
+            endpoint="https://custom.example.com/",
+            batch_size=1,
         )
         client = AutomagikTelemetry(config=config)
 
@@ -1465,7 +1528,7 @@ class TestEdgeCasesAndErrorPaths:
             project_name="test-project",
             version="1.0.0",
             endpoint="https://custom.example.com/v1/traces",
-            batch_size=1
+            batch_size=1,
         )
         client = AutomagikTelemetry(config=config)
 
@@ -1484,7 +1547,7 @@ class TestEdgeCasesAndErrorPaths:
             project_name="test-project",
             version="1.0.0",
             endpoint="https://custom.example.com/telemetry/traces",
-            batch_size=1
+            batch_size=1,
         )
         client = AutomagikTelemetry(config=config)
 
@@ -1501,7 +1564,8 @@ class TestCoverageTargeted:
         """Test that metrics aren't sent when disabled - covers line 468."""
         from automagik_telemetry.client import MetricType
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Should not send when disabled (line 468)
         client.track_metric(
@@ -1512,7 +1576,8 @@ class TestCoverageTargeted:
         """Test that logs aren't sent when disabled - covers line 525."""
         from automagik_telemetry.client import LogSeverity
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Should not send when disabled (line 525)
         client.track_log("test message", LogSeverity.INFO)  # No assertion needed, just coverage
@@ -1523,7 +1588,8 @@ class TestCoverageTargeted:
         """Test handling of truly unknown metric type - covers lines 499-500."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Create a mock metric type that's not in the enum
         # This will trigger the "unknown metric type" path (lines 499-500)
@@ -1542,7 +1608,8 @@ class TestCoverageTargeted:
         """Test general exception handler - covers lines 392-394."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Mock json.dumps to raise an exception
         with patch(
@@ -1555,7 +1622,8 @@ class TestCoverageTargeted:
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test early return when not enabled - covers line 335."""
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Call _send_with_retry directly when disabled
         client._send_with_retry("https://example.com", {}, "test")  # Line 335
@@ -1636,7 +1704,8 @@ class TestAsyncMethods:
         """Test async event tracking - covers line 847."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         await client.track_event_async("test.event", {"key": "value"})
 
@@ -1650,7 +1719,8 @@ class TestAsyncMethods:
         """Test async error tracking - covers line 881."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         try:
             raise ValueError("Test error")
@@ -1669,7 +1739,8 @@ class TestAsyncMethods:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         await client.track_metric_async("test.metric", 42.0, MetricType.GAUGE)
 
@@ -1685,7 +1756,8 @@ class TestAsyncMethods:
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         await client.track_log_async("Test log message", LogSeverity.INFO)
 
@@ -1699,7 +1771,8 @@ class TestAsyncMethods:
         """Test async flush - covers line 974."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1); client = AutomagikTelemetry(config=config)
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
+        client = AutomagikTelemetry(config=config)
 
         # Send event
         client.track_event("event1", {})

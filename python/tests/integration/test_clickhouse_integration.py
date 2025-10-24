@@ -30,7 +30,9 @@ pytestmark = [pytest.mark.integration]
 
 # Default credentials from docker-compose (infra/docker-compose.yml)
 DEFAULT_CLICKHOUSE_USER = os.getenv("AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME", "telemetry")
-DEFAULT_CLICKHOUSE_PASSWORD = os.getenv("AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD", "telemetry_password")
+DEFAULT_CLICKHOUSE_PASSWORD = os.getenv(
+    "AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD", "telemetry_password"
+)
 
 
 def clickhouse_request(
@@ -45,7 +47,7 @@ def clickhouse_request(
     request = Request(url, data=data, method=method)
 
     if username:
-        auth_string = f"{username}:{password}".encode("utf-8")
+        auth_string = f"{username}:{password}".encode()
         auth_header = b"Basic " + base64.b64encode(auth_string)
         request.add_header("Authorization", auth_header.decode("utf-8"))
 
@@ -57,6 +59,7 @@ def check_clickhouse_available(endpoint: str = "http://localhost:8123") -> bool:
     """Check if ClickHouse is available."""
     try:
         from urllib.parse import quote
+
         query = quote("SELECT 1")
         clickhouse_request(f"{endpoint}/?query={query}", timeout=2)
         return True
@@ -91,6 +94,7 @@ def cleanup_test_data(
 ) -> None:
     """Clean up test data from ClickHouse."""
     from urllib.parse import quote
+
     query = f"ALTER TABLE {database}.{table} DELETE WHERE project_name = '{project_name}'"
     try:
         clickhouse_request(f"{endpoint}/?query={quote(query)}", method="POST")

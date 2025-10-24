@@ -8,9 +8,8 @@ import json
 import os
 import tempfile
 import unittest
-from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from automagik_telemetry import AutomagikTelemetry, LogSeverity, MetricType, TelemetryConfig
 from automagik_telemetry.backends.clickhouse import ClickHouseBackend
@@ -377,8 +376,6 @@ class TestClientMetricAttributeTypeConversion(unittest.TestCase):
 
             # We need to directly patch _create_attributes to return intValue
             # to test line 679 which handles intValue
-            original_create_attrs = client._create_attributes
-
             def patched_create_attrs(data, include_system=False):
                 # Return attributes with intValue instead of doubleValue
                 attrs = []

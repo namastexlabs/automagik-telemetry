@@ -22,12 +22,9 @@ Tests cover:
 
 import gzip
 import json
-import time
 from typing import Any
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
-
-import pytest
 
 from automagik_telemetry.backends.clickhouse import ClickHouseBackend
 
@@ -634,7 +631,10 @@ class TestHTTPInsertion:
             backend._insert_batch(rows, backend.traces_table)
 
         request = mock_urlopen.call_args[0][0]
-        assert "INSERT%20INTO%20test_db.test_table%20FORMAT%20JSONEachRow" in request.full_url or "test_db.test_table" in request.full_url
+        assert (
+            "INSERT%20INTO%20test_db.test_table%20FORMAT%20JSONEachRow" in request.full_url
+            or "test_db.test_table" in request.full_url
+        )
 
     def test_should_compress_data_when_enabled(self) -> None:
         """Test gzip compression when enabled and data is large enough."""

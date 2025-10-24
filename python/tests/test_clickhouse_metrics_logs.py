@@ -31,17 +31,14 @@ Tests cover:
    - Compression behavior
 """
 
-import json
-import time
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
 
 import pytest
 
 from automagik_telemetry.backends.clickhouse import ClickHouseBackend
-
 
 # ============================================================================
 # FIXTURES
@@ -124,7 +121,7 @@ class TestSendMetricBasic:
         self, backend: ClickHouseBackend, resource_attributes: dict[str, Any]
     ) -> None:
         """Test sending a GAUGE metric with all parameters."""
-        custom_timestamp = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        custom_timestamp = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
 
         result = backend.send_metric(
             metric_name="memory.usage",
@@ -199,22 +196,28 @@ class TestSendMetricBasic:
         assert metric["metric_type"] == "SUMMARY"
         assert metric["value_double"] == 512.0
 
-    def test_should_use_current_time_when_timestamp_not_provided(self, backend: ClickHouseBackend) -> None:
+    def test_should_use_current_time_when_timestamp_not_provided(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test that current time is used when timestamp is not provided."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
 
         backend.send_metric(
             metric_name="test.metric",
             value=100,
         )
 
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         metric = backend._metric_batch[0]
         metric_timestamp = datetime.strptime(metric["timestamp"], "%Y-%m-%d %H:%M:%S")
 
         # Timestamp should be between before and after (with timezone awareness comparison)
-        assert before.replace(microsecond=0) <= metric_timestamp.replace(tzinfo=timezone.utc) <= after.replace(microsecond=0)
+        assert (
+            before.replace(microsecond=0)
+            <= metric_timestamp.replace(tzinfo=UTC)
+            <= after.replace(microsecond=0)
+        )
 
     def test_should_generate_unique_metric_ids(self, backend: ClickHouseBackend) -> None:
         """Test that each metric gets a unique ID."""
@@ -305,13 +308,17 @@ class TestMetricsBatching:
 
         assert len(backend._metric_batch) == 2
 
-        with patch("automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response):
+        with patch(
+            "automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response
+        ):
             result = backend.flush()
 
         assert result is True
         assert len(backend._metric_batch) == 0
 
-    def test_should_clear_metric_batch_even_on_flush_failure(self, backend: ClickHouseBackend) -> None:
+    def test_should_clear_metric_batch_even_on_flush_failure(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test that metric batch is cleared even when flush fails."""
         backend.send_metric("metric_1", 1.0)
 
@@ -330,7 +337,9 @@ class TestMetricsBatching:
         assert result is True
         assert len(backend._metric_batch) == 0
 
-    def test_should_flush_metrics_independently_from_traces(self, backend: ClickHouseBackend) -> None:
+    def test_should_flush_metrics_independently_from_traces(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test that metrics and traces flush independently."""
         # Add metrics
         backend.send_metric("metric_1", 1.0)
@@ -360,7 +369,9 @@ class TestMetricsBatching:
 class TestMetricsResourceAttributes:
     """Test resource attributes extraction for metrics."""
 
-    def test_should_extract_service_name_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_service_name_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of service.name from resource attributes."""
         backend.send_metric(
             "test.metric",
@@ -371,14 +382,18 @@ class TestMetricsResourceAttributes:
         metric = backend._metric_batch[0]
         assert metric["service_name"] == "payment-service"
 
-    def test_should_use_default_service_name_when_not_provided(self, backend: ClickHouseBackend) -> None:
+    def test_should_use_default_service_name_when_not_provided(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test default service name when not provided."""
         backend.send_metric("test.metric", 100)
 
         metric = backend._metric_batch[0]
         assert metric["service_name"] == "unknown"
 
-    def test_should_extract_project_info_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_project_info_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of project name and version."""
         backend.send_metric(
             "test.metric",
@@ -393,7 +408,9 @@ class TestMetricsResourceAttributes:
         assert metric["project_name"] == "my-awesome-project"
         assert metric["project_version"] == "2.5.1"
 
-    def test_should_extract_environment_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_environment_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of deployment.environment."""
         backend.send_metric(
             "test.metric",
@@ -404,14 +421,18 @@ class TestMetricsResourceAttributes:
         metric = backend._metric_batch[0]
         assert metric["environment"] == "production"
 
-    def test_should_use_default_environment_when_not_provided(self, backend: ClickHouseBackend) -> None:
+    def test_should_use_default_environment_when_not_provided(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test default environment value."""
         backend.send_metric("test.metric", 100)
 
         metric = backend._metric_batch[0]
         assert metric["environment"] == "production"
 
-    def test_should_extract_hostname_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_hostname_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of host.name."""
         backend.send_metric(
             "test.metric",
@@ -518,7 +539,7 @@ class TestSendLogBasic:
         self, backend: ClickHouseBackend, resource_attributes: dict[str, Any]
     ) -> None:
         """Test sending a log with all parameters."""
-        custom_timestamp = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        custom_timestamp = datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC)
 
         result = backend.send_log(
             message="Error processing request",
@@ -591,18 +612,24 @@ class TestSendLogBasic:
         log = backend._log_batch[0]
         assert log["severity_text"] == "ERROR"
 
-    def test_should_use_current_time_when_timestamp_not_provided(self, backend: ClickHouseBackend) -> None:
+    def test_should_use_current_time_when_timestamp_not_provided(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test that current time is used when timestamp is not provided."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
 
         backend.send_log("Test log")
 
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         log = backend._log_batch[0]
         log_timestamp = datetime.strptime(log["timestamp"], "%Y-%m-%d %H:%M:%S")
 
-        assert before.replace(microsecond=0) <= log_timestamp.replace(tzinfo=timezone.utc) <= after.replace(microsecond=0)
+        assert (
+            before.replace(microsecond=0)
+            <= log_timestamp.replace(tzinfo=UTC)
+            <= after.replace(microsecond=0)
+        )
 
     def test_should_generate_unique_log_ids(self, backend: ClickHouseBackend) -> None:
         """Test that each log gets a unique ID."""
@@ -724,7 +751,9 @@ class TestLogsBatching:
 
         assert len(backend._log_batch) == 2
 
-        with patch("automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response):
+        with patch(
+            "automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response
+        ):
             result = backend.flush()
 
         assert result is True
@@ -779,7 +808,9 @@ class TestLogsBatching:
 class TestLogsResourceAttributes:
     """Test resource attributes extraction for logs."""
 
-    def test_should_extract_service_name_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_service_name_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of service.name from resource attributes."""
         backend.send_log(
             "Test log",
@@ -789,14 +820,18 @@ class TestLogsResourceAttributes:
         log = backend._log_batch[0]
         assert log["service_name"] == "auth-service"
 
-    def test_should_use_default_service_name_when_not_provided(self, backend: ClickHouseBackend) -> None:
+    def test_should_use_default_service_name_when_not_provided(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test default service name when not provided."""
         backend.send_log("Test log")
 
         log = backend._log_batch[0]
         assert log["service_name"] == "unknown"
 
-    def test_should_extract_project_info_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_project_info_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of project name and version."""
         backend.send_log(
             "Test log",
@@ -810,7 +845,9 @@ class TestLogsResourceAttributes:
         assert log["project_name"] == "logging-demo"
         assert log["project_version"] == "3.2.1"
 
-    def test_should_extract_environment_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_environment_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of deployment.environment."""
         backend.send_log(
             "Test log",
@@ -820,14 +857,18 @@ class TestLogsResourceAttributes:
         log = backend._log_batch[0]
         assert log["environment"] == "development"
 
-    def test_should_use_default_environment_when_not_provided(self, backend: ClickHouseBackend) -> None:
+    def test_should_use_default_environment_when_not_provided(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test default environment value."""
         backend.send_log("Test log")
 
         log = backend._log_batch[0]
         assert log["environment"] == "production"
 
-    def test_should_extract_hostname_from_resource_attributes(self, backend: ClickHouseBackend) -> None:
+    def test_should_extract_hostname_from_resource_attributes(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test extraction of host.name."""
         backend.send_log(
             "Test log",
@@ -975,7 +1016,9 @@ class TestIntegrationFullFlow:
 
         # Send logs
         backend.send_log("Request started", level="INFO", trace_id="trace-123", span_id="span-456")
-        backend.send_log("Request completed", level="INFO", trace_id="trace-123", span_id="span-456")
+        backend.send_log(
+            "Request completed", level="INFO", trace_id="trace-123", span_id="span-456"
+        )
 
         # Verify batches
         assert len(backend._trace_batch) == 1
@@ -983,7 +1026,9 @@ class TestIntegrationFullFlow:
         assert len(backend._log_batch) == 2
 
         # Flush all
-        with patch("automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response):
+        with patch(
+            "automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response
+        ):
             result = backend.flush()
 
         assert result is True
@@ -999,7 +1044,9 @@ class TestIntegrationFullFlow:
         backend.send_metric("test.metric", 100)
         backend.send_log("Test log")
 
-        with patch("automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response) as mock_urlopen:
+        with patch(
+            "automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response
+        ) as mock_urlopen:
             backend.flush()
 
         # Should have 3 insert calls
@@ -1021,7 +1068,9 @@ class TestIntegrationFullFlow:
         backend_with_custom_tables.send_metric("test.metric", 100)
         backend_with_custom_tables.send_log("Test log")
 
-        with patch("automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response) as mock_urlopen:
+        with patch(
+            "automagik_telemetry.backends.clickhouse.urlopen", return_value=mock_successful_response
+        ) as mock_urlopen:
             backend_with_custom_tables.flush()
 
         urls = [call[0][0].full_url for call in mock_urlopen.call_args_list]
@@ -1096,9 +1145,11 @@ class TestIntegrationFullFlow:
 class TestTimestampPrecision:
     """Test timestamp handling and nanosecond precision."""
 
-    def test_should_store_nanosecond_precision_for_metrics(self, backend: ClickHouseBackend) -> None:
+    def test_should_store_nanosecond_precision_for_metrics(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test nanosecond precision timestamp storage for metrics."""
-        timestamp = datetime(2024, 6, 15, 14, 30, 45, 123456, tzinfo=timezone.utc)
+        timestamp = datetime(2024, 6, 15, 14, 30, 45, 123456, tzinfo=UTC)
 
         backend.send_metric("test.metric", 100, timestamp=timestamp)
 
@@ -1108,7 +1159,7 @@ class TestTimestampPrecision:
 
     def test_should_store_nanosecond_precision_for_logs(self, backend: ClickHouseBackend) -> None:
         """Test nanosecond precision timestamp storage for logs."""
-        timestamp = datetime(2024, 6, 15, 14, 30, 45, 123456, tzinfo=timezone.utc)
+        timestamp = datetime(2024, 6, 15, 14, 30, 45, 123456, tzinfo=UTC)
 
         backend.send_log("Test log", timestamp=timestamp)
 
@@ -1119,7 +1170,7 @@ class TestTimestampPrecision:
     def test_should_handle_timezone_aware_timestamps(self, backend: ClickHouseBackend) -> None:
         """Test handling of timezone-aware timestamps."""
         # UTC timestamp
-        utc_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        utc_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
 
         backend.send_metric("test.metric", 100, timestamp=utc_time)
 
@@ -1128,7 +1179,7 @@ class TestTimestampPrecision:
 
     def test_should_handle_past_timestamps(self, backend: ClickHouseBackend) -> None:
         """Test handling of past timestamps."""
-        past_time = datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        past_time = datetime(2020, 1, 1, 0, 0, 0, tzinfo=UTC)
 
         backend.send_log("Old log", timestamp=past_time)
 
@@ -1137,7 +1188,7 @@ class TestTimestampPrecision:
 
     def test_should_handle_future_timestamps(self, backend: ClickHouseBackend) -> None:
         """Test handling of future timestamps."""
-        future_time = datetime(2030, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+        future_time = datetime(2030, 12, 31, 23, 59, 59, tzinfo=UTC)
 
         backend.send_metric("test.metric", 100, timestamp=future_time)
 
@@ -1181,7 +1232,9 @@ class TestEdgeCases:
         assert log["body"] == long_message
         assert len(log["body"]) == 100000
 
-    def test_should_handle_special_characters_in_log_message(self, backend: ClickHouseBackend) -> None:
+    def test_should_handle_special_characters_in_log_message(
+        self, backend: ClickHouseBackend
+    ) -> None:
         """Test handling of special characters in log messages."""
         special_msg = "Special chars: \n\t\r\\ ' \" {} [] <> & | $ @ # %"
 

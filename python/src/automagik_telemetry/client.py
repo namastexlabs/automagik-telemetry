@@ -147,9 +147,7 @@ class AutomagikTelemetry:
         self.config = config
 
         # Determine backend from config or environment variable
-        self.backend_type = (
-            os.getenv("AUTOMAGIK_TELEMETRY_BACKEND", self.config.backend).lower()
-        )
+        self.backend_type = os.getenv("AUTOMAGIK_TELEMETRY_BACKEND", self.config.backend).lower()
 
         # Set up endpoints
         base_endpoint = self.config.endpoint or os.getenv(

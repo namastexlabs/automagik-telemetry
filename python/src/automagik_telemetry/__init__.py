@@ -13,12 +13,14 @@ from automagik_telemetry.client import (
 from automagik_telemetry.config import (
     DEFAULT_CONFIG,
     ENV_VARS,
-    TelemetryConfig as ConfigTelemetryConfig,
     ValidatedConfig,
     create_config,
     load_config_from_env,
     merge_config,
     validate_config,
+)
+from automagik_telemetry.config import (
+    TelemetryConfig as ConfigTelemetryConfig,
 )
 from automagik_telemetry.opt_in import (
     TelemetryOptIn,

@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from automagik_telemetry import LogSeverity, MetricType, AutomagikTelemetry, TelemetryConfig
+from automagik_telemetry import AutomagikTelemetry, LogSeverity, MetricType, TelemetryConfig
 
 # Mark as integration test with extended timeout
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(300)]
@@ -484,7 +484,7 @@ def test_queue_memory_bounds(memory_test_client: AutomagikTelemetry) -> None:
     # Python's memory management doesn't always return memory to OS immediately,
     # so we check queue emptiness rather than memory metrics
     final_status = client.get_status()
-    final_queue_size = sum(final_status['queue_sizes'].values())
+    final_queue_size = sum(final_status["queue_sizes"].values())
     print(f"Final queue size: {final_queue_size}")
     assert final_queue_size == 0, f"Queue not empty after flush: {final_queue_size} items remaining"
 

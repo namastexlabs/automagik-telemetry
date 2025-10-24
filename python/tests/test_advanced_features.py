@@ -9,7 +9,6 @@ Tests cover:
 - Retry logic with exponential backoff
 """
 
-import gc
 import gzip
 import json
 from pathlib import Path
@@ -19,9 +18,9 @@ from urllib.error import HTTPError
 import pytest
 
 from automagik_telemetry.client import (
+    AutomagikTelemetry,
     LogSeverity,
     MetricType,
-    AutomagikTelemetry,
     TelemetryConfig,
 )
 
@@ -428,7 +427,9 @@ class TestRetryLogic:
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=False)
 
-        with patch("automagik_telemetry.client.urlopen", return_value=mock_response) as mock_urlopen:
+        with patch(
+            "automagik_telemetry.client.urlopen", return_value=mock_response
+        ) as mock_urlopen:
             client.track_event("test.event")
 
             # Should retry 3 times total (initial + 2 retries)
@@ -440,12 +441,15 @@ class TestRetryLogic:
         """Test not retrying on 4xx client errors."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1, max_retries=3)
+        config = TelemetryConfig(
+            project_name="test-project", version="1.0.0", batch_size=1, max_retries=3
+        )
         client = AutomagikTelemetry(config=config)
 
         # Mock HTTPError with 400 status
         with patch(
-            "automagik_telemetry.client.urlopen", side_effect=HTTPError("url", 400, "Bad Request", {}, None)
+            "automagik_telemetry.client.urlopen",
+            side_effect=HTTPError("url", 400, "Bad Request", {}, None),
         ) as mock_urlopen:
             client.track_event("test.event")
 
@@ -459,7 +463,11 @@ class TestRetryLogic:
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
         config = TelemetryConfig(
-            project_name="test-project", version="1.0.0", batch_size=1, max_retries=3, retry_backoff_base=0.1
+            project_name="test-project",
+            version="1.0.0",
+            batch_size=1,
+            max_retries=3,
+            retry_backoff_base=0.1,
         )
         client = AutomagikTelemetry(config=config)
 
@@ -488,9 +496,7 @@ class TestRetryLogic:
 class TestCleanup:
     """Test cleanup on client destruction."""
 
-    def test_should_flush_on_del(
-        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_should_flush_on_del(self, temp_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that the __del__ method properly flushes queued events."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
@@ -506,7 +512,9 @@ class TestCleanup:
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=False)
 
-        with patch("automagik_telemetry.client.urlopen", return_value=mock_response) as mock_urlopen:
+        with patch(
+            "automagik_telemetry.client.urlopen", return_value=mock_response
+        ) as mock_urlopen:
             client = AutomagikTelemetry(config=config)
 
             client.track_event("event1")

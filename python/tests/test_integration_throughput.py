@@ -15,7 +15,7 @@ import time
 
 import pytest
 
-from automagik_telemetry import MetricType, AutomagikTelemetry, TelemetryConfig
+from automagik_telemetry import AutomagikTelemetry, MetricType, TelemetryConfig
 
 # Mark as integration test and add timeout
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(120)]

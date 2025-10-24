@@ -191,6 +191,7 @@ export function truncateString(value: string, maxLength: number): string {
  * // Returns: { email: 'sha256:...', phone: 'sha256:...' }
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
@@ -251,6 +252,7 @@ export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
 
   // Handle objects recursively
   if (typeof value === "object") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sanitized: Record<string, any> = {};
     for (const [key, val] of Object.entries(value)) {
       sanitized[key] = sanitizeValue(val, config);
@@ -273,11 +275,14 @@ export function sanitizeValue(value: any, config: PrivacyConfig = {}): any {
  * ```
  */
 export function redactSensitiveKeys(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   obj: Record<string, any>,
   keys: string[],
   config: PrivacyConfig = {},
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: Record<string, any> = {};
 
   for (const [key, value] of Object.entries(obj)) {
@@ -335,8 +340,10 @@ export const SENSITIVE_KEYS = [
  * ```
  */
 export function sanitizeTelemetryData(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>,
   config: PrivacyConfig = {},
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any> {
   // First redact known sensitive keys
   let sanitized = redactSensitiveKeys(data, SENSITIVE_KEYS, config);

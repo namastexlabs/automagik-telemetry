@@ -20,10 +20,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from automagik_telemetry import (
+    AutomagikTelemetry,
     LogSeverity,
     MetricType,
     StandardEvents,
-    AutomagikTelemetry,
     TelemetryConfig,
 )
 

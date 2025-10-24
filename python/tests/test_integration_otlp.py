@@ -14,9 +14,9 @@ import time
 import pytest
 
 from automagik_telemetry import (
+    AutomagikTelemetry,
     LogSeverity,
     MetricType,
-    AutomagikTelemetry,
     TelemetryConfig,
 )
 
