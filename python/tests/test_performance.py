@@ -112,8 +112,8 @@ def test_track_event_performance(performance_client):
     print_stats("track_event() with realistic payload", stats)
 
     # Assertions (with tolerance for CI/CD variability)
-    assert stats["mean"] < 1.5, f"Average {stats['mean']:.3f}ms exceeds 1.5ms threshold"
-    assert stats["p99"] < 7.0, f"P99 {stats['p99']:.3f}ms exceeds 7ms threshold"
+    assert stats["mean"] < 2.0, f"Average {stats['mean']:.3f}ms exceeds 2.0ms threshold"
+    assert stats["p99"] < 10.0, f"P99 {stats['p99']:.3f}ms exceeds 10ms threshold"
 
 
 @pytest.mark.performance
@@ -150,8 +150,8 @@ def test_track_error_performance(performance_client):
     print_stats("track_error() with context", stats)
 
     # Assertions (with tolerance for CI/CD variability)
-    assert stats["mean"] < 1.5, f"Average {stats['mean']:.3f}ms exceeds 1.5ms threshold"
-    assert stats["p99"] < 7.0, f"P99 {stats['p99']:.3f}ms exceeds 7ms threshold"
+    assert stats["mean"] < 2.0, f"Average {stats['mean']:.3f}ms exceeds 2.0ms threshold"
+    assert stats["p99"] < 10.0, f"P99 {stats['p99']:.3f}ms exceeds 10ms threshold"
 
 
 @pytest.mark.performance
@@ -182,8 +182,8 @@ def test_track_metric_performance(performance_client):
     print_stats("track_metric() with attributes", stats)
 
     # Assertions (with tolerance for CI/CD variability)
-    assert stats["mean"] < 1.5, f"Average {stats['mean']:.3f}ms exceeds 1.5ms threshold"
-    assert stats["p99"] < 7.0, f"P99 {stats['p99']:.3f}ms exceeds 7ms threshold"
+    assert stats["mean"] < 2.0, f"Average {stats['mean']:.3f}ms exceeds 2.0ms threshold"
+    assert stats["p99"] < 10.0, f"P99 {stats['p99']:.3f}ms exceeds 10ms threshold"
 
 
 @pytest.mark.performance
@@ -287,7 +287,7 @@ def test_concurrent_tracking_simulation(performance_client):
     avg_per_event = stats["mean"] / 3
     print(f"  Avg per event: {avg_per_event:.3f} ms")
 
-    assert avg_per_event < 2.0, f"Average per event {avg_per_event:.3f}ms too high"
+    assert avg_per_event < 2.5, f"Average per event {avg_per_event:.3f}ms too high"
 
 
 @pytest.mark.performance

@@ -50,7 +50,7 @@ jobs:
       - name: Run pytest with coverage
         run: |
           cd python
-          pytest --cov=automagik_telemetry --cov-report=html --cov-report=term-missing --cov-report=json --cov-fail-under=100 -m "not integration and not performance"
+          pytest --cov=automagik_telemetry --cov-report=html --cov-report=term-missing --cov-report=json --cov-fail-under=100 -m "not integration"
 
       - name: Verify 100% coverage
         run: |
