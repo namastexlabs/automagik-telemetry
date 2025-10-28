@@ -319,7 +319,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  metric_name,\n  avg(value) as value\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\n  AND metric_type = 'GAUGE'\nGROUP BY time, metric_name\nORDER BY time",
+          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  metric_name,\n  avg(value_double) as value\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\n  AND metric_type = 'GAUGE'\nGROUP BY time, metric_name\nORDER BY time",
           "refId": "A"
         }
       ],
@@ -421,7 +421,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  metric_name,\n  sum(value) as value\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\n  AND metric_type = 'SUM'\nGROUP BY time, metric_name\nORDER BY time",
+          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  metric_name,\n  sum(value_double) as value\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\n  AND metric_type = 'SUM'\nGROUP BY time, metric_name\nORDER BY time",
           "refId": "A"
         }
       ],
@@ -524,7 +524,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  metric_name,\n  avg(value) as avg_value,\n  quantile(0.5)(value) as p50,\n  quantile(0.95)(value) as p95,\n  quantile(0.99)(value) as p99\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\n  AND metric_type = 'HISTOGRAM'\nGROUP BY time, metric_name\nORDER BY time",
+          "rawSql": "SELECT \n  toStartOfMinute(timestamp) as time,\n  metric_name,\n  avg(value_double) as avg_value,\n  quantile(0.5)(value_double) as p50,\n  quantile(0.95)(value_double) as p95,\n  quantile(0.99)(value_double) as p99\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\n  AND metric_type = 'HISTOGRAM'\nGROUP BY time, metric_name\nORDER BY time",
           "refId": "A"
         }
       ],
@@ -719,7 +719,7 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
