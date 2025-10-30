@@ -774,7 +774,7 @@ class TestEnableDisable:
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that disable() flushes pending events before disabling."""
-        from unittest.mock import Mock, patch
+        from unittest.mock import patch
 
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
