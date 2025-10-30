@@ -700,7 +700,7 @@
             }
           },
           "queryType": "sql",
-          "rawSql": "SELECT \n  timestamp,\n  service_name,\n  metric_name,\n  metric_type,\n  value,\n  project_name,\n  environment\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\nORDER BY timestamp DESC\nLIMIT 100",
+          "rawSql": "SELECT \n  timestamp,\n  service_name,\n  metric_name,\n  metric_type,\n  value_double as value,\n  project_name,\n  environment\nFROM telemetry.metrics\nWHERE timestamp >= now() - INTERVAL 1 HOUR\nORDER BY timestamp DESC\nLIMIT 100",
           "refId": "A"
         }
       ],
