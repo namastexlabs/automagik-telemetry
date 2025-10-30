@@ -4,13 +4,14 @@ Example: Using automagik-telemetry in Automagik Omni
 This shows real-world usage based on the actual Omni implementation.
 """
 
-from automagik_telemetry import AutomagikTelemetry, StandardEvents
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, StandardEvents
 
 # Initialize telemetry client once at app startup
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="automagik-omni",
     version="0.2.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 # === Example 1: Track API Requests ===
 def list_contacts_endpoint():
@@ -77,14 +78,18 @@ def process_webhook(channel: str, data: dict):
     try:
         # Process webhook
         result = handle_webhook(channel, data)
-        
+
         # Track performance
-        telemetry.track_metric(StandardEvents.OPERATION_LATENCY, {
-            "operation_type": "webhook_processing",
-            "channel": channel,
-            "duration_ms": (time.time() - start_time) * 1000
-        })
-        
+        duration_ms = (time.time() - start_time) * 1000
+        telemetry.track_metric(
+            metric_name=StandardEvents.OPERATION_LATENCY,
+            value=duration_ms,
+            attributes={
+                "operation_type": "webhook_processing",
+                "channel": channel
+            }
+        )
+
         return result
         
     except Exception as e:
@@ -142,7 +147,11 @@ if __name__ == "__main__":
     os.environ["AUTOMAGIK_TELEMETRY_ENABLED"] = "true"
 
     # Send a test event
-    telemetry_test = AutomagikTelemetry("omni", "0.2.0")
+    test_config = TelemetryConfig(
+        project_name="omni",
+        version="0.2.0"
+    )
+    telemetry_test = AutomagikTelemetry(config=test_config)
     telemetry_test.track_event(StandardEvents.FEATURE_USED, {
         "feature_name": "test_example",
         "feature_category": "example"

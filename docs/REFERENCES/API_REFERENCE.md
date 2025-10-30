@@ -34,21 +34,22 @@ from automagik_telemetry import (
     TelemetryConfig
 )
 
-# Simple initialization
-telemetry = AutomagikTelemetry(
+# Simple initialization (minimum required)
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
-# Advanced initialization
-config = TelemetryConfig(
+# Advanced initialization with optional parameters
+advanced_config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     backend="otlp",
     batch_size=100,
     timeout=10
 )
-telemetry = AutomagikTelemetry(config=config)
+advanced_telemetry = AutomagikTelemetry(config=advanced_config)
 ```
 
 </td>

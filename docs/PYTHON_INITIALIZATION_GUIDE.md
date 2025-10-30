@@ -69,16 +69,17 @@ ALL parameters available:
 
 **Example:**
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
 # Simple initialization - just the essentials
-client = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     endpoint="https://custom-collector.com",  # Optional
     organization="my-org",  # Optional (default: "namastex")
     timeout=10  # Optional (default: 5 seconds)
 )
+client = AutomagikTelemetry(config=config)
 
 # Use client normally
 client.track_event("app.started", {"env": "production"})
@@ -229,11 +230,14 @@ client = AutomagikTelemetry(config=config)
 
 **Stage 1: Quick Prototype**
 ```python
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+
 # Simple start - perfect for prototyping
-client = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+client = AutomagikTelemetry(config=config)
 ```
 
 **Stage 2: Need Better Performance**
@@ -314,10 +318,11 @@ if os.getenv("ENVIRONMENT") == "production":
     client = AutomagikTelemetry(config=config)
 else:
     # Simple config for development
-    client = AutomagikTelemetry(
+    dev_config = TelemetryConfig(
         project_name="my-app",
         version="1.0.0"
     )
+    client = AutomagikTelemetry(config=dev_config)
 ```
 
 ### Pattern 2: Feature Flags
@@ -336,10 +341,11 @@ if ENABLE_BATCHING:
     )
     client = AutomagikTelemetry(config=config)
 else:
-    client = AutomagikTelemetry(
+    simple_config = TelemetryConfig(
         project_name="my-app",
         version="1.0.0"
     )
+    client = AutomagikTelemetry(config=simple_config)
 ```
 
 ## Summary

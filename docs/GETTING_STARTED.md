@@ -71,13 +71,14 @@ node -e "require('@automagik/telemetry'); console.log('✅ Ready!')"
 <summary><strong>🐍 Python</strong></summary>
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
 # Create your telemetry client
-client = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-awesome-app",  # Your project name
     version="1.0.0"                  # Your app version
 )
+client = AutomagikTelemetry(config=config)
 ```
 
 </details>
@@ -265,51 +266,34 @@ export AUTOMAGIK_TELEMETRY_VERBOSE=true
 ```python
 from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-# Option 1: Direct Parameters (Simple - LIMITED to 5 params)
-# ✅ Best for: Quick start, prototyping
-# ⚠️ Limitations: No batching, compression, or ClickHouse backend
-client = AutomagikTelemetry(
-    project_name="my-app",
-    version="1.0.0",
-    endpoint="https://custom-collector.com",  # Optional
-    organization="my-org",  # Optional
-    timeout=10  # Optional (seconds)
-)
-
-# Option 2: TelemetryConfig (Advanced - ALL params available)
-# ✅ Best for: Production, batching, compression, ClickHouse
-# ✅ Provides: 20+ configuration parameters
+# Simple initialization (minimum required)
 config = TelemetryConfig(
     project_name="my-app",
-    version="1.0.0",
-    endpoint="https://custom-collector.com",  # Optional
+    version="1.0.0"
+)
+client = AutomagikTelemetry(config=config)
 
-    # Performance features (NOT available in Option 1!)
+# Advanced configuration with optional parameters
+advanced_config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    endpoint="https://custom-collector.com",  # Optional: Custom OTLP endpoint
+    organization="my-org",  # Optional: Organization identifier
+    timeout=10,  # Optional: Request timeout in seconds
+
+    # Performance features
     batch_size=100,  # Batch 100 events before sending
     flush_interval=5.0,  # Auto-flush every 5 seconds
     compression_enabled=True,  # Gzip compression
     compression_threshold=1024,  # Compress payloads > 1KB
 
-    # ClickHouse backend (NOT available in Option 1!)
+    # ClickHouse backend (alternative to OTLP)
     backend="clickhouse",  # or "otlp" (default)
     clickhouse_endpoint="http://localhost:8123"
 )
-client = AutomagikTelemetry(config=config)
+advanced_client = AutomagikTelemetry(config=advanced_config)
 ```
 
-**Which style should you use?**
-
-| Use Case | Recommended Style |
-|----------|------------------|
-| Just getting started | Direct Parameters (Option 1) |
-| Simple project, low volume | Direct Parameters (Option 1) |
-| Need batching or compression | TelemetryConfig (Option 2) |
-| Self-hosting with ClickHouse | TelemetryConfig (Option 2) |
-| Production application | TelemetryConfig (Option 2) |
-| High volume (100+ events/sec) | TelemetryConfig (Option 2) |
-
-> **💡 TIP:** Start with **Direct Parameters** for quick prototyping. Migrate to **TelemetryConfig** when you need better performance or advanced features.
->
 > 📚 **Full Details:** See [Python Initialization Guide](PYTHON_INITIALIZATION_GUIDE.md) for complete documentation.
 
 ```
