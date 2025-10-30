@@ -79,6 +79,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 100
           MINIMUM_ORANGE: 95
+          COVERAGE_PATH: python
 
   lint-format:
     name: Lint and Format Check
