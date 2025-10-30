@@ -770,6 +770,27 @@ class TestEnableDisable:
         opt_out_file = temp_home / ".automagik-no-telemetry"
         assert opt_out_file.exists()
 
+    def test_should_flush_pending_events_when_disabled(
+        self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that disable() flushes pending events before disabling."""
+        from unittest.mock import Mock, patch
+
+        monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
+
+        config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=10)
+        client = AutomagikTelemetry(config=config)
+
+        # Mock the flush method to track calls
+        with patch.object(client, "flush", wraps=client.flush) as mock_flush:
+            # Disable should call flush
+            client.disable()
+
+            # Verify flush was called
+            mock_flush.assert_called_once()
+            assert client.enabled is False
+            assert client._shutdown is True
+
     def test_should_check_if_enabled(
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
