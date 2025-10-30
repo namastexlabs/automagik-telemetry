@@ -70,7 +70,7 @@ const telemetry = new AutomagikTelemetry({
     version: '1.0.0',
     backend: 'otlp',
     batchSize: 100,
-    timeout: 10000
+    timeout: 10  // seconds
 });
 ```
 
@@ -87,7 +87,7 @@ const telemetry = new AutomagikTelemetry({
 | `backend` | `backend` | `string` | No | `"otlp"` | Backend type: `"otlp"` or `"clickhouse"` |
 | `endpoint` | `endpoint` | `string` | No | `https://telemetry.namastex.ai/v1/traces` | Custom OTLP endpoint |
 | `organization` | `organization` | `string` | No | `"namastex"` | Organization name |
-| `timeout` | `timeout` | `int` | No | Python: `5` (sec)<br>TypeScript: `5000` (ms) | HTTP timeout |
+| `timeout` | `timeout` | `int` | No | `5` seconds (both SDKs) | HTTP timeout |
 | `config` | - | `TelemetryConfig` | No | - | Advanced config object (Python only) |
 
 ---
@@ -210,7 +210,7 @@ const telemetry = new AutomagikTelemetry(config);
 | `clickhouse_username` | `clickhouseUsername` | `string` | `"default"` | Username |
 | `clickhouse_password` | `clickhousePassword` | `string` | `""` | Password |
 | **Performance** |
-| `timeout` | `timeout` | `int` | Python: `5` (sec)<br>TypeScript: `5000` (ms) | HTTP timeout |
+| `timeout` | `timeout` | `int` | `5` seconds (both SDKs) | HTTP timeout |
 | `batch_size` | `batchSize` | `int` | Python: `1`<br>TypeScript: `100` | Events per batch |
 | `flush_interval` | `flushInterval` | `float`/`int` | Python: `5.0` (sec)<br>TypeScript: `5000` (ms) | Auto-flush interval |
 | **Compression** |

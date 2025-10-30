@@ -29,7 +29,7 @@
 | `AUTOMAGIK_TELEMETRY_ENDPOINT` | string | `https://telemetry.namastex.ai/v1/traces` | Main OTLP traces endpoint | `export AUTOMAGIK_TELEMETRY_ENDPOINT=https://custom.example.com/v1/traces` |
 | `AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT` | string | Auto-derived from base endpoint | Override metrics endpoint for separate routing | `export AUTOMAGIK_TELEMETRY_METRICS_ENDPOINT=https://prometheus.example.com/v1/metrics` |
 | `AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT` | string | Auto-derived from base endpoint | Override logs endpoint for separate routing | `export AUTOMAGIK_TELEMETRY_LOGS_ENDPOINT=https://loki.example.com/v1/logs` |
-| `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | Python: `5` (sec)<br>TypeScript: `5000` (ms) | HTTP request timeout | Python: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10`<br>TypeScript: `export AUTOMAGIK_TELEMETRY_TIMEOUT=10000` |
+| `AUTOMAGIK_TELEMETRY_TIMEOUT` | int | Both: `5` (seconds)<br>Note: TypeScript converts to ms internally | HTTP request timeout | `export AUTOMAGIK_TELEMETRY_TIMEOUT=10` |
 
 **🔍 Endpoint Format:**
 - Must include protocol: `http://` or `https://`

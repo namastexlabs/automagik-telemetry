@@ -267,8 +267,8 @@ const telemetry = new AutomagikTelemetry({
 #### `timeout`
 
 <table>
-<tr><td><strong>Type</strong></td><td><code>int</code> (Python: seconds, TypeScript: milliseconds)</td></tr>
-<tr><td><strong>Default</strong></td><td>Python: <code>5</code> seconds | TypeScript: <code>5000</code> milliseconds</td></tr>
+<tr><td><strong>Type</strong></td><td><code>int</code> (seconds for both SDKs)</td></tr>
+<tr><td><strong>Default</strong></td><td><code>5</code> seconds (TypeScript converts to milliseconds internally)</td></tr>
 <tr><td><strong>Environment Variable</strong></td><td><code>AUTOMAGIK_TELEMETRY_TIMEOUT</code></td></tr>
 </table>
 
@@ -773,7 +773,7 @@ const telemetry = new AutomagikTelemetry({
 
     // Performance
     batchSize: 100,
-    timeout: 5000,
+    timeout: 5,  // seconds (internally converted to 5000ms)
     compressionEnabled: true,
 
     // Reliability
@@ -905,9 +905,9 @@ const telemetry = new AutomagikTelemetry({
     version: '1.0.0',
     organization: 'acme-corp',
     endpoint: 'https://collector.prod.example.com/v1/traces',
-    timeout: 10000,
+    timeout: 10,  // seconds (internally converted to 10000ms)
     batchSize: 100,
-    flushInterval: 5000,
+    flushInterval: 5000,  // milliseconds
     compressionEnabled: true,
     maxRetries: 5
 });
