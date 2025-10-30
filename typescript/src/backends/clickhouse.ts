@@ -73,18 +73,54 @@ interface ClickHouseTraceRow {
  */
 interface ClickHouseMetricRow {
   metric_id: string;
-  timestamp: string;
-  timestamp_ns: number;
-  service_name: string;
   metric_name: string;
   metric_type: string;
-  value: number;
-  unit: string;
+  metric_unit: string;
+  metric_description: string;
+  timestamp: string;
+  timestamp_ns: number;
+  time_window_start: string;
+  time_window_end: string;
+  value_int: number;
+  value_double: number;
+  is_monotonic: number;
+  aggregation_temporality: string;
+  // Histogram fields
+  histogram_count: number;
+  histogram_sum: number;
+  histogram_min: number;
+  histogram_max: number;
+  histogram_bucket_counts: number[];
+  histogram_explicit_bounds: number[];
+  // Summary fields
+  summary_count: number;
+  summary_sum: number;
+  quantile_values: Record<string, number>;
+  // Service and project info
   project_name: string;
   project_version: string;
+  service_name: string;
+  service_namespace: string;
+  service_instance_id: string;
   environment: string;
   hostname: string;
+  // Attributes and user context
   attributes: Record<string, string>;
+  user_id: string;
+  session_id: string;
+  // System info
+  os_type: string;
+  os_version: string;
+  runtime_name: string;
+  runtime_version: string;
+  // Cloud metadata
+  cloud_provider: string;
+  cloud_region: string;
+  cloud_availability_zone: string;
+  // Instrumentation
+  instrumentation_library_name: string;
+  instrumentation_library_version: string;
+  schema_url: string;
 }
 
 /**
@@ -92,19 +128,46 @@ interface ClickHouseMetricRow {
  */
 interface ClickHouseLogRow {
   log_id: string;
-  timestamp: string;
-  timestamp_ns: number;
   trace_id: string;
   span_id: string;
-  severity_number: number;
+  timestamp: string;
+  timestamp_ns: number;
+  observed_timestamp: string;
+  observed_timestamp_ns: number;
   severity_text: string;
+  severity_number: number;
   body: string;
-  service_name: string;
+  body_type: string;
+  // Service and project info
   project_name: string;
   project_version: string;
+  service_name: string;
+  service_namespace: string;
+  service_instance_id: string;
   environment: string;
   hostname: string;
+  // Attributes and user context
   attributes: Record<string, string>;
+  user_id: string;
+  session_id: string;
+  // System info
+  os_type: string;
+  os_version: string;
+  runtime_name: string;
+  runtime_version: string;
+  // Cloud metadata
+  cloud_provider: string;
+  cloud_region: string;
+  cloud_availability_zone: string;
+  // Instrumentation
+  instrumentation_library_name: string;
+  instrumentation_library_version: string;
+  schema_url: string;
+  // Exception tracking
+  exception_type: string;
+  exception_message: string;
+  exception_stacktrace: string;
+  is_exception: number;
 }
 
 /**
@@ -216,6 +279,99 @@ export class ClickHouseBackend {
         ) || "production",
       hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
     };
+  }
+
+  /**
+   * Extract extended resource attributes including OS, runtime, cloud, and instrumentation info.
+   * @param resourceAttributes - Optional resource attributes
+   * @returns Object with all extended resource attributes
+   */
+  private extractExtendedResourceAttributes(
+    resourceAttributes?: Record<string, unknown>,
+  ): {
+    serviceName: string;
+    serviceNamespace: string;
+    serviceInstanceId: string;
+    projectName: string;
+    projectVersion: string;
+    environment: string;
+    hostname: string;
+    osType: string;
+    osVersion: string;
+    runtimeName: string;
+    runtimeVersion: string;
+    cloudProvider: string;
+    cloudRegion: string;
+    cloudAvailabilityZone: string;
+    instrumentationLibraryName: string;
+    instrumentationLibraryVersion: string;
+  } {
+    const resAttrs = resourceAttributes || {};
+    return {
+      serviceName:
+        String(resAttrs["service.name"] || resAttrs.service_name) || "unknown",
+      serviceNamespace:
+        String(
+          resAttrs["service.namespace"] || resAttrs.service_namespace,
+        ) || "",
+      serviceInstanceId:
+        String(
+          resAttrs["service.instance.id"] || resAttrs.service_instance_id,
+        ) || "",
+      projectName:
+        String(resAttrs["project.name"] || resAttrs.project_name) || "",
+      projectVersion:
+        String(resAttrs["project.version"] || resAttrs.project_version) || "",
+      environment:
+        String(
+          resAttrs["deployment.environment"] ||
+            resAttrs.environment ||
+            resAttrs.env,
+        ) || "production",
+      hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
+      osType: String(resAttrs["os.type"] || resAttrs.os_type) || "",
+      osVersion: String(resAttrs["os.version"] || resAttrs.os_version) || "",
+      runtimeName:
+        String(
+          resAttrs["process.runtime.name"] || resAttrs.process_runtime_name,
+        ) || "",
+      runtimeVersion:
+        String(
+          resAttrs["process.runtime.version"] ||
+            resAttrs.process_runtime_version,
+        ) || "",
+      cloudProvider:
+        String(resAttrs["cloud.provider"] || resAttrs.cloud_provider) || "",
+      cloudRegion:
+        String(resAttrs["cloud.region"] || resAttrs.cloud_region) || "",
+      cloudAvailabilityZone:
+        String(
+          resAttrs["cloud.availability_zone"] ||
+            resAttrs.cloud_availability_zone,
+        ) || "",
+      instrumentationLibraryName:
+        String(
+          resAttrs["telemetry.sdk.name"] || resAttrs.telemetry_sdk_name,
+        ) || "",
+      instrumentationLibraryVersion:
+        String(
+          resAttrs["telemetry.sdk.version"] || resAttrs.telemetry_sdk_version,
+        ) || "",
+    };
+  }
+
+  /**
+   * Detect if a string contains valid JSON.
+   * @param body - The string to check
+   * @returns "JSON" if valid JSON, "STRING" otherwise
+   */
+  private detectBodyType(body: string): string {
+    try {
+      JSON.parse(body);
+      return "JSON";
+    } catch {
+      return "STRING";
+    }
   }
 
   /**
@@ -553,30 +709,98 @@ export class ClickHouseBackend {
       // Flatten attributes using helper
       const flatAttrs = this.flattenAttributes(attributes);
 
-      // Extract resource attributes using helper
+      // Extract extended resource attributes
       const {
         serviceName,
+        serviceNamespace,
+        serviceInstanceId,
         projectName,
         projectVersion,
         environment,
         hostname,
-      } = this.extractResourceAttributes(resourceAttributes);
+        osType,
+        osVersion,
+        runtimeName,
+        runtimeVersion,
+        cloudProvider,
+        cloudRegion,
+        cloudAvailabilityZone,
+        instrumentationLibraryName,
+        instrumentationLibraryVersion,
+      } = this.extractExtendedResourceAttributes(resourceAttributes);
+
+      // Determine if value is int or float
+      const isInt = Number.isInteger(value);
+      const valueInt = isInt ? value : 0;
+      const valueDouble = isInt ? 0.0 : value;
+
+      // Extract histogram/summary data from attributes (if present)
+      const histogramBucketCounts = (attributes &&
+        Array.isArray(attributes["histogram.bucket_counts"]))
+        ? (attributes["histogram.bucket_counts"] as number[])
+        : [];
+      const histogramExplicitBounds = (attributes &&
+        Array.isArray(attributes["histogram.explicit_bounds"]))
+        ? (attributes["histogram.explicit_bounds"] as number[])
+        : [];
+      const summaryCount = Number(
+        (attributes && attributes["summary.count"]) || 0,
+      );
+      const summarySum = Number((attributes && attributes["summary.sum"]) || 0);
+      const quantileValues = (attributes &&
+        typeof attributes["quantile.values"] === "object")
+        ? (attributes["quantile.values"] as Record<string, number>)
+        : {};
+
+      // Extract user/session IDs from attributes
+      const userId = String((attributes && attributes["user.id"]) || "");
+      const sessionId = String((attributes && attributes["session.id"]) || "");
 
       // Build metric row
       const metricRow: ClickHouseMetricRow = {
         metric_id: this.generateUUID(),
-        timestamp: formattedTimestamp,
-        timestamp_ns: timestampNs,
-        service_name: serviceName,
         metric_name: metricName,
         metric_type: mappedType,
-        value: value,
-        unit: unit,
+        metric_unit: unit,
+        metric_description: "",
+        timestamp: formattedTimestamp,
+        timestamp_ns: timestampNs,
+        time_window_start: formattedTimestamp,
+        time_window_end: formattedTimestamp,
+        value_int: valueInt,
+        value_double: valueDouble,
+        is_monotonic: mappedType === "SUM" ? 1 : 0,
+        aggregation_temporality:
+          mappedType === "SUM" ? "DELTA" : "UNSPECIFIED",
+        histogram_count: 0,
+        histogram_sum: 0.0,
+        histogram_min: 0.0,
+        histogram_max: 0.0,
+        histogram_bucket_counts: histogramBucketCounts,
+        histogram_explicit_bounds: histogramExplicitBounds,
+        summary_count: summaryCount,
+        summary_sum: summarySum,
+        quantile_values: quantileValues,
         project_name: projectName,
         project_version: projectVersion,
+        service_name: serviceName,
+        service_namespace: serviceNamespace,
+        service_instance_id: serviceInstanceId,
         environment: environment,
         hostname: hostname,
         attributes: flatAttrs,
+        user_id: userId,
+        session_id: sessionId,
+        os_type: osType,
+        os_version: osVersion,
+        runtime_name: runtimeName,
+        runtime_version: runtimeVersion,
+        cloud_provider: cloudProvider,
+        cloud_region: cloudRegion,
+        cloud_availability_zone: cloudAvailabilityZone,
+        instrumentation_library_name: instrumentationLibraryName,
+        instrumentation_library_version: instrumentationLibraryVersion,
+        schema_url: "",
       };
 
       // Add to batch
@@ -631,38 +855,95 @@ export class ClickHouseBackend {
       const upperLevel = level.toUpperCase();
       const severityNumber = severityMap[upperLevel] || 9; // Default to INFO
 
-      // Generate timestamp using helper
+      // Generate event timestamp
       const { timestamp: formattedTimestamp, timestampNs } =
         this.generateTimestamp(timestamp);
+
+      // Generate observed timestamp (when log was received)
+      const {
+        timestamp: observedFormattedTimestamp,
+        timestampNs: observedTimestampNs,
+      } = this.generateTimestamp(new Date());
+
+      // Detect if message is JSON
+      const bodyType = this.detectBodyType(message);
 
       // Flatten attributes using helper
       const flatAttrs = this.flattenAttributes(attributes);
 
-      // Extract resource attributes using helper
+      // Extract extended resource attributes
       const {
         serviceName,
+        serviceNamespace,
+        serviceInstanceId,
         projectName,
         projectVersion,
         environment,
         hostname,
-      } = this.extractResourceAttributes(resourceAttributes);
+        osType,
+        osVersion,
+        runtimeName,
+        runtimeVersion,
+        cloudProvider,
+        cloudRegion,
+        cloudAvailabilityZone,
+        instrumentationLibraryName,
+        instrumentationLibraryVersion,
+      } = this.extractExtendedResourceAttributes(resourceAttributes);
+
+      // Extract exception info from attributes (if present)
+      const exceptionType = String(
+        (attributes && attributes["exception.type"]) || "",
+      );
+      const exceptionMessage = String(
+        (attributes && attributes["exception.message"]) || "",
+      );
+      const exceptionStacktrace = String(
+        (attributes && attributes["exception.stacktrace"]) || "",
+      );
+      const isException = exceptionType ? 1 : 0;
+
+      // Extract user/session IDs from attributes
+      const userId = String((attributes && attributes["user.id"]) || "");
+      const sessionId = String((attributes && attributes["session.id"]) || "");
 
       // Build log row
       const logRow: ClickHouseLogRow = {
         log_id: this.generateUUID(),
-        timestamp: formattedTimestamp,
-        timestamp_ns: timestampNs,
         trace_id: traceId,
         span_id: spanId,
-        severity_number: severityNumber,
+        timestamp: formattedTimestamp,
+        timestamp_ns: timestampNs,
+        observed_timestamp: observedFormattedTimestamp,
+        observed_timestamp_ns: observedTimestampNs,
         severity_text: upperLevel,
+        severity_number: severityNumber,
         body: message,
-        service_name: serviceName,
+        body_type: bodyType,
         project_name: projectName,
         project_version: projectVersion,
+        service_name: serviceName,
+        service_namespace: serviceNamespace,
+        service_instance_id: serviceInstanceId,
         environment: environment,
         hostname: hostname,
         attributes: flatAttrs,
+        user_id: userId,
+        session_id: sessionId,
+        os_type: osType,
+        os_version: osVersion,
+        runtime_name: runtimeName,
+        runtime_version: runtimeVersion,
+        cloud_provider: cloudProvider,
+        cloud_region: cloudRegion,
+        cloud_availability_zone: cloudAvailabilityZone,
+        instrumentation_library_name: instrumentationLibraryName,
+        instrumentation_library_version: instrumentationLibraryVersion,
+        schema_url: "",
+        exception_type: exceptionType,
+        exception_message: exceptionMessage,
+        exception_stacktrace: exceptionStacktrace,
+        is_exception: isException,
       };
 
       // Add to batch
