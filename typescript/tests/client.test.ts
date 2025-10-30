@@ -1227,6 +1227,9 @@ describe('AutomagikTelemetry', () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT;
       delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE;
       delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME;
       delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD;
     });
@@ -1374,6 +1377,76 @@ describe('AutomagikTelemetry', () => {
       const backend = (client as any).clickhouseBackend;
       expect(backend).toBeDefined();
       // The default batchSize should be 100 (this covers line 265)
+    });
+
+    it('should initialize with custom table names from config', () => {
+      const client = new AutomagikTelemetry({
+        projectName: 'test',
+        version: '1.0.0',
+        backend: 'clickhouse',
+        clickhouseTable: 'custom_traces',
+        clickhouseMetricsTable: 'custom_metrics',
+        clickhouseLogsTable: 'custom_logs',
+      });
+
+      const backend = (client as any).clickhouseBackend;
+      expect(backend).toBeDefined();
+      expect((backend as any).tracesTable).toBe('custom_traces');
+      expect((backend as any).metricsTable).toBe('custom_metrics');
+      expect((backend as any).logsTable).toBe('custom_logs');
+    });
+
+    it('should initialize with custom table names from environment variables', () => {
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE = 'env_traces';
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE = 'env_metrics';
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE = 'env_logs';
+
+      const client = new AutomagikTelemetry({
+        projectName: 'test',
+        version: '1.0.0',
+        backend: 'clickhouse',
+      });
+
+      const backend = (client as any).clickhouseBackend;
+      expect(backend).toBeDefined();
+      expect((backend as any).tracesTable).toBe('env_traces');
+      expect((backend as any).metricsTable).toBe('env_metrics');
+      expect((backend as any).logsTable).toBe('env_logs');
+
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE;
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE;
+    });
+
+    it('should use default table names when not provided', () => {
+      const client = new AutomagikTelemetry({
+        projectName: 'test',
+        version: '1.0.0',
+        backend: 'clickhouse',
+      });
+
+      const backend = (client as any).clickhouseBackend;
+      expect(backend).toBeDefined();
+      expect((backend as any).tracesTable).toBe('traces');
+      expect((backend as any).metricsTable).toBe('metrics');
+      expect((backend as any).logsTable).toBe('logs');
+    });
+
+    it('should prefer config table names over environment variables', () => {
+      process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE = 'env_traces';
+
+      const client = new AutomagikTelemetry({
+        projectName: 'test',
+        version: '1.0.0',
+        backend: 'clickhouse',
+        clickhouseTable: 'config_traces',
+      });
+
+      const backend = (client as any).clickhouseBackend;
+      expect(backend).toBeDefined();
+      expect((backend as any).tracesTable).toBe('config_traces');
+
+      delete process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE;
     });
   });
 
