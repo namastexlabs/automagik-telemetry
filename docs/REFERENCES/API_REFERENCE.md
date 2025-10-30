@@ -165,6 +165,8 @@ const config = {
     clickhouseEndpoint: 'http://localhost:8123',
     clickhouseDatabase: 'telemetry',
     clickhouseTable: 'traces',
+    clickhouseMetricsTable: 'metrics',
+    clickhouseLogsTable: 'logs',
     clickhouseUsername: 'default',
     clickhousePassword: '',
 
@@ -202,7 +204,9 @@ const telemetry = new AutomagikTelemetry(config);
 | **ClickHouse Backend** |
 | `clickhouse_endpoint` | `clickhouseEndpoint` | `string` | `http://localhost:8123` | ClickHouse HTTP endpoint |
 | `clickhouse_database` | `clickhouseDatabase` | `string` | `"telemetry"` | Database name |
-| `clickhouse_table` | `clickhouseTable` | `string` | `"traces"` | Table name |
+| `clickhouse_table` | `clickhouseTable` | `string` | `"traces"` | Traces table name |
+| `clickhouse_metrics_table` | `clickhouseMetricsTable` | `string` | `"metrics"` | Metrics table name |
+| `clickhouse_logs_table` | `clickhouseLogsTable` | `string` | `"logs"` | Logs table name |
 | `clickhouse_username` | `clickhouseUsername` | `string` | `"default"` | Username |
 | `clickhouse_password` | `clickhousePassword` | `string` | `""` | Password |
 | **Performance** |

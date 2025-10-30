@@ -50,6 +50,12 @@ export interface TelemetryConfig {
   clickhouseEndpoint?: string;
   /** ClickHouse database name (default: telemetry) */
   clickhouseDatabase?: string;
+  /** ClickHouse traces table name (default: traces) */
+  clickhouseTable?: string;
+  /** ClickHouse metrics table name (default: metrics) */
+  clickhouseMetricsTable?: string;
+  /** ClickHouse logs table name (default: logs) */
+  clickhouseLogsTable?: string;
   /** ClickHouse username (default: default) */
   clickhouseUsername?: string;
   /** ClickHouse password (default: "") */
@@ -349,6 +355,18 @@ export class AutomagikTelemetry {
         process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE ||
         config.clickhouseDatabase ||
         "telemetry";
+      const clickhouseTable =
+        config.clickhouseTable ||
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE ||
+        "traces";
+      const clickhouseMetricsTable =
+        config.clickhouseMetricsTable ||
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE ||
+        "metrics";
+      const clickhouseLogsTable =
+        config.clickhouseLogsTable ||
+        process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE ||
+        "logs";
       const clickhouseUsername =
         process.env.AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME ||
         config.clickhouseUsername ||
@@ -361,6 +379,9 @@ export class AutomagikTelemetry {
       this.clickhouseBackend = new ClickHouseBackend({
         endpoint: clickhouseEndpoint,
         database: clickhouseDatabase,
+        tracesTable: clickhouseTable,
+        metricsTable: clickhouseMetricsTable,
+        logsTable: clickhouseLogsTable,
         username: clickhouseUsername,
         password: clickhousePassword,
         timeout: this.timeout,

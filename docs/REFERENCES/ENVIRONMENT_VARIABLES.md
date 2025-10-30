@@ -94,7 +94,9 @@
 |----------|------|---------|-------------|---------|
 | `AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT` | string | `http://localhost:8123` | ClickHouse HTTP API endpoint | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://clickhouse.prod.example.com:8123` |
 | `AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE` | string | `telemetry` | ClickHouse database name | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE=production_telemetry` |
-| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE` | string | `traces` | ClickHouse table name | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE=app_traces` |
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE` | string | `traces` | ClickHouse traces table name | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE=app_traces` |
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE` | string | `metrics` | ClickHouse metrics table name | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE=app_metrics` |
+| `AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE` | string | `logs` | ClickHouse logs table name | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE=app_logs` |
 | `AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME` | string | `default` | ClickHouse authentication username | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=telemetry_writer` |
 | `AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD` | string | `""` | ClickHouse authentication password | `export AUTOMAGIK_TELEMETRY_CLICKHOUSE_PASSWORD=secret123` |
 
