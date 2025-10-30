@@ -6,8 +6,8 @@ services:
     image: clickhouse/clickhouse-server:24-alpine
     container_name: automagik-clickhouse
     ports:
-      - "8123:8123"  # HTTP interface
-      - "9000:9000"  # Native client
+      - "18123:8123"  # HTTP interface
+      - "19000:9000"  # Native client
     environment:
       CLICKHOUSE_DB: telemetry
       CLICKHOUSE_USER: telemetry
@@ -31,9 +31,9 @@ services:
     container_name: automagik-collector
     command: ["--config=/etc/otel-collector-config.yaml"]
     ports:
-      - "4318:4318"  # OTLP HTTP receiver
-      - "4317:4317"  # OTLP gRPC receiver
-      - "8888:8888"  # Prometheus metrics
+      - "14318:4318"  # OTLP HTTP receiver
+      - "14317:4317"  # OTLP gRPC receiver
+      - "18888:8888"  # Prometheus metrics
       - "13133:13133"  # Health check endpoint
     volumes:
       - ./collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
@@ -56,7 +56,7 @@ services:
     image: grafana/grafana:latest
     container_name: automagik-grafana
     ports:
-      - "3000:3000"
+      - "13000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin

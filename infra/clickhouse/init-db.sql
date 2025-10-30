@@ -56,7 +56,129 @@ ORDER BY (service_name, span_name, timestamp)
 TTL timestamp + INTERVAL 90 DAY
 SETTINGS index_granularity = 8192;
 
--- Metrics table - aggregated metrics (optional, for faster queries)
+-- Metrics table - stores OTLP metrics (gauge, counter, histogram)
+CREATE TABLE IF NOT EXISTS metrics (
+    -- Identification
+    metric_id UUID DEFAULT generateUUIDv4(),
+
+    -- Timing
+    timestamp DateTime DEFAULT now(),
+    timestamp_ns UInt64 DEFAULT 0,
+
+    -- Metric details
+    metric_name String,
+    metric_type Enum8('GAUGE' = 1, 'SUM' = 2, 'HISTOGRAM' = 3, 'EXPONENTIAL_HISTOGRAM' = 4, 'SUMMARY' = 5),
+
+    -- Values (use appropriate field based on type)
+    value_int Int64 DEFAULT 0,
+    value_double Float64 DEFAULT 0,
+
+    -- Histogram-specific fields
+    histogram_count UInt64 DEFAULT 0,
+    histogram_sum Float64 DEFAULT 0,
+    histogram_bucket_counts Array(UInt64) DEFAULT [],
+    histogram_explicit_bounds Array(Float64) DEFAULT [],
+
+    -- Resource attributes
+    project_name String,
+    project_version String DEFAULT '',
+    service_name String,
+    environment String DEFAULT 'production',
+    hostname String DEFAULT '',
+
+    -- User/session tracking
+    user_id String DEFAULT '',
+    session_id String DEFAULT '',
+
+    -- Custom attributes
+    attributes Map(String, String) DEFAULT map(),
+
+    -- Cloud information
+    cloud_provider String DEFAULT '',
+    cloud_region String DEFAULT '',
+
+    -- Indexes for fast queries
+    INDEX idx_timestamp timestamp TYPE minmax GRANULARITY 1,
+    INDEX idx_metric_name metric_name TYPE bloom_filter GRANULARITY 1,
+    INDEX idx_service_name service_name TYPE bloom_filter GRANULARITY 1,
+    INDEX idx_project_name project_name TYPE bloom_filter GRANULARITY 1,
+    INDEX idx_environment environment TYPE bloom_filter GRANULARITY 1
+)
+ENGINE = MergeTree()
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (service_name, metric_name, timestamp)
+TTL timestamp + INTERVAL 90 DAY
+SETTINGS index_granularity = 8192;
+
+-- Logs table - stores structured log entries
+CREATE TABLE IF NOT EXISTS logs (
+    -- Identification
+    log_id UUID DEFAULT generateUUIDv4(),
+
+    -- Trace correlation
+    trace_id String DEFAULT '',
+    span_id String DEFAULT '',
+
+    -- Timing
+    timestamp DateTime DEFAULT now(),
+    timestamp_ns UInt64 DEFAULT 0,
+    observed_timestamp DateTime DEFAULT now(),
+
+    -- Severity
+    severity_text String DEFAULT 'INFO',
+    severity_number UInt8 DEFAULT 9,
+
+    -- Log content
+    body String,
+    body_type Enum8('STRING' = 1, 'JSON' = 2, 'BYTES' = 3) DEFAULT 'STRING',
+
+    -- Resource attributes
+    project_name String,
+    project_version String DEFAULT '',
+    service_name String,
+    environment String DEFAULT 'production',
+    hostname String DEFAULT '',
+
+    -- User/session tracking
+    user_id String DEFAULT '',
+    session_id String DEFAULT '',
+
+    -- Custom attributes
+    attributes Map(String, String) DEFAULT map(),
+
+    -- Exception details
+    exception_type String DEFAULT '',
+    exception_message String DEFAULT '',
+    exception_stacktrace String DEFAULT '',
+    is_exception UInt8 DEFAULT 0,
+
+    -- Source location
+    source_file String DEFAULT '',
+    source_line UInt32 DEFAULT 0,
+    source_function String DEFAULT '',
+
+    -- System information
+    os_type String DEFAULT '',
+    os_version String DEFAULT '',
+    runtime_name String DEFAULT '',
+    runtime_version String DEFAULT '',
+
+    -- Indexes for fast queries
+    INDEX idx_timestamp timestamp TYPE minmax GRANULARITY 1,
+    INDEX idx_severity severity_number TYPE minmax GRANULARITY 1,
+    INDEX idx_service_name service_name TYPE bloom_filter GRANULARITY 1,
+    INDEX idx_project_name project_name TYPE bloom_filter GRANULARITY 1,
+    INDEX idx_environment environment TYPE bloom_filter GRANULARITY 1,
+    INDEX idx_trace_id trace_id TYPE bloom_filter GRANULARITY 1,
+    INDEX idx_body body TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1
+)
+ENGINE = MergeTree()
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (service_name, severity_number, timestamp)
+TTL timestamp + INTERVAL 90 DAY
+SETTINGS index_granularity = 8192;
+
+-- Metrics hourly aggregation table - aggregated trace metrics (for faster dashboard queries)
 CREATE TABLE IF NOT EXISTS metrics_hourly (
     timestamp DateTime,
     project_name String,
