@@ -979,8 +979,18 @@ class AutomagikTelemetry:
                 pass
 
     def disable(self) -> None:
-        """Disable telemetry permanently."""
+        """Disable telemetry permanently and flush pending events."""
         self.enabled = False
+        self._shutdown = True
+
+        # Cancel flush timer
+        if self._flush_timer is not None:
+            self._flush_timer.cancel()
+            self._flush_timer = None
+
+        # Flush pending events before disabling
+        self.flush()
+
         # Create opt-out file
         try:
             opt_out_file = Path.home() / ".automagik-no-telemetry"
