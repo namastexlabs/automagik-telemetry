@@ -71,6 +71,7 @@ fail_under = 100.0
 [tool.coverage.run]
 source = ["src"]
 omit = ["tests/*", "**/__pycache__/*"]
+relative_files = true
 
 [tool.ruff]
 line-length = 100

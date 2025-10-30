@@ -526,7 +526,7 @@ client.trackLog(
 
 | Setting | Python Default | TypeScript Default | Reason |
 |---------|---------------|-------------------|---------|
-| **batch_size / batchSize** | `1` | `100` | Python optimized for simplicity; TypeScript for performance |
+| **batch_size / batchSize** | `100` | `100` | Both optimized for performance with batching |
 | **flush_interval / flushInterval** | `5.0` (seconds) | `5000` (milliseconds) | Different time unit conventions |
 | **Backend** | `"otlp"` | `"otlp"` | ✅ Same |
 | **Endpoint** | `"https://telemetry.namastex.ai"` | `"https://telemetry.namastex.ai"` | ✅ Same |

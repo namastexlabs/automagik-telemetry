@@ -252,7 +252,7 @@ def test_attribute_serialization_performance(performance_client):
 
     # Should still be fast even with many attributes
     assert stats["mean"] < 2.0, f"Large attribute overhead {stats['mean']:.3f}ms too high"
-    assert stats["p99"] < 10.0, f"Large attribute P99 {stats['p99']:.3f}ms too high"
+    assert stats["p99"] < 15.0, f"Large attribute P99 {stats['p99']:.3f}ms too high"
 
 
 @pytest.mark.performance

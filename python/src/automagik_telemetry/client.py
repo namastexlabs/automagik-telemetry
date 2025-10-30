@@ -59,7 +59,7 @@ class TelemetryConfig:
         endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
         organization: Organization name (default: namastex)
         timeout: HTTP timeout in seconds (default: 5)
-        batch_size: Number of events to batch before sending (default: 1 for immediate sending)
+        batch_size: Number of events to batch before sending (default: 100 for optimal performance)
         flush_interval: Seconds between automatic flushes (default: 5.0)
         compression_enabled: Enable gzip compression (default: True)
         compression_threshold: Minimum payload size for compression in bytes (default: 1024)
@@ -80,7 +80,7 @@ class TelemetryConfig:
     endpoint: str | None = None
     organization: str = "namastex"
     timeout: int = 5
-    batch_size: int = 1  # Send events immediately
+    batch_size: int = 100  # Batch events for optimal performance
     flush_interval: float = 5.0
     compression_enabled: bool = True
     compression_threshold: int = 1024

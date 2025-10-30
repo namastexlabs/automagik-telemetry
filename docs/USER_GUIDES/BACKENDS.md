@@ -276,7 +276,7 @@ export AUTOMAGIK_TELEMETRY_ENDPOINT=https://telemetry.namastex.ai/v1/traces
 <tr>
 <td><code>batchSize</code></td>
 <td>int</td>
-<td>Python: 1, TS: 100</td>
+<td>100</td>
 <td>Events per batch</td>
 </tr>
 <tr>
