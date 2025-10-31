@@ -311,9 +311,8 @@ export class ClickHouseBackend {
       serviceName:
         String(resAttrs["service.name"] || resAttrs.service_name) || "unknown",
       serviceNamespace:
-        String(
-          resAttrs["service.namespace"] || resAttrs.service_namespace,
-        ) || "",
+        String(resAttrs["service.namespace"] || resAttrs.service_namespace) ||
+        "",
       serviceInstanceId:
         String(
           resAttrs["service.instance.id"] || resAttrs.service_instance_id,
@@ -350,9 +349,8 @@ export class ClickHouseBackend {
             resAttrs.cloud_availability_zone,
         ) || "",
       instrumentationLibraryName:
-        String(
-          resAttrs["telemetry.sdk.name"] || resAttrs.telemetry_sdk_name,
-        ) || "",
+        String(resAttrs["telemetry.sdk.name"] || resAttrs.telemetry_sdk_name) ||
+        "",
       instrumentationLibraryVersion:
         String(
           resAttrs["telemetry.sdk.version"] || resAttrs.telemetry_sdk_version,
@@ -735,22 +733,22 @@ export class ClickHouseBackend {
       const valueDouble = isInt ? 0.0 : value;
 
       // Extract histogram/summary data from attributes (if present)
-      const histogramBucketCounts = (attributes &&
-        Array.isArray(attributes["histogram.bucket_counts"]))
-        ? (attributes["histogram.bucket_counts"] as number[])
-        : [];
-      const histogramExplicitBounds = (attributes &&
-        Array.isArray(attributes["histogram.explicit_bounds"]))
-        ? (attributes["histogram.explicit_bounds"] as number[])
-        : [];
+      const histogramBucketCounts =
+        attributes && Array.isArray(attributes["histogram.bucket_counts"])
+          ? (attributes["histogram.bucket_counts"] as number[])
+          : [];
+      const histogramExplicitBounds =
+        attributes && Array.isArray(attributes["histogram.explicit_bounds"])
+          ? (attributes["histogram.explicit_bounds"] as number[])
+          : [];
       const summaryCount = Number(
         (attributes && attributes["summary.count"]) || 0,
       );
       const summarySum = Number((attributes && attributes["summary.sum"]) || 0);
-      const quantileValues = (attributes &&
-        typeof attributes["quantile.values"] === "object")
-        ? (attributes["quantile.values"] as Record<string, number>)
-        : {};
+      const quantileValues =
+        attributes && typeof attributes["quantile.values"] === "object"
+          ? (attributes["quantile.values"] as Record<string, number>)
+          : {};
 
       // Extract user/session IDs from attributes
       const userId = String((attributes && attributes["user.id"]) || "");
@@ -770,8 +768,7 @@ export class ClickHouseBackend {
         value_int: valueInt,
         value_double: valueDouble,
         is_monotonic: mappedType === "SUM" ? 1 : 0,
-        aggregation_temporality:
-          mappedType === "SUM" ? "DELTA" : "UNSPECIFIED",
+        aggregation_temporality: mappedType === "SUM" ? "DELTA" : "UNSPECIFIED",
         histogram_count: 0,
         histogram_sum: 0.0,
         histogram_min: 0.0,
