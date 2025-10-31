@@ -83,13 +83,13 @@ graph TD
 
 | Feature | Python | TypeScript | Portable? | Impact |
 |---------|--------|-----------|-----------|---------|
-| **disable() flushes** | ❌ NO | ✅ YES | ❌ No | **CRITICAL** - Data loss risk |
+| **disable() flushes** | ✅ YES (v0.1.3+) | ✅ YES | ✅ Yes | **LOW** - Both flush now |
 | **disable() signature** | `def disable() -> None` | `async disable() -> Promise<void>` | ❌ No | **CRITICAL** - Must await in TS |
 | **flush() signature** | `def flush() -> None` | `async flush() -> Promise<void>` | ❌ No | **HIGH** - Must await in TS |
 | **Async methods** | ✅ Explicit (`track_event_async`) | ❌ Internal only | ⚠️ Different | **HIGH** - API differs |
 | **Queue architecture** | 3 separate queues | 1 unified queue | ❌ No | **HIGH** - Different semantics |
 | **Initialization** | Requires `TelemetryConfig` object | Inline config object | ❌ No | **MEDIUM** - API differs |
-| **clickhouse_table param** | ✅ Supported | ❌ Missing | ❌ No | **MEDIUM** - Feature parity |
+| **clickhouse_table param** | ✅ Supported | ✅ Supported (v0.1.3+) | ✅ Yes | **LOW** - Feature parity achieved |
 | **Batch size default** | `100` | `100` | ✅ Yes | **LOW** - Same |
 | **Naming convention** | `snake_case` | `camelCase` | ❌ No | **LOW** - Expected |
 
@@ -559,11 +559,11 @@ client.trackLog(
 
 ## Control Methods Differences
 
-> **⚠️ CRITICAL:** The `disable()` and `flush()` methods behave differently between SDKs!
+> **📝 NOTE:** The `disable()` and `flush()` methods have some differences between SDKs.
 
 ### disable() Method
 
-The `disable()` method has **critical differences** that can lead to data loss:
+The `disable()` method has signature differences but **both SDKs now flush pending events**:
 
 <table>
 <tr>
@@ -578,7 +578,7 @@ The `disable()` method has **critical differences** that can lead to data loss:
 </tr>
 <tr>
 <td><strong>Flushes pending events?</strong></td>
-<td>❌ <strong>NO</strong> - Events are discarded!</td>
+<td>✅ <strong>YES</strong> - Flushes before disabling (as of v0.1.3)</td>
 <td>✅ <strong>YES</strong> - Flushes before disabling</td>
 </tr>
 <tr>
@@ -593,7 +593,7 @@ The `disable()` method has **critical differences** that can lead to data loss:
 </tr>
 </table>
 
-**Critical Example:**
+**Usage Examples:**
 
 <table>
 <tr>
@@ -604,25 +604,16 @@ The `disable()` method has **critical differences** that can lead to data loss:
 <td>
 
 ```python
-# ⚠️ CRITICAL: Events may be LOST!
+# ✅ Both SDKs now flush automatically
 client.track_event("app.shutdown", {
     "reason": "user_request"
 })
 
-# disable() does NOT flush - events lost!
-client.disable()
+# disable() flushes pending events automatically
+client.disable()  # Synchronous, flushes before disabling
 ```
 
-**To prevent data loss in Python:**
-```python
-# ✅ CORRECT: Flush before disable
-client.track_event("app.shutdown", {
-    "reason": "user_request"
-})
-
-client.flush()  # Flush pending events
-client.disable()  # Then disable
-```
+**Note:** As of v0.1.3, Python's `disable()` now flushes pending events before disabling, preventing data loss. No manual `flush()` call needed!
 
 </td>
 <td>
@@ -633,9 +624,11 @@ client.trackEvent('app.shutdown', {
     reason: 'user_request'
 });
 
-// Flushes events before disabling
-await client.disable();
+// Flushes events before disabling (must await)
+await client.disable();  // Async, must be awaited
 ```
+
+**Note:** TypeScript's `disable()` is async and must be awaited to ensure flush completes.
 
 **⚠️ Must await or risk race condition:**
 ```typescript
@@ -1795,8 +1788,7 @@ client.track_metric(
     metric_type=MetricType.COUNTER
 )
 
-client.flush()
-# Important: Manual flush before disable
+# disable() flushes automatically (v0.1.3+)
 client.disable()
 ```
 
@@ -1806,32 +1798,21 @@ client.disable()
 
 ### Common Pitfalls
 
-#### ⚠️ Pitfall 1: Forgetting to flush before disable() in Python
+#### ⚠️ Pitfall 1: Not awaiting disable() in TypeScript (CRITICAL)
 
-```python
-# ❌ WRONG - Events lost!
-client.track_event("important", {...})
-client.disable()  # Events discarded!
-
-# ✅ CORRECT
-client.track_event("important", {...})
-client.flush()  # Flush first
-client.disable()
-```
-
-#### ⚠️ Pitfall 2: Not awaiting disable() in TypeScript
+**Note:** This pitfall was fixed in Python v0.1.3 - both SDKs now flush automatically!
 
 ```typescript
 // ❌ WRONG - Race condition!
 client.trackEvent('important', {...});
-client.disable();  // Returns immediately, may not flush
+client.disable();  // Returns Promise, not awaited!
 
 // ✅ CORRECT
 client.trackEvent('important', {...});
-await client.disable();  // Waits for flush
+await client.disable();  // Waits for flush to complete
 ```
 
-#### ⚠️ Pitfall 3: Using wrong time units
+#### ⚠️ Pitfall 2: Using wrong time units
 
 ```python
 # ❌ WRONG
@@ -1899,7 +1880,7 @@ After porting code, verify these behaviors:
    - Verify events appear in backend (OTLP collector or ClickHouse)
 
 2. **✅ Flush behavior is correct**
-   - Python: Test that manual flush works before disable()
+   - Python: Test that disable() flushes automatically (v0.1.3+)
    - TypeScript: Test that disable() awaits properly
 
 3. **✅ Time intervals are correct**
