@@ -1682,6 +1682,16 @@ describe("ClickHouseBackend", () => {
       expect((backend as any).logBatch).toHaveLength(0);
     });
 
+    it("should detect and handle JSON message body", () => {
+      const jsonMessage = JSON.stringify({ key: "value", nested: { foo: "bar" } });
+      const result = backend.sendLog(jsonMessage);
+      expect(result).toBe(true);
+
+      const log = (backend as any).logBatch[0];
+      expect(log.body_type).toBe("JSON");
+      expect(log.body).toBe(jsonMessage);
+    });
+
     it("should return false on error", () => {
       // Mock the logBatch.push to throw
       jest.spyOn(backend as any, "generateUUID").mockImplementation(() => {

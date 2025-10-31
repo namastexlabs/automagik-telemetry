@@ -250,38 +250,6 @@ export class ClickHouseBackend {
   }
 
   /**
-   * Extract and normalize resource attributes for telemetry data.
-   * @param resourceAttributes - Optional resource attributes
-   * @returns Object with extracted resource attributes
-   */
-  private extractResourceAttributes(
-    resourceAttributes?: Record<string, unknown>,
-  ): {
-    serviceName: string;
-    projectName: string;
-    projectVersion: string;
-    environment: string;
-    hostname: string;
-  } {
-    const resAttrs = resourceAttributes || {};
-    return {
-      serviceName:
-        String(resAttrs["service.name"] || resAttrs.service_name) || "unknown",
-      projectName:
-        String(resAttrs["project.name"] || resAttrs.project_name) || "",
-      projectVersion:
-        String(resAttrs["project.version"] || resAttrs.project_version) || "",
-      environment:
-        String(
-          resAttrs["deployment.environment"] ||
-            resAttrs.environment ||
-            resAttrs.env,
-        ) || "production",
-      hostname: String(resAttrs["host.name"] || resAttrs.hostname) || "",
-    };
-  }
-
-  /**
    * Extract extended resource attributes including OS, runtime, cloud, and instrumentation info.
    * @param resourceAttributes - Optional resource attributes
    * @returns Object with all extended resource attributes
