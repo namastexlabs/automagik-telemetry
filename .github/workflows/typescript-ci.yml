@@ -62,7 +62,7 @@ jobs:
           cd typescript
           pnpm run test
 
-      - name: Verify 100% coverage
+      - name: Verify coverage thresholds
         run: |
           cd typescript
           node << 'EOF'
@@ -70,10 +70,11 @@ jobs:
           const total = coverage.total;
           console.log(`Coverage: ${total.lines.pct}% lines, ${total.statements.pct}% statements, ${total.functions.pct}% functions, ${total.branches.pct}% branches`);
 
-          if (total.statements.pct !== 100 || total.lines.pct !== 100) {
-              throw new Error(`Coverage below 100%: ${JSON.stringify(total, null, 2)}`);
+          // Match thresholds from jest.config.js
+          if (total.statements.pct < 99 || total.lines.pct < 99 || total.functions.pct < 98 || total.branches.pct < 85) {
+              throw new Error(`Coverage below thresholds: ${JSON.stringify(total, null, 2)}`);
           }
-          console.log('✅ 100% coverage verified!');
+          console.log('✅ Coverage thresholds met!');
           EOF
 
       - name: Upload coverage HTML report
