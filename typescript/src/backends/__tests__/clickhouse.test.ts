@@ -1683,7 +1683,10 @@ describe("ClickHouseBackend", () => {
     });
 
     it("should detect and handle JSON message body", () => {
-      const jsonMessage = JSON.stringify({ key: "value", nested: { foo: "bar" } });
+      const jsonMessage = JSON.stringify({
+        key: "value",
+        nested: { foo: "bar" },
+      });
       const result = backend.sendLog(jsonMessage);
       expect(result).toBe(true);
 
