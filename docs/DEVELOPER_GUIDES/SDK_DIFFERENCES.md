@@ -10,11 +10,17 @@
 ## Table of Contents
 
 - [Philosophy](#philosophy)
+- [Critical Behavioral Differences](#critical-behavioral-differences)
 - [Quick Reference](#quick-reference)
 - [Naming Conventions](#naming-conventions)
 - [API Comparison](#api-comparison)
+- [Control Methods Differences](#control-methods-differences)
+- [Async/Await Patterns](#asyncawait-patterns)
+- [Queue Architecture](#queue-architecture)
 - [Configuration Differences](#configuration-differences)
+- [Configuration Asymmetries](#configuration-asymmetries)
 - [Migration Guides](#migration-guides)
+- [Porting Code Between SDKs](#porting-code-between-sdks)
 - [Best Practices](#best-practices)
 
 ---
@@ -66,6 +72,33 @@ graph TD
 ### Functional Equivalence
 
 > **✅ Guarantee:** Both SDKs provide 100% functional equivalence. Any feature in Python is available in TypeScript and vice versa.
+
+---
+
+## Critical Behavioral Differences
+
+> **⚠️ WARNING:** These differences can cause bugs when porting code between SDKs. Read carefully!
+
+### Quick Comparison Table
+
+| Feature | Python | TypeScript | Portable? | Impact |
+|---------|--------|-----------|-----------|---------|
+| **disable() flushes** | ❌ NO | ✅ YES | ❌ No | **CRITICAL** - Data loss risk |
+| **disable() signature** | `def disable() -> None` | `async disable() -> Promise<void>` | ❌ No | **CRITICAL** - Must await in TS |
+| **flush() signature** | `def flush() -> None` | `async flush() -> Promise<void>` | ❌ No | **HIGH** - Must await in TS |
+| **Async methods** | ✅ Explicit (`track_event_async`) | ❌ Internal only | ⚠️ Different | **HIGH** - API differs |
+| **Queue architecture** | 3 separate queues | 1 unified queue | ❌ No | **HIGH** - Different semantics |
+| **Initialization** | Requires `TelemetryConfig` object | Inline config object | ❌ No | **MEDIUM** - API differs |
+| **clickhouse_table param** | ✅ Supported | ❌ Missing | ❌ No | **MEDIUM** - Feature parity |
+| **Batch size default** | `100` | `100` | ✅ Yes | **LOW** - Same |
+| **Naming convention** | `snake_case` | `camelCase` | ❌ No | **LOW** - Expected |
+
+### Impact Levels Explained
+
+- **🔴 CRITICAL**: Can cause data loss, crashes, or silent failures
+- **🟡 HIGH**: Significantly different behavior that affects functionality
+- **🟢 MEDIUM**: Different APIs but predictable behavior
+- **⚪ LOW**: Cosmetic differences with no functional impact
 
 ---
 
@@ -224,11 +257,14 @@ These names are **identical** across both SDKs:
 <td>
 
 ```python
-# Basic initialization
-client = AutomagikTelemetry(
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+
+# Basic initialization - MUST use TelemetryConfig
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+client = AutomagikTelemetry(config=config)
 
 # With all options using TelemetryConfig
 config = TelemetryConfig(
@@ -251,6 +287,7 @@ config = TelemetryConfig(
     backend="clickhouse",
     clickhouse_endpoint="http://localhost:8123",
     clickhouse_database="telemetry",
+    clickhouse_table="otel_traces",  # Python supports table customization
     batch_size=100
 )
 client = AutomagikTelemetry(config=config)
@@ -520,6 +557,444 @@ client.trackLog(
 
 ---
 
+## Control Methods Differences
+
+> **⚠️ CRITICAL:** The `disable()` and `flush()` methods behave differently between SDKs!
+
+### disable() Method
+
+The `disable()` method has **critical differences** that can lead to data loss:
+
+<table>
+<tr>
+<th>Aspect</th>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td><strong>Signature</strong></td>
+<td><code>def disable(self) -> None</code></td>
+<td><code>async disable(): Promise&lt;void&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Flushes pending events?</strong></td>
+<td>❌ <strong>NO</strong> - Events are discarded!</td>
+<td>✅ <strong>YES</strong> - Flushes before disabling</td>
+</tr>
+<tr>
+<td><strong>Stops flush timer?</strong></td>
+<td>✅ YES</td>
+<td>✅ YES</td>
+</tr>
+<tr>
+<td><strong>Must be awaited?</strong></td>
+<td>❌ No (sync)</td>
+<td>✅ <strong>YES</strong> - Must await!</td>
+</tr>
+</table>
+
+**Critical Example:**
+
+<table>
+<tr>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td>
+
+```python
+# ⚠️ CRITICAL: Events may be LOST!
+client.track_event("app.shutdown", {
+    "reason": "user_request"
+})
+
+# disable() does NOT flush - events lost!
+client.disable()
+```
+
+**To prevent data loss in Python:**
+```python
+# ✅ CORRECT: Flush before disable
+client.track_event("app.shutdown", {
+    "reason": "user_request"
+})
+
+client.flush()  # Flush pending events
+client.disable()  # Then disable
+```
+
+</td>
+<td>
+
+```typescript
+// ✅ TypeScript flushes automatically
+client.trackEvent('app.shutdown', {
+    reason: 'user_request'
+});
+
+// Flushes events before disabling
+await client.disable();
+```
+
+**⚠️ Must await or risk race condition:**
+```typescript
+// ❌ WRONG: Not awaiting
+client.disable();  // Race condition!
+
+// ✅ CORRECT: Always await
+await client.disable();
+```
+
+</td>
+</tr>
+</table>
+
+### flush() Method
+
+The `flush()` method also has important differences:
+
+<table>
+<tr>
+<th>Aspect</th>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td><strong>Signature</strong></td>
+<td><code>def flush(self) -> None</code></td>
+<td><code>async flush(): Promise&lt;void&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Return type</strong></td>
+<td>Synchronous</td>
+<td>Async - returns Promise</td>
+</tr>
+<tr>
+<td><strong>Queues flushed</strong></td>
+<td>3 separate (traces, metrics, logs)</td>
+<td>1 unified queue</td>
+</tr>
+<tr>
+<td><strong>Must be awaited?</strong></td>
+<td>❌ No</td>
+<td>✅ <strong>YES</strong></td>
+</tr>
+</table>
+
+**Example:**
+
+<table>
+<tr>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td>
+
+```python
+# Synchronous flush
+client.flush()
+
+# Flushes all 3 queues:
+# - trace_queue
+# - metric_queue
+# - log_queue
+```
+
+</td>
+<td>
+
+```typescript
+// Asynchronous flush - must await
+await client.flush();
+
+// Flushes unified event queue
+// containing all event types
+```
+
+</td>
+</tr>
+</table>
+
+### shutdown() Method
+
+The `shutdown()` method has consistent behavior:
+
+<table>
+<tr>
+<th>Aspect</th>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td><strong>Flushes?</strong></td>
+<td>✅ YES</td>
+<td>✅ YES</td>
+</tr>
+<tr>
+<td><strong>Stops timer?</strong></td>
+<td>✅ YES</td>
+<td>✅ YES</td>
+</tr>
+<tr>
+<td><strong>Disables?</strong></td>
+<td>✅ YES</td>
+<td>✅ YES</td>
+</tr>
+</table>
+
+> **✅ RECOMMENDED:** Use `shutdown()` instead of `disable()` to ensure safe cleanup in both SDKs.
+
+---
+
+## Async/Await Patterns
+
+### Python: Explicit Async Methods
+
+Python provides **explicit async variants** of all tracking methods:
+
+```python
+# Sync methods (default)
+client.track_event("user.login", {...})
+client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER)
+client.track_error(error, {...})
+client.track_log("message", level=LogLevel.INFO)
+client.flush()
+
+# Async methods (for async contexts)
+await client.track_event_async("user.login", {...})
+await client.track_metric_async("api.requests", value=1, metric_type=MetricType.COUNTER)
+await client.track_error_async(error, {...})
+await client.track_log_async("message", level=LogLevel.INFO)
+await client.flush_async()
+```
+
+**When to use async methods in Python:**
+- Inside `async def` functions
+- When using asyncio event loops
+- In async frameworks (FastAPI, aiohttp, etc.)
+
+### TypeScript: Internal Async
+
+TypeScript methods are **internally async but return void** (fire-and-forget):
+
+```typescript
+// All methods return void (except flush and disable)
+client.trackEvent('user.login', {...});       // void, not Promise<void>
+client.trackMetric('api.requests', 1, MetricType.COUNTER);  // void
+client.trackError(error, {...});              // void
+client.trackLog('message', LogLevel.INFO);    // void
+
+// Only these return Promise<void>
+await client.flush();    // Promise<void>
+await client.disable();  // Promise<void>
+```
+
+**Important differences:**
+
+<table>
+<tr>
+<th>Method</th>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td><code>track_event()</code></td>
+<td>Sync - Returns None</td>
+<td>Internally async - Returns void</td>
+</tr>
+<tr>
+<td><code>track_event_async()</code></td>
+<td>✅ Async - Returns awaitable</td>
+<td>❌ Not available</td>
+</tr>
+<tr>
+<td><code>flush()</code></td>
+<td>Sync - Returns None</td>
+<td>✅ Async - Returns Promise&lt;void&gt;</td>
+</tr>
+<tr>
+<td><code>flush_async()</code></td>
+<td>✅ Async - Returns awaitable</td>
+<td>❌ Not available</td>
+</tr>
+<tr>
+<td><code>disable()</code></td>
+<td>Sync - Returns None</td>
+<td>✅ Async - Returns Promise&lt;void&gt;</td>
+</tr>
+</table>
+
+### Porting Async Code
+
+**Python to TypeScript:**
+
+```python
+# Python async code
+await client.track_event_async("test", {...})
+await client.flush_async()
+```
+
+```typescript
+// TypeScript equivalent
+client.trackEvent('test', {...});  // No await! Fire-and-forget
+await client.flush();               // Await flush
+```
+
+**TypeScript to Python:**
+
+```typescript
+// TypeScript code
+client.trackEvent('test', {...});
+await client.flush();
+```
+
+```python
+# Python sync equivalent
+client.track_event("test", {...})
+client.flush()
+
+# Or Python async equivalent
+await client.track_event_async("test", {...})
+await client.flush_async()
+```
+
+---
+
+## Queue Architecture
+
+### Critical Difference: 3 Queues vs 1 Queue
+
+The SDKs use **fundamentally different queue architectures**:
+
+<table>
+<tr>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td>
+
+**3 Separate Queues:**
+
+```python
+class AutomagikTelemetry:
+    def __init__(self):
+        self._trace_queue = deque()
+        self._metric_queue = deque()
+        self._log_queue = deque()
+```
+
+**Implications:**
+- Events are queued by type
+- Each queue flushes independently
+- Batching is per event type
+- Can flush traces without metrics
+
+</td>
+<td>
+
+**1 Unified Queue:**
+
+```typescript
+class AutomagikTelemetry {
+    private eventQueue: QueuedEvent[] = [];
+}
+
+type QueuedEvent = {
+    type: 'trace' | 'metric' | 'log';
+    data: any;
+}
+```
+
+**Implications:**
+- All events in single queue
+- Flush processes all event types
+- Batching across all events
+- Cannot flush selectively
+
+</td>
+</tr>
+</table>
+
+### Flush Behavior Comparison
+
+```mermaid
+graph TD
+    subgraph "Python - 3 Queues"
+        PY_TRACES[Trace Queue<br/>100 events]
+        PY_METRICS[Metric Queue<br/>50 events]
+        PY_LOGS[Log Queue<br/>25 events]
+        PY_FLUSH[flush()]
+        PY_SEND1[Send Traces]
+        PY_SEND2[Send Metrics]
+        PY_SEND3[Send Logs]
+
+        PY_FLUSH --> PY_TRACES --> PY_SEND1
+        PY_FLUSH --> PY_METRICS --> PY_SEND2
+        PY_FLUSH --> PY_LOGS --> PY_SEND3
+    end
+
+    subgraph "TypeScript - 1 Queue"
+        TS_QUEUE[Unified Queue<br/>175 events mixed]
+        TS_FLUSH[flush()]
+        TS_SEND[Send All Events]
+
+        TS_FLUSH --> TS_QUEUE --> TS_SEND
+    end
+
+    style PY_TRACES fill:#FFB84D
+    style PY_METRICS fill:#FFB84D
+    style PY_LOGS fill:#FFB84D
+    style TS_QUEUE fill:#51CF66
+```
+
+### Batch Processing
+
+**Python:** Each queue respects batch_size independently:
+
+```python
+config = TelemetryConfig(
+    batch_size=100
+)
+
+# If you have:
+# - 150 traces
+# - 50 metrics
+# - 25 logs
+
+# Flush sends:
+# - 2 batches of traces (100 + 50)
+# - 1 batch of metrics (50)
+# - 1 batch of logs (25)
+```
+
+**TypeScript:** Single queue respects batch_size collectively:
+
+```typescript
+const client = new AutomagikTelemetry({
+    batchSize: 100
+});
+
+// If you have 225 mixed events:
+// - 150 traces
+// - 50 metrics
+// - 25 logs
+
+// Flush sends:
+// - 3 batches of 100, 100, 25 mixed events
+```
+
+### Impact on Custom Backends
+
+When implementing custom backends:
+
+- **Python**: Implement separate handlers for each event type
+- **TypeScript**: Implement single handler that processes mixed events
+
+---
+
 ## Configuration Differences
 
 ### Default Values
@@ -758,6 +1233,87 @@ Always check parameter names and documentation when migrating between SDKs to av
 
 ---
 
+## Configuration Asymmetries
+
+> **⚠️ NOTE:** Some configuration options are not available in both SDKs.
+
+### Python-Only Configuration
+
+#### clickhouse_table Parameter
+
+**Python supports table name customization:**
+
+```python
+from automagik_telemetry import TelemetryConfig, AutomagikTelemetry
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    backend="clickhouse",
+    clickhouse_endpoint="http://localhost:8123",
+    clickhouse_database="telemetry",
+    clickhouse_table="custom_traces"  # ✅ Supported in Python
+)
+client = AutomagikTelemetry(config=config)
+```
+
+**Environment variable:**
+```bash
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE="custom_traces"
+```
+
+**TypeScript does NOT support this:**
+
+```typescript
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    backend: 'clickhouse',
+    clickhouseEndpoint: 'http://localhost:8123',
+    clickhouseDatabase: 'telemetry',
+    // ❌ clickhouseTable not available - table names are hardcoded
+});
+```
+
+**Hardcoded table names in TypeScript:**
+- Traces: `otel_traces`
+- Metrics: `otel_metrics`
+- Logs: `otel_logs`
+
+#### retry_backoff_base Parameter
+
+**Python exposes retry backoff customization:**
+
+```python
+config = TelemetryConfig(
+    retry_backoff_base=2.0  # ✅ 2 seconds base (exponential backoff)
+)
+```
+
+**TypeScript:** Hardcoded to 1000ms (1 second) - not configurable.
+
+### TypeScript-Only Configuration
+
+Currently, there are **no TypeScript-only configuration options**. All TypeScript options have Python equivalents.
+
+### Feature Parity Roadmap
+
+Planned improvements to achieve full feature parity:
+
+- [ ] **TypeScript**: Add `clickhouseTable` configuration option
+- [ ] **TypeScript**: Add `retryBackoffBase` configuration option
+- [ ] **TypeScript**: Expose `compressionThreshold` configuration
+
+### Workarounds
+
+**If you need custom ClickHouse tables in TypeScript:**
+
+1. Fork the TypeScript SDK and modify hardcoded table names
+2. Use a view/alias in ClickHouse to map to your custom table names
+3. Track feature request: https://github.com/namastexlabs/automagik-telemetry/issues
+
+---
+
 ## Migration Guides
 
 ### Decision Tree: Which SDK to Use?
@@ -956,6 +1512,407 @@ pip install automagik-telemetry
 | `metric_type=MetricType.COUNTER` | `MetricType.COUNTER` | Enum usage |
 | `{"key": "value"}` | `{ key: 'value' }` | Dictionary → Object |
 | `None` | `null` or `undefined` | Null value |
+
+---
+
+## Porting Code Between SDKs
+
+### Systematic Porting Guide
+
+When porting code from one SDK to another, follow this checklist:
+
+#### From Python to TypeScript
+
+**Step-by-step conversion:**
+
+1. **Update imports**
+   ```diff
+   - from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, MetricType
+   + import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+   ```
+
+2. **Convert initialization pattern**
+   ```diff
+   - config = TelemetryConfig(project_name="my-app", version="1.0.0")
+   - client = AutomagikTelemetry(config=config)
+   + const client = new AutomagikTelemetry({
+   +     projectName: 'my-app',
+   +     version: '1.0.0'
+   + });
+   ```
+
+3. **Convert naming convention (snake_case → camelCase)**
+   ```diff
+   - project_name → projectName
+   - batch_size → batchSize
+   - flush_interval → flushInterval
+   - track_event → trackEvent
+   - track_metric → trackMetric
+   ```
+
+4. **Convert time units**
+   ```diff
+   - flush_interval=5.0  # 5 seconds
+   + flushInterval: 5000  // 5000 milliseconds
+
+   - retry_backoff_base=1.0  # 1 second
+   + // Not configurable in TypeScript (hardcoded to 1000ms)
+   ```
+
+5. **Replace async methods**
+   ```diff
+   - await client.track_event_async("test", {...})
+   + client.trackEvent('test', {...})  // No await needed
+
+   - await client.flush_async()
+   + await client.flush()  // Must await
+   ```
+
+6. **Update disable() calls**
+   ```diff
+   - client.flush()  # Must flush manually in Python
+   - client.disable()
+   + await client.disable()  // Flushes automatically, must await
+   ```
+
+7. **Remove clickhouse_table (not supported)**
+   ```diff
+   - clickhouse_table="custom_traces"
+   + // Not available - tables are hardcoded
+   ```
+
+8. **Convert dictionaries to objects**
+   ```diff
+   - {"key": "value", "count": 42}
+   + { key: 'value', count: 42 }
+   ```
+
+**Complete Example:**
+
+<table>
+<tr>
+<th>Python</th>
+<th>TypeScript</th>
+</tr>
+<tr>
+<td>
+
+```python
+from automagik_telemetry import (
+    AutomagikTelemetry,
+    TelemetryConfig,
+    MetricType
+)
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=100,
+    flush_interval=5.0
+)
+client = AutomagikTelemetry(config=config)
+
+await client.track_event_async(
+    "user.login",
+    {"method": "oauth"}
+)
+
+client.track_metric(
+    "api.requests",
+    value=1,
+    metric_type=MetricType.COUNTER
+)
+
+client.flush()
+client.disable()
+```
+
+</td>
+<td>
+
+```typescript
+import {
+    AutomagikTelemetry,
+    MetricType
+} from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    batchSize: 100,
+    flushInterval: 5000
+});
+
+client.trackEvent(
+    'user.login',
+    { method: 'oauth' }
+);
+
+client.trackMetric(
+    'api.requests',
+    1,
+    MetricType.COUNTER
+);
+
+await client.flush();
+await client.disable();
+```
+
+</td>
+</tr>
+</table>
+
+#### From TypeScript to Python
+
+**Step-by-step conversion:**
+
+1. **Update imports**
+   ```diff
+   - import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+   + from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, MetricType
+   ```
+
+2. **Convert initialization pattern**
+   ```diff
+   - const client = new AutomagikTelemetry({
+   -     projectName: 'my-app',
+   -     version: '1.0.0'
+   - });
+   + config = TelemetryConfig(project_name="my-app", version="1.0.0")
+   + client = AutomagikTelemetry(config=config)
+   ```
+
+3. **Convert naming convention (camelCase → snake_case)**
+   ```diff
+   - projectName → project_name
+   - batchSize → batch_size
+   - flushInterval → flush_interval
+   - trackEvent → track_event
+   - trackMetric → track_metric
+   ```
+
+4. **Convert time units**
+   ```diff
+   - flushInterval: 5000  // milliseconds
+   + flush_interval=5.0  # seconds (divide by 1000)
+   ```
+
+5. **Replace tracking methods**
+   ```diff
+   - client.trackEvent('test', {...});
+   + client.track_event("test", {...})
+   + # Or for async context:
+   + await client.track_event_async("test", {...})
+   ```
+
+6. **Update flush/disable calls**
+   ```diff
+   - await client.flush();
+   + client.flush()  # Sync in Python
+   + # Or for async context:
+   + await client.flush_async()
+
+   - await client.disable();
+   + client.flush()  # IMPORTANT: Must flush manually!
+   + client.disable()
+   ```
+
+7. **Add clickhouse_table if needed**
+   ```diff
+   + clickhouse_table="custom_traces"  # Now available in Python
+   ```
+
+8. **Convert objects to dictionaries**
+   ```diff
+   - { key: 'value', count: 42 }
+   + {"key": "value", "count": 42}
+   ```
+
+**Complete Example:**
+
+<table>
+<tr>
+<th>TypeScript</th>
+<th>Python</th>
+</tr>
+<tr>
+<td>
+
+```typescript
+import {
+    AutomagikTelemetry,
+    MetricType
+} from '@automagik/telemetry';
+
+const client = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0',
+    batchSize: 100,
+    flushInterval: 5000
+});
+
+client.trackEvent(
+    'user.login',
+    { method: 'oauth' }
+);
+
+client.trackMetric(
+    'api.requests',
+    1,
+    MetricType.COUNTER
+);
+
+await client.flush();
+await client.disable();
+```
+
+</td>
+<td>
+
+```python
+from automagik_telemetry import (
+    AutomagikTelemetry,
+    TelemetryConfig,
+    MetricType
+)
+
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=100,
+    flush_interval=5.0
+)
+client = AutomagikTelemetry(config=config)
+
+client.track_event(
+    "user.login",
+    {"method": "oauth"}
+)
+
+client.track_metric(
+    "api.requests",
+    value=1,
+    metric_type=MetricType.COUNTER
+)
+
+client.flush()
+# Important: Manual flush before disable
+client.disable()
+```
+
+</td>
+</tr>
+</table>
+
+### Common Pitfalls
+
+#### ⚠️ Pitfall 1: Forgetting to flush before disable() in Python
+
+```python
+# ❌ WRONG - Events lost!
+client.track_event("important", {...})
+client.disable()  # Events discarded!
+
+# ✅ CORRECT
+client.track_event("important", {...})
+client.flush()  # Flush first
+client.disable()
+```
+
+#### ⚠️ Pitfall 2: Not awaiting disable() in TypeScript
+
+```typescript
+// ❌ WRONG - Race condition!
+client.trackEvent('important', {...});
+client.disable();  // Returns immediately, may not flush
+
+// ✅ CORRECT
+client.trackEvent('important', {...});
+await client.disable();  // Waits for flush
+```
+
+#### ⚠️ Pitfall 3: Using wrong time units
+
+```python
+# ❌ WRONG
+config = TelemetryConfig(
+    flush_interval=5000  # This is 5000 SECONDS (83 minutes!)
+)
+
+# ✅ CORRECT
+config = TelemetryConfig(
+    flush_interval=5.0  # 5 seconds
+)
+```
+
+```typescript
+// ❌ WRONG
+const client = new AutomagikTelemetry({
+    flushInterval: 5  // This is 5 MILLISECONDS (too fast!)
+});
+
+// ✅ CORRECT
+const client = new AutomagikTelemetry({
+    flushInterval: 5000  // 5000 milliseconds = 5 seconds
+});
+```
+
+#### ⚠️ Pitfall 4: Trying to customize ClickHouse tables in TypeScript
+
+```typescript
+// ❌ NOT SUPPORTED
+const client = new AutomagikTelemetry({
+    backend: 'clickhouse',
+    clickhouseTable: 'custom_traces'  // This parameter doesn't exist!
+});
+
+// ✅ Use Python SDK if you need this feature
+```
+
+#### ⚠️ Pitfall 5: Mixing async/sync patterns incorrectly
+
+```python
+# ❌ WRONG - Using sync in async context
+async def my_function():
+    client.track_event("test", {...})  # Blocks async loop!
+
+# ✅ CORRECT - Use async methods in async context
+async def my_function():
+    await client.track_event_async("test", {...})
+```
+
+```typescript
+// ❌ WRONG - Awaiting fire-and-forget methods
+await client.trackEvent('test', {...});  // trackEvent doesn't return Promise!
+
+// ✅ CORRECT - Only await flush/disable
+client.trackEvent('test', {...});  // Fire-and-forget
+await client.flush();  // Await flush
+```
+
+### Testing After Porting
+
+After porting code, verify these behaviors:
+
+1. **✅ Events are sent successfully**
+   - Check logs for successful HTTP requests
+   - Verify events appear in backend (OTLP collector or ClickHouse)
+
+2. **✅ Flush behavior is correct**
+   - Python: Test that manual flush works before disable()
+   - TypeScript: Test that disable() awaits properly
+
+3. **✅ Time intervals are correct**
+   - Python: Verify flush_interval is in seconds
+   - TypeScript: Verify flushInterval is in milliseconds
+
+4. **✅ Async patterns work correctly**
+   - Python: Test both sync and async methods
+   - TypeScript: Test await on flush/disable only
+
+5. **✅ Error handling works**
+   - Test network failures
+   - Test retry logic
 
 ---
 
