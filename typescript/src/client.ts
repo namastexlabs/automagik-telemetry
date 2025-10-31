@@ -563,6 +563,9 @@ export class AutomagikTelemetry {
         // Silent failure
       });
     }, this.flushInterval);
+
+    // Allow process to exit even with this timer running (important for tests)
+    this.flushTimer.unref();
   }
 
   /**
@@ -624,6 +627,7 @@ export class AutomagikTelemetry {
       // Send HTTP request using native fetch (Node.js 18+)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      timeoutId.unref(); // Allow process to exit
 
       try {
         const response = await fetch(endpoint, {
@@ -670,7 +674,10 @@ export class AutomagikTelemetry {
             `Telemetry request failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffDelay}ms...`,
           );
         }
-        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+        await new Promise((resolve) => {
+          const timer = setTimeout(resolve, backoffDelay);
+          timer.unref(); // Allow process to exit
+        });
         return this.sendWithRetry(endpoint, payload, attempt + 1);
       }
 

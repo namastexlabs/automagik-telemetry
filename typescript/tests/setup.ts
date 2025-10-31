@@ -19,8 +19,8 @@ beforeEach(() => {
   });
 });
 
-// Clean up environment variables after each test
-afterEach(() => {
+// Clean up after each test
+afterEach(async () => {
   // Clean up telemetry-related env vars
   delete process.env.AUTOMAGIK_TELEMETRY_ENABLED;
   delete process.env.AUTOMAGIK_TELEMETRY_ENDPOINT;
@@ -36,4 +36,7 @@ afterEach(() => {
   delete process.env.NO_COLOR;
   delete process.env.FORCE_COLOR;
   delete process.env.TERM;
+
+  // Give any pending timers a chance to complete
+  await new Promise((resolve) => setImmediate(resolve));
 });
