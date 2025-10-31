@@ -1146,7 +1146,7 @@ describe("ClickHouseBackend", () => {
 
       const metric = (backend as any).metricBatch[0];
       expect(metric.metric_name).toBe("cpu.usage");
-      expect(metric.value).toBe(75.5);
+      expect(metric.value_double).toBe(75.5);
       expect(metric.metric_type).toBe("GAUGE");
     });
 
@@ -1169,7 +1169,7 @@ describe("ClickHouseBackend", () => {
 
       const metric = (backend as any).metricBatch[0];
       expect(metric.metric_type).toBe("HISTOGRAM");
-      expect(metric.unit).toBe("ms");
+      expect(metric.metric_unit).toBe("ms");
     });
 
     it("should send summary metric", () => {
