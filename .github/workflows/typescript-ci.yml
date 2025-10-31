@@ -70,11 +70,11 @@ jobs:
           const total = coverage.total;
           console.log(`Coverage: ${total.lines.pct}% lines, ${total.statements.pct}% statements, ${total.functions.pct}% functions, ${total.branches.pct}% branches`);
 
-          // Match thresholds from jest.config.js
-          if (total.statements.pct < 99 || total.lines.pct < 99 || total.functions.pct < 98 || total.branches.pct < 85) {
+          // Match thresholds from jest.config.js - 100% for statements/lines/functions
+          if (total.statements.pct < 100 || total.lines.pct < 100 || total.functions.pct < 100 || total.branches.pct < 93) {
               throw new Error(`Coverage below thresholds: ${JSON.stringify(total, null, 2)}`);
           }
-          console.log('✅ Coverage thresholds met!');
+          console.log('✅ 100% coverage achieved!');
           EOF
 
       - name: Upload coverage HTML report
