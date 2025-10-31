@@ -164,9 +164,7 @@ const config = {
     // ClickHouse configuration
     clickhouseEndpoint: 'http://localhost:8123',
     clickhouseDatabase: 'telemetry',
-    clickhouseTable: 'traces',
-    clickhouseMetricsTable: 'metrics',
-    clickhouseLogsTable: 'logs',
+    // Note: Table names are not configurable in TypeScript (hardcoded as 'traces', 'metrics', 'logs')
     clickhouseUsername: 'default',
     clickhousePassword: '',
 
@@ -204,9 +202,9 @@ const telemetry = new AutomagikTelemetry(config);
 | **ClickHouse Backend** |
 | `clickhouse_endpoint` | `clickhouseEndpoint` | `string` | `http://localhost:8123` | ClickHouse HTTP endpoint |
 | `clickhouse_database` | `clickhouseDatabase` | `string` | `"telemetry"` | Database name |
-| `clickhouse_table` | `clickhouseTable` | `string` | `"traces"` | Traces table name |
-| `clickhouse_metrics_table` | `clickhouseMetricsTable` | `string` | `"metrics"` | Metrics table name |
-| `clickhouse_logs_table` | `clickhouseLogsTable` | `string` | `"logs"` | Logs table name |
+| `clickhouse_table` | ❌ | `string` | `"traces"` | Traces table name (Python only) |
+| `clickhouse_metrics_table` | ❌ | `string` | `"metrics"` | Metrics table name (Python only) |
+| `clickhouse_logs_table` | ❌ | `string` | `"logs"` | Logs table name (Python only) |
 | `clickhouse_username` | `clickhouseUsername` | `string` | `"default"` | Username |
 | `clickhouse_password` | `clickhousePassword` | `string` | `""` | Password |
 | **Performance** |
@@ -390,12 +388,13 @@ trackEvent(
 <td>
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 # Simple event
 telemetry.track_event("user.login")
@@ -514,13 +513,15 @@ trackMetric(
 ```python
 from automagik_telemetry import (
     AutomagikTelemetry,
+    TelemetryConfig,
     MetricType
 )
 
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 # Gauge metric (default)
 telemetry.track_metric("cpu.usage", 75.5)
@@ -662,13 +663,15 @@ trackLog(
 ```python
 from automagik_telemetry import (
     AutomagikTelemetry,
+    TelemetryConfig,
     LogSeverity
 )
 
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 # Info log (default)
 telemetry.track_log("Application started")
@@ -806,12 +809,13 @@ trackError(
 <td>
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 # Simple error tracking
 try:
@@ -931,12 +935,13 @@ flush(): Promise<void>
 <td>
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 # Track events
 telemetry.track_event("app.startup")
@@ -994,14 +999,16 @@ Python SDK provides async versions of all tracking methods for use in async cont
 import asyncio
 from automagik_telemetry import (
     AutomagikTelemetry,
+    TelemetryConfig,
     MetricType,
     LogSeverity
 )
 
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 async def main():
     # Async event tracking
@@ -1067,8 +1074,8 @@ telemetry.disable()
 // Enable telemetry
 telemetry.enable();
 
-// Disable telemetry
-telemetry.disable();
+// Disable telemetry (async - must be awaited)
+await telemetry.disable();
 ```
 
 </td>
@@ -1136,8 +1143,13 @@ status = telemetry.get_status()
 #     "project_name": "my-app",
 #     "project_version": "1.0.0",
 #     "endpoint": "https://...",
+#     "metrics_endpoint": "https://...",
+#     "logs_endpoint": "https://...",
+#     "opt_out_file_exists": False,
+#     "env_var": None,  # or "true"/"false" if set
 #     "verbose": False,
 #     "batch_size": 100,
+#     "compression_enabled": True,
 #     "queue_sizes": {
 #         "traces": 5,
 #         "metrics": 2,
@@ -1152,7 +1164,7 @@ status = telemetry.get_status()
 ```typescript
 const status = telemetry.getStatus();
 
-// Returns:
+// Returns (Note: TypeScript uses camelCase and has fewer fields than Python):
 // {
 //     enabled: true,
 //     userId: 'uuid...',
@@ -1163,6 +1175,8 @@ const status = telemetry.getStatus();
 //     verbose: false,
 //     batchSize: 100,
 //     queueSize: 5
+//     // TypeScript does not include: metricsEndpoint, logsEndpoint,
+//     // optOutFileExists, envVar, compressionEnabled, or separate queue_sizes
 // }
 ```
 
@@ -1188,13 +1202,15 @@ const status = telemetry.getStatus();
 import time
 from automagik_telemetry import (
     AutomagikTelemetry,
+    TelemetryConfig,
     MetricType
 )
 
-telemetry = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0"
 )
+telemetry = AutomagikTelemetry(config=config)
 
 # Time an operation
 start = time.time()
@@ -1435,14 +1451,16 @@ process.on('SIGTERM', async () => {
         graceful: true
     });
 
-    // Flush all queued events
+    // Flush all queued events and disable
     await telemetry.flush();
+    await telemetry.disable();
 
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     await telemetry.flush();
+    await telemetry.disable();
     process.exit(0);
 });
 ```
