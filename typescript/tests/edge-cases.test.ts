@@ -88,7 +88,8 @@ describe('Edge Case Coverage', () => {
       const largeData = { message: 'x'.repeat(500) };
       client.trackEvent('test.event', largeData);
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Wait longer for async compression operation
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Verify fetch was called with compressed data
       expect(global.fetch).toHaveBeenCalled();
