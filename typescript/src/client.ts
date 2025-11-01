@@ -748,6 +748,14 @@ export class AutomagikTelemetry {
           value: { stringValue: this.projectVersion },
         },
         {
+          key: "project.name", // ClickHouse backend uses this
+          value: { stringValue: this.projectName },
+        },
+        {
+          key: "project.version", // ClickHouse backend uses this
+          value: { stringValue: this.projectVersion },
+        },
+        {
           key: "service.organization",
           value: { stringValue: this.organization },
         },
