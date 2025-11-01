@@ -241,12 +241,14 @@ def sanitize_value(value: Any, config: PrivacyConfig | None = None) -> Any:
         sanitized = truncate_string(value, cfg.max_string_length)
 
         # Apply pattern-based sanitization
+        # Check API keys FIRST before phone numbers, as API keys are more specific
+        # and phone patterns can match parts of API keys
+        if Patterns.API_KEY.search(sanitized):
+            sanitized = Patterns.API_KEY.sub(cfg.redaction_text, sanitized)
         if Patterns.PHONE.search(sanitized):
             sanitized = sanitize_phone(sanitized, config)
         if Patterns.EMAIL.search(sanitized):
             sanitized = sanitize_email(sanitized, config)
-        if Patterns.API_KEY.search(sanitized):
-            sanitized = Patterns.API_KEY.sub(cfg.redaction_text, sanitized)
         if Patterns.CREDIT_CARD.search(sanitized):
             sanitized = Patterns.CREDIT_CARD.sub(cfg.redaction_text, sanitized)
         if Patterns.IPV4.search(sanitized):
