@@ -90,9 +90,10 @@ Pure Python (3.12+) and TypeScript implementations with no external dependencies
 
 **Python:**
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+config = TelemetryConfig(project_name="my-app", version="1.0.0")
+client = AutomagikTelemetry(config=config)
 client.track_event("api.request", {"endpoint": "/users", "status": 200})
 ```
 
@@ -110,9 +111,10 @@ Built-in OTLP-compatible logging with severity levels and structured context.
 
 **Python:**
 ```python
-from automagik_telemetry import AutomagikTelemetry, LogSeverity
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, LogSeverity
 
-client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+config = TelemetryConfig(project_name="my-app", version="1.0.0")
+client = AutomagikTelemetry(config=config)
 
 # Log with severity levels
 client.track_log("User authentication successful", LogSeverity.INFO, {
@@ -261,13 +263,11 @@ pip install automagik-telemetry
 
 **Basic Usage:**
 ```python
-from automagik_telemetry import AutomagikTelemetry, StandardEvents
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, StandardEvents
 
 # Initialize client
-client = AutomagikTelemetry(
-    project_name="my-app",
-    version="1.0.0"
-)
+config = TelemetryConfig(project_name="my-app", version="1.0.0")
+client = AutomagikTelemetry(config=config)
 
 # Track events (traces)
 # 💡 TIP: Use StandardEvents constants for consistent event names!
@@ -311,21 +311,24 @@ Python supports **TWO initialization styles**. Choose based on your needs:
 
 | When to Use | Style | Parameters Available |
 |-------------|-------|---------------------|
-| Quick start, prototyping, defaults are fine | **Direct Parameters** | 5 basic params only: `project_name`, `version`, `endpoint`, `organization`, `timeout`. Uses optimal defaults: `batch_size=100`, `compression_enabled=True` |
-| Production, custom batching, ClickHouse | **TelemetryConfig** | ALL 20+ params including `batch_size`, `compression_enabled`, `backend`, `clickhouse_*`, etc. |
+| Quick start, prototyping, defaults are fine | **Basic Configuration** | 5 basic params only: `project_name`, `version`, `endpoint`, `organization`, `timeout`. Uses optimal defaults: `batch_size=100`, `compression_enabled=True` |
+| Production, custom batching, ClickHouse | **Advanced Configuration** | ALL 20+ params including `batch_size`, `compression_enabled`, `backend`, `clickhouse_*`, etc. |
 
-**Simple Style (Direct Parameters):**
+**Simple Style (Basic Configuration):**
 ```python
 # ✅ Best for: Quick start, simple projects
 # ℹ️ Uses defaults: batch_size=100, compression_enabled=True
 # ⚠️ Limitations: Cannot customize batching, compression, or use ClickHouse backend
 
-client = AutomagikTelemetry(
+from automagik_telemetry import TelemetryConfig, AutomagikTelemetry
+
+config = TelemetryConfig(
     project_name="my-app",
     version="1.0.0",
     endpoint="https://custom.com",  # Optional
     timeout=10  # Optional
 )
+client = AutomagikTelemetry(config=config)
 ```
 
 **Advanced Style (TelemetryConfig):**
@@ -355,7 +358,8 @@ client = AutomagikTelemetry(config=config)
 **Migration Path:**
 ```python
 # Start simple (uses default batch_size=100)
-client = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+config = TelemetryConfig(project_name="my-app", version="1.0.0")
+client = AutomagikTelemetry(config=config)
 
 # Upgrade when you need to customize batching/compression/ClickHouse
 from automagik_telemetry import TelemetryConfig
