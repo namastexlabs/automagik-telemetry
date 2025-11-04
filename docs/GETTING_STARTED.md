@@ -332,7 +332,7 @@ const advancedClient = new AutomagikTelemetry({
 | Feature | 🐍 Python | 📘 TypeScript |
 |---------|----------|--------------|
 | **Naming Convention** | `snake_case` | `camelCase` |
-| **Default Batch Size** | `1` (immediate) | `100` (batched) |
+| **Default Batch Size** | `100` (batched) | `100` (batched) |
 | **Best For** | Backend services, data pipelines | Web apps, Node.js services |
 | **Async Pattern** | `track_event()` and `track_event_async()` | All methods fire-and-forget |
 | **Time Units** | Seconds (float) | Milliseconds (number) |

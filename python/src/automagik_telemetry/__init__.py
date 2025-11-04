@@ -20,7 +20,7 @@ from automagik_telemetry.config import (
     validate_config,
 )
 from automagik_telemetry.config import (
-    TelemetryConfig as ConfigTelemetryConfig,
+    ConfigSchema,
 )
 from automagik_telemetry.opt_in import (
     TelemetryOptIn,
@@ -61,7 +61,7 @@ __all__ = [
     "prompt_user_if_needed",
     "should_prompt_user",
     # Configuration
-    "ConfigTelemetryConfig",
+    "ConfigSchema",
     "ValidatedConfig",
     "create_config",
     "load_config_from_env",

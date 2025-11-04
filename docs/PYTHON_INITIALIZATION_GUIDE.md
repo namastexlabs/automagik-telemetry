@@ -38,7 +38,7 @@ ALL parameters available:
 - `timeout` (optional, default: 5 seconds)
 
 **Performance Features:** ⚡
-- `batch_size` (default: 1) - Number of events to batch
+- `batch_size` (default: 100) - Number of events to batch before sending
 - `flush_interval` (default: 5.0) - Auto-flush interval in seconds
 - `compression_enabled` (default: True) - Enable gzip compression
 - `compression_threshold` (default: 1024) - Minimum size for compression in bytes

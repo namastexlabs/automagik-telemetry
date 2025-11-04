@@ -1009,16 +1009,17 @@ class AutomagikTelemetry:
             >>>
             >>> asyncio.run(main())
         """
-        self.enabled = False
-        self._shutdown = True
-
-        # Cancel flush timer
+        # Cancel flush timer first
         if self._flush_timer is not None:
             self._flush_timer.cancel()
             self._flush_timer = None
 
-        # Flush pending events before disabling
+        # Flush pending events BEFORE disabling (critical: flush checks enabled flag)
         await self.flush_async()
+
+        # Now disable after flush completes
+        self.enabled = False
+        self._shutdown = True
 
         # Create opt-out file
         try:

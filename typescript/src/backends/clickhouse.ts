@@ -38,6 +38,8 @@ export interface ClickHouseBackendConfig {
   compressionEnabled?: boolean;
   /** Maximum retry attempts (default: 3) */
   maxRetries?: number;
+  /** Enable verbose console logging for debugging (default: false) */
+  verbose?: boolean;
 }
 
 /**
@@ -193,6 +195,7 @@ export class ClickHouseBackend {
   private batchSize: number;
   private compressionEnabled: boolean;
   private maxRetries: number;
+  private verbose: boolean;
   private traceBatch: ClickHouseTraceRow[] = [];
   private metricBatch: ClickHouseMetricRow[] = [];
   private logBatch: ClickHouseLogRow[] = [];
@@ -209,6 +212,7 @@ export class ClickHouseBackend {
     this.batchSize = config.batchSize || 100;
     this.compressionEnabled = config.compressionEnabled !== false;
     this.maxRetries = config.maxRetries || 3;
+    this.verbose = config.verbose || false;
   }
 
   /**
@@ -536,16 +540,20 @@ export class ClickHouseBackend {
         );
 
         if (success) {
-          console.debug(
-            `Inserted ${rows.length} rows to ClickHouse successfully`,
-          );
+          if (this.verbose) {
+            console.debug(
+              `Inserted ${rows.length} rows to ClickHouse successfully`,
+            );
+          }
           return true;
         }
       } catch (error) {
-        console.error(
-          `Error inserting to ClickHouse (attempt ${attempt + 1}/${this.maxRetries}):`,
-          error,
-        );
+        if (this.verbose) {
+          console.error(
+            `Error inserting to ClickHouse (attempt ${attempt + 1}/${this.maxRetries}):`,
+            error,
+          );
+        }
 
         if (attempt < this.maxRetries - 1) {
           await new Promise((resolve) =>
@@ -605,9 +613,11 @@ export class ClickHouseBackend {
           if (res.statusCode === 200) {
             resolve(true);
           } else {
-            console.warn(
-              `ClickHouse returned status ${res.statusCode}: ${responseData}`,
-            );
+            if (this.verbose) {
+              console.warn(
+                `ClickHouse returned status ${res.statusCode}: ${responseData}`,
+              );
+            }
             resolve(false);
           }
         });
@@ -637,7 +647,9 @@ export class ClickHouseBackend {
       this.addToBatch(otlpSpan);
       return true;
     } catch (error) {
-      console.error("Error adding span to batch:", error);
+      if (this.verbose) {
+        console.error("Error adding span to batch:", error);
+      }
       return false;
     }
   }
@@ -673,9 +685,11 @@ export class ClickHouseBackend {
       // Validate metric type
       const validTypes = ["GAUGE", "SUM", "HISTOGRAM", "SUMMARY"];
       if (!validTypes.includes(mappedType)) {
-        console.warn(
-          `Invalid metric type: ${metricType}. Using GAUGE as fallback.`,
-        );
+        if (this.verbose) {
+          console.warn(
+            `Invalid metric type: ${metricType}. Using GAUGE as fallback.`,
+          );
+        }
         mappedType = "GAUGE";
       }
 
@@ -789,7 +803,9 @@ export class ClickHouseBackend {
 
       return true;
     } catch (error) {
-      console.error("Error adding metric to batch:", error);
+      if (this.verbose) {
+        console.error("Error adding metric to batch:", error);
+      }
       return false;
     }
   }
@@ -932,7 +948,9 @@ export class ClickHouseBackend {
 
       return true;
     } catch (error) {
-      console.error("Error adding log to batch:", error);
+      if (this.verbose) {
+        console.error("Error adding log to batch:", error);
+      }
       return false;
     }
   }

@@ -7,13 +7,21 @@ sensible defaults, and validation.
 
 import os
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
+
+if TYPE_CHECKING:
+    from automagik_telemetry.client import TelemetryConfig
 
 
 @dataclass
-class TelemetryConfig:
+class ConfigSchema:
     """
-    Complete telemetry configuration.
+    Basic telemetry configuration schema for environment variable loading.
+
+    This is the minimal configuration structure used internally for loading
+    configuration from environment variables. For the full client configuration,
+    use TelemetryConfig from the main client module.
 
     Attributes:
         project_name: Name of the Automagik project (omni, hive, forge, etc.)
@@ -25,7 +33,7 @@ class TelemetryConfig:
         verbose: Enable verbose logging to console
 
     Example:
-        >>> config = TelemetryConfig(
+        >>> config = ConfigSchema(
         ...     project_name="omni",
         ...     version="1.0.0",
         ...     endpoint="https://telemetry.namastex.ai/v1/traces",
@@ -102,7 +110,7 @@ def _parse_boolean_env(value: str) -> bool:
     return normalized in ("true", "1", "yes", "on")
 
 
-def load_config_from_env() -> TelemetryConfig:
+def load_config_from_env() -> ConfigSchema:
     """
     Load configuration from environment variables.
 
@@ -126,7 +134,7 @@ def load_config_from_env() -> TelemetryConfig:
         >>> config.timeout
         10
     """
-    config = TelemetryConfig(
+    config = ConfigSchema(
         project_name="",  # Not set from env
         version="",  # Not set from env
     )
@@ -159,7 +167,7 @@ def load_config_from_env() -> TelemetryConfig:
     return config
 
 
-def merge_config(user_config: TelemetryConfig) -> ValidatedConfig:
+def merge_config(user_config: "TelemetryConfig") -> ValidatedConfig:
     """
     Merge user configuration with defaults and environment variables.
 
@@ -211,7 +219,7 @@ def merge_config(user_config: TelemetryConfig) -> ValidatedConfig:
     )
 
 
-def validate_config(config: TelemetryConfig) -> None:
+def validate_config(config: "TelemetryConfig") -> None:
     """
     Validate configuration values and throw helpful errors.
 
@@ -268,7 +276,7 @@ def validate_config(config: TelemetryConfig) -> None:
         raise ValueError("TelemetryConfig: organization cannot be empty if provided")
 
 
-def create_config(user_config: TelemetryConfig) -> ValidatedConfig:
+def create_config(user_config: "TelemetryConfig") -> ValidatedConfig:
     """
     Create and validate a complete configuration.
 
