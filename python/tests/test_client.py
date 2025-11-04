@@ -1161,7 +1161,7 @@ class TestEdgeCasesAndErrorPaths:
         """Test that 4xx errors don't trigger retries."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.backends.otlp.urlopen") as mock_urlopen:
             # Simulate 400 Bad Request
             mock_urlopen.side_effect = HTTPError(
                 "https://example.com", 400, "Bad Request", {}, None
@@ -1182,7 +1182,7 @@ class TestEdgeCasesAndErrorPaths:
         """Test that 5xx errors trigger retries."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.backends.otlp.urlopen") as mock_urlopen:
             # Simulate 500 Internal Server Error
             mock_urlopen.side_effect = HTTPError(
                 "https://example.com", 500, "Internal Server Error", {}, None
@@ -1205,7 +1205,7 @@ class TestEdgeCasesAndErrorPaths:
         """Test that network errors trigger retries."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
-        with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
+        with patch("automagik_telemetry.backends.otlp.urlopen") as mock_urlopen:
             # Simulate network error
             mock_urlopen.side_effect = URLError("Network unreachable")
 
@@ -1432,7 +1432,7 @@ class TestEdgeCasesAndErrorPaths:
         mock_response.__exit__ = Mock(return_value=False)
 
         with patch(
-            "automagik_telemetry.client.urlopen", return_value=mock_response
+            "automagik_telemetry.backends.otlp.urlopen", return_value=mock_response
         ) as mock_urlopen:
             config = TelemetryConfig(
                 project_name="test-project",
@@ -1462,7 +1462,7 @@ class TestEdgeCasesAndErrorPaths:
         mock_response.__exit__ = Mock(return_value=False)
 
         with patch(
-            "automagik_telemetry.client.urlopen", return_value=mock_response
+            "automagik_telemetry.backends.otlp.urlopen", return_value=mock_response
         ) as mock_urlopen:
             config = TelemetryConfig(
                 project_name="test-project", version="1.0.0", batch_size=1, max_retries=3
@@ -1634,7 +1634,7 @@ class TestCoverageTargeted:
 
         # Mock json.dumps to raise an exception
         with patch(
-            "automagik_telemetry.client.json.dumps", side_effect=Exception("Serialization error")
+            "automagik_telemetry.backends.otlp.json.dumps", side_effect=Exception("Serialization error")
         ):
             # Should handle exception silently (lines 392-394)
             client.track_event("test.event", {})  # Should not raise
@@ -1642,12 +1642,14 @@ class TestCoverageTargeted:
     def test_should_handle_not_enabled_in_send_with_retry(
         self, temp_home: Path, clean_env: None
     ) -> None:
-        """Test early return when not enabled - covers line 335."""
+        """Test early return when not enabled in flush methods."""
         config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
         client = AutomagikTelemetry(config=config)
 
-        # Call _send_with_retry directly when disabled
-        client._send_with_retry("https://example.com", {}, "test")  # Line 335
+        # Call flush methods directly when disabled - should return early
+        client._flush_traces([{"test": "span"}])
+        client._flush_metrics([{"test": "metric"}])
+        client._flush_logs([{"test": "log"}])
 
 
 class TestTimerFlush:

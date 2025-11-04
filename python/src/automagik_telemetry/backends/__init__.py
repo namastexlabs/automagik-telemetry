@@ -6,6 +6,8 @@ Available backends:
 - clickhouse: Direct ClickHouse insertion via HTTP API
 """
 
+from .base import TelemetryBackend
 from .clickhouse import ClickHouseBackend
+from .otlp import OTLPBackend
 
-__all__ = ["ClickHouseBackend"]
+__all__ = ["TelemetryBackend", "ClickHouseBackend", "OTLPBackend"]

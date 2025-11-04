@@ -15,10 +15,12 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from .base import TelemetryBackend
+
 logger = logging.getLogger(__name__)
 
 
-class ClickHouseBackend:
+class ClickHouseBackend(TelemetryBackend):
     """
     Direct ClickHouse insertion backend.
 

@@ -6,8 +6,6 @@ Uses only Python standard library - no external dependencies.
 """
 
 import asyncio
-import gzip
-import json
 import logging
 import os
 import platform
@@ -20,10 +18,9 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 from automagik_telemetry.backends.clickhouse import ClickHouseBackend
+from automagik_telemetry.backends.otlp import OTLPBackend
 
 logger = logging.getLogger(__name__)
 
@@ -218,8 +215,13 @@ class AutomagikTelemetry:
         self.user_id = self._get_or_create_user_id()
         self.session_id = str(uuid.uuid4())
 
-        # Initialize backend
+        # Verbose mode (print events to console)
+        self.verbose = os.getenv("AUTOMAGIK_TELEMETRY_VERBOSE", "false").lower() == "true"
+
+        # Initialize backends
         self._clickhouse_backend: ClickHouseBackend | None = None
+        self._otlp_backend: OTLPBackend | None = None
+
         if self.backend_type == "clickhouse":
             clickhouse_endpoint = os.getenv(
                 "AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT",
@@ -263,12 +265,22 @@ class AutomagikTelemetry:
                 compression_enabled=self.config.compression_enabled,
                 max_retries=self.config.max_retries,
             )
+        else:
+            # Initialize OTLP backend (default)
+            self._otlp_backend = OTLPBackend(
+                endpoint=self.endpoint,
+                metrics_endpoint=self.metrics_endpoint,
+                logs_endpoint=self.logs_endpoint,
+                timeout=self.config.timeout,
+                max_retries=self.config.max_retries,
+                retry_backoff_base=self.config.retry_backoff_base,
+                compression_enabled=self.config.compression_enabled,
+                compression_threshold=self.config.compression_threshold,
+                verbose=self.verbose,
+            )
 
         # Enable/disable check
         self.enabled = self._is_telemetry_enabled()
-
-        # Verbose mode (print events to console)
-        self.verbose = os.getenv("AUTOMAGIK_TELEMETRY_VERBOSE", "false").lower() == "true"
 
         # Batch processing queues
         self._trace_queue: deque = deque()
@@ -395,81 +407,6 @@ class AutomagikTelemetry:
         self._flush_timer.daemon = True
         self._flush_timer.start()
 
-    def _compress_payload(self, payload: bytes) -> bytes:
-        """Compress payload using gzip if it exceeds threshold."""
-        if self.config.compression_enabled and len(payload) >= self.config.compression_threshold:
-            return gzip.compress(payload)
-        return payload
-
-    def _send_with_retry(
-        self, endpoint: str, payload: dict[str, Any], signal_type: str = "trace"
-    ) -> None:
-        """Send payload with retry logic and exponential backoff."""
-        if not self.enabled:
-            return
-
-        try:
-            # Serialize payload
-            payload_bytes = json.dumps(payload).encode("utf-8")
-
-            # Compress if needed
-            original_size = len(payload_bytes)
-            payload_bytes = self._compress_payload(payload_bytes)
-            compressed = len(payload_bytes) < original_size
-
-            # Prepare headers
-            headers = {"Content-Type": "application/json"}
-            if compressed:
-                headers["Content-Encoding"] = "gzip"
-
-            # Verbose mode logging
-            if self.verbose:
-                print(f"\n[Telemetry] Sending {signal_type}")
-                print(f"  Endpoint: {endpoint}")
-                print(f"  Size: {len(payload_bytes)} bytes (compressed: {compressed})")
-                print(f"  Payload preview: {json.dumps(payload, indent=2)[:200]}...\n")
-
-            # Retry loop with exponential backoff
-            last_exception = None
-            for attempt in range(self.config.max_retries + 1):
-                try:
-                    request = Request(endpoint, data=payload_bytes, headers=headers)
-
-                    with urlopen(request, timeout=self.config.timeout) as response:
-                        if response.status == 200:
-                            return  # Success
-                        elif response.status >= 500:
-                            # Server error - retry
-                            last_exception = Exception(f"Server error: {response.status}")
-                        else:
-                            # Client error - don't retry
-                            logger.debug(
-                                f"Telemetry {signal_type} failed with status {response.status}"
-                            )
-                            return
-
-                except (URLError, HTTPError, TimeoutError) as e:
-                    last_exception = e
-                    # Check if we should retry
-                    if isinstance(e, HTTPError) and e.code < 500:
-                        # Client error - don't retry
-                        logger.debug(f"Telemetry {signal_type} failed: {e}")
-                        return
-
-                # Wait before retry (exponential backoff)
-                if attempt < self.config.max_retries:
-                    backoff_time = self.config.retry_backoff_base * (2**attempt)
-                    time.sleep(backoff_time)
-
-            # All retries exhausted
-            if last_exception:
-                logger.debug(
-                    f"Telemetry {signal_type} failed after {self.config.max_retries} retries: {last_exception}"
-                )
-
-        except Exception as e:
-            # Log any other errors in debug mode
-            logger.debug(f"Telemetry {signal_type} error: {e}")
 
     def _get_sdk_version(self) -> str:
         """Get SDK version from package metadata (single source of truth)."""
@@ -759,6 +696,9 @@ class AutomagikTelemetry:
 
     def _flush_traces(self, spans: list[dict[str, Any]] | None = None) -> None:
         """Flush trace queue to endpoint."""
+        if not self.enabled:
+            return
+
         if spans is None:
             with self._queue_lock:
                 if not self._trace_queue:
@@ -783,10 +723,15 @@ class AutomagikTelemetry:
             ]
         }
 
-        self._send_with_retry(self.endpoint, payload, "trace")
+        # Send using OTLP backend
+        if self._otlp_backend:
+            self._otlp_backend.send_trace(payload)
 
     def _flush_metrics(self, metrics: list[dict[str, Any]] | None = None) -> None:
         """Flush metric queue to endpoint."""
+        if not self.enabled:
+            return
+
         if metrics is None:
             with self._queue_lock:
                 if not self._metric_queue:
@@ -811,10 +756,15 @@ class AutomagikTelemetry:
             ]
         }
 
-        self._send_with_retry(self.metrics_endpoint, payload, "metric")
+        # Send using OTLP backend
+        if self._otlp_backend:
+            self._otlp_backend.send_metric(payload)
 
     def _flush_logs(self, log_records: list[dict[str, Any]] | None = None) -> None:
         """Flush log queue to endpoint."""
+        if not self.enabled:
+            return
+
         if log_records is None:
             with self._queue_lock:
                 if not self._log_queue:
@@ -839,7 +789,9 @@ class AutomagikTelemetry:
             ]
         }
 
-        self._send_with_retry(self.logs_endpoint, payload, "log")
+        # Send using OTLP backend
+        if self._otlp_backend:
+            self._otlp_backend.send_log(payload)
 
     # === Public API ===
 

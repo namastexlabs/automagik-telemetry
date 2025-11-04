@@ -1515,35 +1515,35 @@ describe('AutomagikTelemetry', () => {
     });
 
     describe('Compression error handling', () => {
-      it('should handle gzip compression errors gracefully - line 375', async () => {
-        // Line 375 is: reject(error) in compressPayload when gzip fails
-        // We test this by directly calling compressPayload with mocked zlib
+      it('should handle gzip compression errors gracefully in OTLP backend', async () => {
+        // Compression logic is now in OTLPBackend, so we test it there
+        const { OTLPBackend } = require('../src/backends/otlp');
 
-        const client = new AutomagikTelemetry({
-          projectName: mockConfig.projectName,
-          version: mockConfig.version,
+        const backend = new OTLPBackend({
+          endpoint: 'http://localhost:4318/v1/traces',
+          compressionEnabled: true,
+          compressionThreshold: 1,
         });
 
         // Access the private compressPayload method
-        const compressPayload = (client as any).compressPayload.bind(client);
+        const compressPayload = (backend as any).compressPayload.bind(backend);
 
         // Mock zlib.gzip to fail by creating a new Promise that rejects
         const zlibMock = {
           gzip: (data: Buffer, callback: (err: Error | null, result?: Buffer) => void) => {
-            // Simulate gzip error - this triggers line 375
+            // Simulate gzip error
             callback(new Error('Compression failed'));
           },
         };
 
         // Replace zlib in the compressPayload context
-        // We'll monkey-patch the zlib module temporarily
         const zlibModule = require('zlib');
         const originalGzip = zlibModule.gzip;
 
         try {
           zlibModule.gzip = zlibMock.gzip;
 
-          // Call compressPayload - should reject with the error (line 375)
+          // Call compressPayload - should reject with the error
           await expect(compressPayload('test')).rejects.toThrow('Compression failed');
         } finally {
           // Restore

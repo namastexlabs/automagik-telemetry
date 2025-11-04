@@ -30,8 +30,11 @@ export {
 } from "./privacy";
 
 // Export backend types for advanced users who want direct backend access
+export type { TelemetryBackend } from "./backends/base";
 export type { ClickHouseBackendConfig } from "./backends/clickhouse";
 export { ClickHouseBackend } from "./backends/clickhouse";
+export type { OTLPBackendConfig } from "./backends/otlp";
+export { OTLPBackend } from "./backends/otlp";
 
 // Version is read from package.json (single source of truth)
 import packageJson from "../package.json";

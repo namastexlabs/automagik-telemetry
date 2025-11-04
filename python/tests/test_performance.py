@@ -18,7 +18,7 @@ from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 @pytest.fixture
 def performance_client():
     """Create a telemetry client with mocked HTTP for performance testing."""
-    with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
+    with patch("automagik_telemetry.backends.otlp.urlopen") as mock_urlopen:
         # Mock successful HTTP response
         mock_response = MagicMock()
         mock_response.status = 200
@@ -295,7 +295,7 @@ def test_payload_size_impact():
     """Test impact of different payload sizes on serialization time."""
     iterations = 1000
 
-    with patch("automagik_telemetry.client.urlopen") as mock_urlopen:
+    with patch("automagik_telemetry.backends.otlp.urlopen") as mock_urlopen:
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.__enter__ = MagicMock(return_value=mock_response)

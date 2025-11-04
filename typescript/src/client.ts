@@ -9,9 +9,9 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import * as crypto from "crypto";
-import * as zlib from "zlib";
 
 import { ClickHouseBackend } from "./backends/clickhouse";
+import { OTLPBackend } from "./backends/otlp";
 import type { TelemetryConfig } from "./config";
 import packageJson from "../package.json";
 
@@ -198,7 +198,7 @@ export enum MetricType {
  *
  * @example
  * ```typescript
- * import { AutomagikTelemetry, StandardEvents } from '@automagik/telemetry';
+ * import { AutomagikTelemetry, StandardEvents } from 'automagik-telemetry';
  *
  * const telemetry = new AutomagikTelemetry({
  *   projectName: 'omni',
@@ -226,20 +226,13 @@ export class AutomagikTelemetry {
   // Backend selection
   private backendType: string;
   private clickhouseBackend?: ClickHouseBackend;
+  private otlpBackend?: OTLPBackend;
 
   // Batch processing
   private eventQueue: QueuedEvent[];
   private batchSize: number;
   private flushInterval: number;
   private flushTimer?: NodeJS.Timeout;
-
-  // Compression
-  private compressionEnabled: boolean;
-  private compressionThreshold: number;
-
-  // Retry logic
-  private maxRetries: number;
-  private retryBackoffBase: number;
 
   /**
    * Initialize telemetry client.
@@ -298,6 +291,13 @@ export class AutomagikTelemetry {
     this.userId = this.getOrCreateUserId();
     this.sessionId = crypto.randomUUID();
 
+    // Enable/disable check
+    this.enabled = this.isTelemetryEnabled();
+
+    // Verbose mode (print events to console)
+    this.verbose =
+      process.env.AUTOMAGIK_TELEMETRY_VERBOSE?.toLowerCase() === "true";
+
     // Initialize ClickHouse backend if selected
     if (this.backendType === "clickhouse") {
       const clickhouseEndpoint =
@@ -341,28 +341,25 @@ export class AutomagikTelemetry {
         batchSize: config.batchSize || 100,
         compressionEnabled: config.compressionEnabled !== false,
         maxRetries: config.maxRetries || 3,
+        verbose: this.verbose,
+      });
+    } else {
+      // Initialize OTLP backend (default)
+      this.otlpBackend = new OTLPBackend({
+        endpoint: this.endpoint,
+        timeout: this.timeout,
+        maxRetries: config.maxRetries || 3,
+        retryBackoffBase: config.retryBackoffBase || 1000,
+        compressionEnabled: config.compressionEnabled !== false,
+        compressionThreshold: config.compressionThreshold || 1024,
+        verbose: this.verbose,
       });
     }
-
-    // Enable/disable check
-    this.enabled = this.isTelemetryEnabled();
-
-    // Verbose mode (print events to console)
-    this.verbose =
-      process.env.AUTOMAGIK_TELEMETRY_VERBOSE?.toLowerCase() === "true";
 
     // Batch processing configuration
     this.eventQueue = [];
     this.batchSize = config.batchSize || 100;
     this.flushInterval = config.flushInterval || 5000;
-
-    // Compression configuration
-    this.compressionEnabled = config.compressionEnabled !== false; // default: true
-    this.compressionThreshold = config.compressionThreshold || 1024;
-
-    // Retry configuration
-    this.maxRetries = config.maxRetries || 3;
-    this.retryBackoffBase = config.retryBackoffBase || 1000;
 
     // Start periodic flush timer
     if (this.enabled) {
@@ -531,119 +528,6 @@ export class AutomagikTelemetry {
     }
   }
 
-  /**
-   * Compress payload using gzip.
-   *
-   * @param data - Data to compress
-   * @returns Compressed buffer
-   */
-  private async compressPayload(data: string): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      zlib.gzip(Buffer.from(data, "utf-8"), (error, result) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(result);
-        }
-      });
-    });
-  }
-
-  /**
-   * Send HTTP request with retry logic.
-   *
-   * @param endpoint - Target endpoint
-   * @param payload - Request payload
-   * @param attempt - Current attempt number (internal)
-   */
-  private async sendWithRetry(
-    endpoint: string,
-    payload: OTLPPayload,
-    attempt: number = 0,
-  ): Promise<void> {
-    try {
-      const payloadString = JSON.stringify(payload);
-      let body: Buffer | string = payloadString;
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-
-      // Apply compression if enabled and payload exceeds threshold
-      if (
-        this.compressionEnabled &&
-        Buffer.byteLength(payloadString, "utf-8") > this.compressionThreshold
-      ) {
-        body = await this.compressPayload(payloadString);
-        headers["Content-Encoding"] = "gzip";
-      }
-
-      // Send HTTP request using native fetch (Node.js 18+)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-      timeoutId.unref(); // Allow process to exit
-
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers,
-          body,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        // Check for retryable errors (5xx)
-        if (response.status >= 500 && response.status < 600) {
-          throw new Error(`Server error: ${response.status}`);
-        }
-
-        // Don't retry on 4xx errors (client errors)
-        if (response.status >= 400 && response.status < 500) {
-          if (this.verbose) {
-            console.debug(
-              `Telemetry event failed with status ${response.status}`,
-            );
-          }
-          return; // Don't retry
-        }
-
-        if (response.status !== 200) {
-          if (this.verbose) {
-            console.debug(
-              `Telemetry event failed with status ${response.status}`,
-            );
-          }
-        }
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      }
-    } catch (error) {
-      // Retry logic for network errors or 5xx responses
-      if (attempt < this.maxRetries) {
-        const backoffDelay = this.retryBackoffBase * Math.pow(2, attempt);
-        if (this.verbose) {
-          console.debug(
-            `Telemetry request failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffDelay}ms...`,
-          );
-        }
-        await new Promise((resolve) => {
-          const timer = setTimeout(resolve, backoffDelay);
-          timer.unref(); // Allow process to exit
-        });
-        return this.sendWithRetry(endpoint, payload, attempt + 1);
-      }
-
-      // Max retries exceeded
-      if (this.verbose) {
-        console.debug(
-          `Telemetry event error after ${this.maxRetries + 1} attempts:`,
-          error,
-        );
-      }
-      // Silent failure - never crash the application
-    }
-  }
 
   /**
    * Add event to queue and flush if batch size reached.
@@ -866,6 +750,14 @@ export class AutomagikTelemetry {
                   value: { stringValue: this.projectVersion },
                 },
                 {
+                  key: "project.name", // ClickHouse backend uses this
+                  value: { stringValue: this.projectName },
+                },
+                {
+                  key: "project.version", // ClickHouse backend uses this
+                  value: { stringValue: this.projectVersion },
+                },
+                {
                   key: "service.organization",
                   value: { stringValue: this.organization },
                 },
@@ -876,6 +768,14 @@ export class AutomagikTelemetry {
                 {
                   key: "session.id",
                   value: { stringValue: this.sessionId },
+                },
+                {
+                  key: "telemetry.sdk.name",
+                  value: { stringValue: "automagik-telemetry" },
+                },
+                {
+                  key: "telemetry.sdk.version",
+                  value: { stringValue: this.getSDKVersion() },
                 },
               ],
             },
@@ -950,6 +850,14 @@ export class AutomagikTelemetry {
                   value: { stringValue: this.projectVersion },
                 },
                 {
+                  key: "project.name", // ClickHouse backend uses this
+                  value: { stringValue: this.projectName },
+                },
+                {
+                  key: "project.version", // ClickHouse backend uses this
+                  value: { stringValue: this.projectVersion },
+                },
+                {
                   key: "service.organization",
                   value: { stringValue: this.organization },
                 },
@@ -960,6 +868,14 @@ export class AutomagikTelemetry {
                 {
                   key: "session.id",
                   value: { stringValue: this.sessionId },
+                },
+                {
+                  key: "telemetry.sdk.name",
+                  value: { stringValue: "automagik-telemetry" },
+                },
+                {
+                  key: "telemetry.sdk.version",
+                  value: { stringValue: this.getSDKVersion() },
                 },
               ],
             },
@@ -1153,7 +1069,7 @@ export class AutomagikTelemetry {
       );
     }
 
-    // Group events by endpoint for efficient batch sending
+    // Group events by type and endpoint for efficient batch sending
     const eventsByEndpoint = new Map<string, QueuedEvent[]>();
     for (const event of eventsToSend) {
       const existing = eventsByEndpoint.get(event.endpoint) || [];
@@ -1161,18 +1077,27 @@ export class AutomagikTelemetry {
       eventsByEndpoint.set(event.endpoint, existing);
     }
 
-    // Send all events with retry logic
-    const sendPromises: Promise<void>[] = [];
-    for (const [endpoint, events] of eventsByEndpoint.entries()) {
-      for (const event of events) {
-        sendPromises.push(this.sendWithRetry(endpoint, event.payload));
+    // Send all events with retry logic using OTLP backend
+    if (this.otlpBackend) {
+      const sendPromises: Promise<boolean>[] = [];
+      for (const [endpoint, events] of eventsByEndpoint.entries()) {
+        for (const event of events) {
+          // Route to appropriate OTLP backend method based on event type
+          if (event.type === "trace") {
+            sendPromises.push(this.otlpBackend.sendTrace(event.payload));
+          } else if (event.type === "metric") {
+            sendPromises.push(this.otlpBackend.sendMetric(event.payload, endpoint));
+          } else if (event.type === "log") {
+            sendPromises.push(this.otlpBackend.sendLog(event.payload, endpoint));
+          }
+        }
       }
-    }
 
-    try {
-      await Promise.all(sendPromises);
-    } catch (error) {
-      // Silent failure - errors already logged in sendWithRetry
+      try {
+        await Promise.all(sendPromises);
+      } catch (error) {
+        // Silent failure - errors already logged in OTLP backend
+      }
     }
   }
 

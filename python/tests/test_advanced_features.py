@@ -428,7 +428,7 @@ class TestRetryLogic:
         mock_response.__exit__ = Mock(return_value=False)
 
         with patch(
-            "automagik_telemetry.client.urlopen", return_value=mock_response
+            "automagik_telemetry.backends.otlp.urlopen", return_value=mock_response
         ) as mock_urlopen:
             client.track_event("test.event")
 
@@ -448,7 +448,7 @@ class TestRetryLogic:
 
         # Mock HTTPError with 400 status
         with patch(
-            "automagik_telemetry.client.urlopen",
+            "automagik_telemetry.backends.otlp.urlopen",
             side_effect=HTTPError("url", 400, "Bad Request", {}, None),
         ) as mock_urlopen:
             client.track_event("test.event")
@@ -482,7 +482,7 @@ class TestRetryLogic:
         def mock_sleep(duration):
             sleep_times.append(duration)
 
-        with patch("automagik_telemetry.client.urlopen", return_value=mock_response):
+        with patch("automagik_telemetry.backends.otlp.urlopen", return_value=mock_response):
             with patch("time.sleep", side_effect=mock_sleep):
                 client.track_event("test.event")
 
@@ -513,7 +513,7 @@ class TestCleanup:
         mock_response.__exit__ = Mock(return_value=False)
 
         with patch(
-            "automagik_telemetry.client.urlopen", return_value=mock_response
+            "automagik_telemetry.backends.otlp.urlopen", return_value=mock_response
         ) as mock_urlopen:
             client = AutomagikTelemetry(config=config)
 

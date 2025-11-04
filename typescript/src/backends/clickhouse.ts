@@ -10,6 +10,7 @@ import * as https from "https";
 import * as url from "url";
 import * as zlib from "zlib";
 import * as crypto from "crypto";
+import { TelemetryBackend } from "./base";
 
 /**
  * Configuration options for ClickHouse backend.
@@ -183,7 +184,7 @@ interface ClickHouseLogRow {
  * Transforms OTLP-format traces to our custom ClickHouse schema
  * and inserts via HTTP API.
  */
-export class ClickHouseBackend {
+export class ClickHouseBackend implements TelemetryBackend {
   private endpoint: string;
   private database: string;
   private tracesTable: string;
