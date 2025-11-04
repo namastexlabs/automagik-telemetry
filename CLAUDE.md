@@ -222,7 +222,7 @@ Configuration is loaded in this order (later overrides earlier):
 
 ### Default Batch Sizes
 
-- **Python**: `batch_size=1` (immediate send, low latency)
+- **Python**: `batch_size=100` (batched send, optimized for performance)
 - **TypeScript**: `batchSize=100` (batched send, optimized for performance)
 
 ### Time Units
