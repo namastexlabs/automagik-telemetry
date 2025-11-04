@@ -43,8 +43,8 @@ class TestClientCoverageComplete(unittest.TestCase):
         ):
             config = TelemetryConfig(project_name="test", version="1.0.0", batch_size=1)
             client = AutomagikTelemetry(config=config)
-            # Should fallback to default timeout of 5
-            self.assertEqual(client.config.timeout, 5)
+            # Invalid env var means config.timeout is None, which causes DEFAULT_TIMEOUT (5) to be used
+            self.assertIsNone(client.config.timeout)
 
     @patch.dict(os.environ, {"HOME": tempfile.mkdtemp()})
     def test_clickhouse_backend_initialization(self):

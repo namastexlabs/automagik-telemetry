@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     -- For SUMMARY (percentiles)
     summary_count UInt64 DEFAULT 0,
     summary_sum Float64 DEFAULT 0.0,
-    quantile_values Map(Float64, Float64) DEFAULT map(), -- percentile -> value mapping
+    quantile_values Map(String, Float64) DEFAULT map(), -- percentile -> value mapping (String key for SDK compatibility)
 
     -- Resource attributes (application/service info)
     project_name String,
@@ -87,8 +87,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     INDEX idx_metric_name metric_name TYPE bloom_filter GRANULARITY 1,
     INDEX idx_service_name service_name TYPE bloom_filter GRANULARITY 1,
     INDEX idx_project_name project_name TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_environment environment TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_metric_type metric_type TYPE set GRANULARITY 1
+    INDEX idx_environment environment TYPE bloom_filter GRANULARITY 1
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
@@ -177,7 +176,6 @@ CREATE TABLE IF NOT EXISTS logs (
     INDEX idx_project_name project_name TYPE bloom_filter GRANULARITY 1,
     INDEX idx_environment environment TYPE bloom_filter GRANULARITY 1,
     INDEX idx_trace_id trace_id TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_is_exception is_exception TYPE set GRANULARITY 1,
     INDEX idx_body body TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1  -- Full-text search
 )
 ENGINE = MergeTree()

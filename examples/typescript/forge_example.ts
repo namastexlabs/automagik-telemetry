@@ -10,7 +10,7 @@ import { AutomagikTelemetry, StandardEvents, MetricType } from 'automagik-teleme
 // Initialize telemetry client once at app startup
 const telemetry = new AutomagikTelemetry({
   projectName: 'automagik-forge',
-  projectVersion: '1.0.0',
+  version: '1.0.0',
 });
 
 // === Example 1: Track Task Execution ===
@@ -209,20 +209,20 @@ function showTelemetryStatus(): void {
 }
 
 // === Example 10: Opt-In/Opt-Out ===
-function disableTelemetry(): void {
+async function disableTelemetry(): Promise<void> {
   /**
    * CLI command to disable telemetry
    */
-  telemetry.disable();
+  await telemetry.disable();
   console.log('✅ Telemetry disabled. Created ~/.automagik-no-telemetry');
   console.log('   No data will be collected.');
 }
 
-function enableTelemetry(): void {
+async function enableTelemetry(): Promise<void> {
   /**
    * CLI command to enable telemetry
    */
-  telemetry.enable();
+  await telemetry.enable();
   console.log('✅ Telemetry enabled. Removed ~/.automagik-no-telemetry');
   console.log('   Anonymous usage data will help improve Automagik Forge!');
 }
@@ -252,7 +252,7 @@ if (require.main === module) {
   // Create test client
   const telemetryTest = new AutomagikTelemetry({
     projectName: 'forge',
-    projectVersion: '1.0.0',
+    version: '1.0.0',
   });
 
   // Send a test event

@@ -81,32 +81,32 @@ class ClickHouseBackend(TelemetryBackend):
         self._metric_batch: list[dict[str, Any]] = []
         self._log_batch: list[dict[str, Any]] = []
 
-    def transform_otlp_to_clickhouse(self, otlp_span: dict[str, Any]) -> dict[str, Any]:
+    def transform_otlp_to_clickhouse(self, otlp_payload: dict[str, Any]) -> dict[str, Any]:
         """
         Transform OTLP span format to our ClickHouse schema.
 
         Args:
-            otlp_span: OTLP-formatted span data
+            otlp_payload: OTLP-formatted span data
 
         Returns:
             Dict matching our ClickHouse traces table schema
         """
         # Extract timestamp (use start time or current time)
-        timestamp_ns = otlp_span.get("startTimeUnixNano", time.time_ns())
+        timestamp_ns = otlp_payload.get("startTimeUnixNano", time.time_ns())
         timestamp = datetime.fromtimestamp(timestamp_ns / 1_000_000_000, tz=UTC)
 
         # Calculate duration in milliseconds
-        start_ns = otlp_span.get("startTimeUnixNano", 0)
-        end_ns = otlp_span.get("endTimeUnixNano", start_ns)
+        start_ns = otlp_payload.get("startTimeUnixNano", 0)
+        end_ns = otlp_payload.get("endTimeUnixNano", start_ns)
         duration_ms = int((end_ns - start_ns) / 1_000_000) if end_ns > start_ns else 0
 
         # Extract status
-        status = otlp_span.get("status", {})
+        status = otlp_payload.get("status", {})
         status_code = "OK" if status.get("code") == 1 else status.get("message", "OK")
 
         # Transform attributes from OTLP format to flat dict
         attributes = {}
-        for attr in otlp_span.get("attributes", []):
+        for attr in otlp_payload.get("attributes", []):
             key = attr.get("key", "")
             value = attr.get("value", {})
 
@@ -122,7 +122,7 @@ class ClickHouseBackend(TelemetryBackend):
 
         # Extract resource attributes
         resource_attrs = {}
-        for attr in otlp_span.get("resource", {}).get("attributes", []):
+        for attr in otlp_payload.get("resource", {}).get("attributes", []):
             key = attr.get("key", "")
             value = attr.get("value", {})
             if "stringValue" in value:
@@ -130,15 +130,15 @@ class ClickHouseBackend(TelemetryBackend):
 
         # Build ClickHouse row
         return {
-            "trace_id": otlp_span.get("traceId", ""),
-            "span_id": otlp_span.get("spanId", ""),
-            "parent_span_id": otlp_span.get("parentSpanId", ""),
+            "trace_id": otlp_payload.get("traceId", ""),
+            "span_id": otlp_payload.get("spanId", ""),
+            "parent_span_id": otlp_payload.get("parentSpanId", ""),
             "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "timestamp_ns": timestamp_ns,
             "duration_ms": duration_ms,
             "service_name": resource_attrs.get("service.name", "unknown"),
-            "span_name": otlp_span.get("name", "unknown"),
-            "span_kind": otlp_span.get("kind", "INTERNAL"),
+            "span_name": otlp_payload.get("name", "unknown"),
+            "span_kind": otlp_payload.get("kind", "INTERNAL"),
             "status_code": status_code,
             "status_message": status.get("message", ""),
             "project_name": resource_attrs.get("project.name", ""),
@@ -159,14 +159,14 @@ class ClickHouseBackend(TelemetryBackend):
             "instrumentation_library_version": resource_attrs.get("telemetry.sdk.version", ""),
         }
 
-    def add_to_batch(self, otlp_span: dict[str, Any]) -> None:
+    def add_to_batch(self, otlp_payload: dict[str, Any]) -> None:
         """
         Add a span to the batch queue.
 
         Args:
-            otlp_span: OTLP-formatted span data
+            otlp_payload: OTLP-formatted span data
         """
-        row = self.transform_otlp_to_clickhouse(otlp_span)
+        row = self.transform_otlp_to_clickhouse(otlp_payload)
         self._trace_batch.append(row)
 
         # Auto-flush if batch size reached
@@ -307,20 +307,20 @@ class ClickHouseBackend(TelemetryBackend):
             logger.debug(f"Failed to insert to ClickHouse after {self.max_retries} retries: {last_exception}")
         return False
 
-    def send_trace(self, otlp_span: dict[str, Any]) -> bool:
+    def send_trace(self, payload: dict[str, Any]) -> bool:
         """
         Send a single trace span to ClickHouse.
 
         This is a convenience method that batches internally.
 
         Args:
-            otlp_span: OTLP-formatted span data
+            payload: OTLP-formatted span data
 
         Returns:
             True if added to batch successfully
         """
         try:
-            self.add_to_batch(otlp_span)
+            self.add_to_batch(payload)
             return True
         except Exception as e:
             logger.error(f"Error adding span to batch: {e}")

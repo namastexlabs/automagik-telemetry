@@ -19,7 +19,7 @@
  *     cd infra && make start
  */
 
-import { AutomagikTelemetry, StandardEvents, MetricType } from 'automagik-telemetry';
+import { AutomagikTelemetry, StandardEvents, MetricType, LogSeverity } from 'automagik-telemetry';
 
 // Configure for local infrastructure (uncomment to test locally)
 // process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
@@ -33,7 +33,7 @@ async function main(): Promise<void> {
   // Initialize telemetry client
   const telemetry = new AutomagikTelemetry({
     projectName: 'basic-example',
-    projectVersion: '1.0.0',
+    version: '1.0.0',
     // Optional: configure for local testing
     // endpoint: 'http://localhost:4318/v1/traces',
     // backend: 'otlp',  // or 'clickhouse'

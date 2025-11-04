@@ -35,6 +35,8 @@ interface OTLPAttribute {
 
 /**
  * System information structure.
+ * Uses snake_case to match OTLP attribute naming conventions.
+ * These properties become OTLP attributes like system.os_version, system.node_version, etc.
  */
 interface SystemInfo {
   os: string;
@@ -655,10 +657,10 @@ export class AutomagikTelemetry {
 
       // Verbose mode: print event to console
       if (this.verbose) {
-        console.log(`\n[Telemetry] Queuing trace event: ${eventType}`);
-        console.log(`  Project: ${this.projectName}`);
-        console.log(`  Backend: ${this.backendType}`);
-        console.log(`  Data: ${JSON.stringify(data, null, 2)}\n`);
+        console.debug(`\n[Telemetry] Queuing trace event: ${eventType}`);
+        console.debug(`  Project: ${this.projectName}`);
+        console.debug(`  Backend: ${this.backendType}`);
+        console.debug(`  Data: ${JSON.stringify(data, null, 2)}\n`);
       }
 
       // Route to appropriate backend
@@ -783,10 +785,10 @@ export class AutomagikTelemetry {
 
       // Verbose mode: print metric to console
       if (this.verbose) {
-        console.log(`\n[Telemetry] Queuing metric: ${metricName}`);
-        console.log(`  Type: ${metricType}`);
-        console.log(`  Value: ${value}`);
-        console.log(`  Endpoint: ${this.metricsEndpoint}\n`);
+        console.debug(`\n[Telemetry] Queuing metric: ${metricName}`);
+        console.debug(`  Type: ${metricType}`);
+        console.debug(`  Value: ${value}`);
+        console.debug(`  Endpoint: ${this.metricsEndpoint}\n`);
       }
 
       // Queue metric for batch processing
@@ -854,9 +856,9 @@ export class AutomagikTelemetry {
 
       // Verbose mode: print log to console
       if (this.verbose) {
-        console.log(`\n[Telemetry] Queuing log: ${message}`);
-        console.log(`  Severity: ${LogSeverity[severity]}`);
-        console.log(`  Endpoint: ${this.logsEndpoint}\n`);
+        console.debug(`\n[Telemetry] Queuing log: ${message}`);
+        console.debug(`  Severity: ${LogSeverity[severity]}`);
+        console.debug(`  Endpoint: ${this.logsEndpoint}\n`);
       }
 
       // Queue log for batch processing
@@ -1028,7 +1030,7 @@ export class AutomagikTelemetry {
   ): Promise<void> {
     const data = {
       error_type: error.name,
-      error_message: error.message.slice(0, 500), // Truncate long errors
+      error_message: error.message.slice(0, MAX_ERROR_MESSAGE_LENGTH), // Truncate long errors
       ...(context || {}),
     };
     return this.sendEvent("automagik.error", data);
@@ -1121,7 +1123,7 @@ export class AutomagikTelemetry {
     this.eventQueue = [];
 
     if (this.verbose) {
-      console.log(
+      console.debug(
         `\n[Telemetry] Flushing ${eventsToSend.length} queued events\n`,
       );
     }

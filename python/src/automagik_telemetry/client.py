@@ -14,13 +14,13 @@ import threading
 import time
 import uuid
 from collections import deque
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
 from automagik_telemetry.backends.clickhouse import ClickHouseBackend
 from automagik_telemetry.backends.otlp import OTLPBackend
+from automagik_telemetry.config import TelemetryConfig
 
 logger = logging.getLogger(__name__)
 
@@ -62,63 +62,6 @@ class LogSeverity(Enum):
     WARN = 13
     ERROR = 17
     FATAL = 21
-
-
-@dataclass
-class TelemetryConfig:
-    """
-    Configuration for telemetry client.
-
-    Attributes:
-        project_name: Name of the Automagik project
-        version: Version of the project
-        backend: Backend to use ("otlp" or "clickhouse", default: "otlp")
-        endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
-        organization: Organization name (default: namastex)
-        timeout: HTTP timeout in seconds (default: 5)
-        batch_size: Number of events to batch before sending (default: 100 for optimal performance)
-        flush_interval: Seconds between automatic flushes (default: 5.0)
-        compression_enabled: Enable gzip compression (default: True)
-        compression_threshold: Minimum payload size for compression in bytes (default: 1024)
-        max_retries: Maximum number of retry attempts (default: 3)
-        retry_backoff_base: Base backoff time in seconds (default: 1.0)
-        metrics_endpoint: Custom endpoint for metrics (defaults to /v1/metrics)
-        logs_endpoint: Custom endpoint for logs (defaults to /v1/logs)
-        enabled: Enable/disable telemetry (None = auto-detect from environment)
-        verbose: Enable verbose logging (None = use AUTOMAGIK_TELEMETRY_VERBOSE env var)
-        clickhouse_endpoint: ClickHouse HTTP endpoint (default: http://localhost:8123)
-        clickhouse_database: ClickHouse database name (default: telemetry)
-        clickhouse_table: ClickHouse table name for traces (default: traces)
-        clickhouse_metrics_table: ClickHouse table name for metrics (default: metrics)
-        clickhouse_logs_table: ClickHouse table name for logs (default: logs)
-        clickhouse_username: ClickHouse username (default: default)
-        clickhouse_password: ClickHouse password (default: "")
-    """
-
-    project_name: str
-    version: str
-    backend: str = "otlp"  # "otlp" or "clickhouse"
-    endpoint: str | None = None
-    organization: str = "namastex"
-    timeout: int = 5
-    batch_size: int = 100  # Batch events for optimal performance
-    flush_interval: float = 5.0
-    compression_enabled: bool = True
-    compression_threshold: int = 1024
-    max_retries: int = 3
-    retry_backoff_base: float = 1.0
-    metrics_endpoint: str | None = None
-    logs_endpoint: str | None = None
-    enabled: bool | None = None  # Enable/disable telemetry (None = auto-detect from environment)
-    verbose: bool | None = None  # Enable verbose logging (None = use environment variable)
-    # ClickHouse-specific options
-    clickhouse_endpoint: str = "http://localhost:8123"
-    clickhouse_database: str = "telemetry"
-    clickhouse_table: str = "traces"
-    clickhouse_metrics_table: str = "metrics"
-    clickhouse_logs_table: str = "logs"
-    clickhouse_username: str = "default"
-    clickhouse_password: str = ""
 
 
 class AutomagikTelemetry:
@@ -284,10 +227,12 @@ class AutomagikTelemetry:
                 logs_table=clickhouse_logs_table,
                 username=clickhouse_username,
                 password=clickhouse_password,
-                timeout=self.config.timeout,
+                timeout=self.config.timeout or DEFAULT_TIMEOUT,
                 batch_size=self.config.batch_size,
                 compression_enabled=self.config.compression_enabled,
                 max_retries=self.config.max_retries,
+                retry_backoff_base=self.config.retry_backoff_base,
+                verbose=self.verbose,
             )
         else:
             # Initialize OTLP backend (default)
@@ -295,7 +240,7 @@ class AutomagikTelemetry:
                 endpoint=self.endpoint,
                 metrics_endpoint=self.metrics_endpoint,
                 logs_endpoint=self.logs_endpoint,
-                timeout=self.config.timeout,
+                timeout=self.config.timeout or DEFAULT_TIMEOUT,
                 max_retries=self.config.max_retries,
                 retry_backoff_base=self.config.retry_backoff_base,
                 compression_enabled=self.config.compression_enabled,

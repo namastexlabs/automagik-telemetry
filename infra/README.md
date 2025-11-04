@@ -85,6 +85,11 @@ make reset             # Reset data but keep services running
 
 ### Overview
 
+> **IMPORTANT**: The OTLP collector in this setup is for debugging and monitoring only.
+> It does NOT write to ClickHouse. Both SDKs write directly to ClickHouse HTTP API for better performance.
+>
+> **Why?** Direct writes provide better batching control and avoid the OpenTelemetry ClickHouse exporter bug (see CLICKHOUSE_BACKEND_DESIGN.md).
+
 Automagik Telemetry supports **two backend options** for sending telemetry data:
 
 1. **OTLP Backend** (Production): Standard OpenTelemetry Protocol via Collector

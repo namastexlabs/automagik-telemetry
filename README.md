@@ -524,6 +524,13 @@ All available configuration parameters with their defaults:
 | `retry_backoff_base` / `retryBackoffBase` | ✅ | ✅ | `1.0` | `1000` | **seconds (Py) / milliseconds (TS)** | Base backoff time for retries |
 | `metrics_endpoint` / `metricsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | N/A | Custom metrics endpoint |
 | `logs_endpoint` / `logsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | N/A | Custom logs endpoint |
+| `clickhouse_endpoint` / `clickhouseEndpoint` | ✅ | ✅ | `"http://localhost:8123"` | `"http://localhost:8123"` | N/A | ClickHouse HTTP endpoint |
+| `clickhouse_database` / `clickhouseDatabase` | ✅ | ✅ | `"telemetry"` | `"telemetry"` | N/A | ClickHouse database name |
+| `clickhouse_table` / `clickhouseTable` | ✅ | ✅ | `"traces"` | `"traces"` | N/A | ClickHouse traces table name |
+| `clickhouse_metrics_table` / `clickhouseMetricsTable` | ✅ | ✅ | `"metrics"` | `"metrics"` | N/A | ClickHouse metrics table name |
+| `clickhouse_logs_table` / `clickhouseLogsTable` | ✅ | ✅ | `"logs"` | `"logs"` | N/A | ClickHouse logs table name |
+| `clickhouse_username` / `clickhouseUsername` | ✅ | ✅ | `"default"` | `"default"` | N/A | ClickHouse username |
+| `clickhouse_password` / `clickhousePassword` | ✅ | ✅ | `""` | `""` | N/A | ClickHouse password |
 
 **Time Unit Reference:**
 - **`timeout`**: Both SDKs accept seconds. TypeScript converts internally to milliseconds (you don't need to do this).
@@ -548,8 +555,8 @@ The `batch_size` parameter controls batching but works differently per backend:
 
 Both Python and TypeScript SDKs now default to `batch_size=100` for optimal performance:
 
-- **Python SDK:** `batch_size=100` (batched send) - Reduces HTTP overhead, optimal performance
-- **TypeScript SDK:** `batchSize=100` (batched send) - Optimized for high-volume web applications
+- **Python SDK:** `batch_size=100` (batched send, optimized for performance) - Reduces HTTP overhead, optimal performance
+- **TypeScript SDK:** `batchSize=100` (batched send, optimized for performance) - Optimized for high-volume web applications
 
 **Performance Benefits:**
 - Batches up to 100 events before sending
@@ -611,8 +618,10 @@ export AUTOMAGIK_TELEMETRY_CLICKHOUSE_ENDPOINT=http://localhost:8123
 # ClickHouse database name (default: telemetry)
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_DATABASE=telemetry
 
-# ClickHouse table name (default: traces, Python only)
+# ClickHouse table names (both SDKs)
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE=traces
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE=metrics
+export AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE=logs
 
 # Optional ClickHouse authentication
 export AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME=default
@@ -726,6 +735,9 @@ const client = new AutomagikTelemetry({
     backend: 'clickhouse',
     clickhouseEndpoint: 'http://localhost:8123',
     clickhouseDatabase: 'telemetry',
+    clickhouseTable: 'traces',  // Optional (default: 'traces')
+    clickhouseMetricsTable: 'metrics',  // Optional (default: 'metrics')
+    clickhouseLogsTable: 'logs',  // Optional (default: 'logs')
     clickhouseUsername: 'default',  // Optional
     clickhousePassword: '',  // Optional
     batchSize: 100,  // Optional (default: 100 for TypeScript)
@@ -748,12 +760,12 @@ While both SDKs provide identical functionality, there are intentional differenc
 ### Batch Size Defaults
 Both SDKs now use `batch_size=100` by default for optimal performance:
 
-- **Python**: `batch_size=100` (batched)
+- **Python**: `batch_size=100` (batched send, optimized for performance)
   - Optimized for performance with automatic batching
   - Up to 100 events queued before sending
   - Automatic flush every 5 seconds
   - Significantly reduces HTTP overhead
-- **TypeScript**: `batchSize=100` (batched)
+- **TypeScript**: `batchSize=100` (batched send, optimized for performance)
   - Optimized for performance in high-throughput scenarios
   - Reduces network overhead with batching
   - Better for modern async applications
@@ -1004,7 +1016,7 @@ client.enable();
 client.trackEvent('user.action');
 
 // Disable telemetry (creates opt-out file, flushes pending events)
-await await client.disable();  // Flushes before disabling
+await client.disable();  // Flushes before disabling
 ```
 
 **What happens when you disable:**

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # ClickHouse - OLAP database for telemetry data
   clickhouse:
@@ -14,7 +16,6 @@ services:
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - ./clickhouse/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
-      - ./clickhouse/metrics-logs-schema.sql:/docker-entrypoint-initdb.d/02-metrics-logs.sql:ro
       - ./clickhouse/metrics-logs-schema.sql:/docker-entrypoint-initdb.d/02-metrics-logs.sql:ro
       - ./clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml:ro
     healthcheck:
@@ -59,7 +60,7 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: admin
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: grafana-clickhouse-datasource
       GF_AUTH_ANONYMOUS_ENABLED: "true"

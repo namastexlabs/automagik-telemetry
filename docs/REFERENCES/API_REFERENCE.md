@@ -164,7 +164,9 @@ const config = {
     // ClickHouse configuration
     clickhouseEndpoint: 'http://localhost:8123',
     clickhouseDatabase: 'telemetry',
-    // Note: Table names are not configurable in TypeScript (hardcoded as 'traces', 'metrics', 'logs')
+    clickhouseTable: 'traces',  // Optional (default: 'traces')
+    clickhouseMetricsTable: 'metrics',  // Optional (default: 'metrics')
+    clickhouseLogsTable: 'logs',  // Optional (default: 'logs')
     clickhouseUsername: 'default',
     clickhousePassword: '',
 
@@ -202,14 +204,14 @@ const telemetry = new AutomagikTelemetry(config);
 | **ClickHouse Backend** |
 | `clickhouse_endpoint` | `clickhouseEndpoint` | `string` | `http://localhost:8123` | ClickHouse HTTP endpoint |
 | `clickhouse_database` | `clickhouseDatabase` | `string` | `"telemetry"` | Database name |
-| `clickhouse_table` | ❌ | `string` | `"traces"` | Traces table name (Python only) |
-| `clickhouse_metrics_table` | ❌ | `string` | `"metrics"` | Metrics table name (Python only) |
-| `clickhouse_logs_table` | ❌ | `string` | `"logs"` | Logs table name (Python only) |
+| `clickhouse_table` | `clickhouseTable` | `string` | `"traces"` | Traces table name |
+| `clickhouse_metrics_table` | `clickhouseMetricsTable` | `string` | `"metrics"` | Metrics table name |
+| `clickhouse_logs_table` | `clickhouseLogsTable` | `string` | `"logs"` | Logs table name |
 | `clickhouse_username` | `clickhouseUsername` | `string` | `"default"` | Username |
 | `clickhouse_password` | `clickhousePassword` | `string` | `""` | Password |
 | **Performance** |
 | `timeout` | `timeout` | `int` | `5` seconds (both SDKs) | HTTP timeout |
-| `batch_size` | `batchSize` | `int` | Python: `1`<br>TypeScript: `100` | Events per batch |
+| `batch_size` | `batchSize` | `int` | Python: `100`<br>TypeScript: `100` | Events per batch |
 | `flush_interval` | `flushInterval` | `float`/`int` | Python: `5.0` (sec)<br>TypeScript: `5000` (ms) | Auto-flush interval |
 | **Compression** |
 | `compression_enabled` | `compressionEnabled` | `bool` | `true` | Enable gzip compression |
@@ -1063,8 +1065,8 @@ Enable or disable telemetry at runtime.
 # Enable telemetry
 telemetry.enable()
 
-# Disable telemetry
-telemetry.disable()
+# Disable telemetry (async method)
+await telemetry.disable()
 ```
 
 </td>
@@ -1164,19 +1166,26 @@ status = telemetry.get_status()
 ```typescript
 const status = telemetry.getStatus();
 
-// Returns (Note: TypeScript uses camelCase and has fewer fields than Python):
+// Returns:
 // {
 //     enabled: true,
-//     userId: 'uuid...',
-//     sessionId: 'uuid...',
-//     projectName: 'my-app',
-//     projectVersion: '1.0.0',
+//     user_id: 'uuid...',
+//     session_id: 'uuid...',
+//     project_name: 'my-app',
+//     project_version: '1.0.0',
 //     endpoint: 'https://...',
+//     metricsEndpoint: 'https://...',
+//     logsEndpoint: 'https://...',
+//     opt_out_file_exists: false,
+//     env_var: undefined,
 //     verbose: false,
-//     batchSize: 100,
-//     queueSize: 5
-//     // TypeScript does not include: metricsEndpoint, logsEndpoint,
-//     // optOutFileExists, envVar, compressionEnabled, or separate queue_sizes
+//     batch_size: 100,
+//     compression_enabled: true,
+//     queue_sizes: {
+//         traces: 5,
+//         metrics: 2,
+//         logs: 0
+//     }
 // }
 ```
 

@@ -69,7 +69,7 @@ health: ## Check health of all services
 		echo "$(RED)✗ Unhealthy$(NC)"; \
 	fi
 	@echo -n "$(YELLOW)Collector:$(NC)  "
-	@if curl -s http://localhost:4318/v1/traces > /dev/null 2>&1; then \
+	@if curl -s http://localhost:13133/ > /dev/null 2>&1; then \
 		echo "$(GREEN)✓ Healthy$(NC)"; \
 	else \
 		echo "$(RED)✗ Unhealthy$(NC)"; \

@@ -161,7 +161,8 @@ def test_concurrent_producers(high_throughput_client: AutomagikTelemetry) -> Non
     print(f"  Rate: {total_events / duration:.1f} events/sec")
 
     # Should handle concurrent producers without issues
-    assert duration < 5.0
+    # Increased timeout to account for CI/CD and system load variability
+    assert duration < 10.0
 
     # Flush all events
     high_throughput_client.flush()

@@ -55,10 +55,10 @@ def main():
     # Example 2: Track a metric
     print("\n2️⃣  Tracking a metric...")
     telemetry.track_metric(
-        name="example.response_time",
-        value=123.45,
-        metric_type="gauge",
-        attributes={
+        "example.response_time",  # First positional: metric_name
+        123.45,                    # Second positional: value
+        "gauge",                   # Third positional: metric_type
+        {                          # Fourth positional: attributes
             "endpoint": "/api/example",
             "status": "success",
         }

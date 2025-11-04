@@ -7,11 +7,64 @@ sensible defaults, and validation.
 
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-if TYPE_CHECKING:
-    from automagik_telemetry.client import TelemetryConfig
+
+@dataclass
+class TelemetryConfig:
+    """
+    Configuration for telemetry client.
+
+    Attributes:
+        project_name: Name of the Automagik project
+        version: Version of the project
+        backend: Backend to use ("otlp" or "clickhouse", default: "otlp")
+        endpoint: Custom telemetry endpoint (defaults to telemetry.namastex.ai)
+        organization: Organization name (default: namastex)
+        timeout: HTTP timeout in seconds (None = use env var or default: 5)
+        batch_size: Number of events to batch before sending (default: 100 for optimal performance)
+        flush_interval: Seconds between automatic flushes (default: 5.0)
+        compression_enabled: Enable gzip compression (default: True)
+        compression_threshold: Minimum payload size for compression in bytes (default: 1024)
+        max_retries: Maximum number of retry attempts (default: 3)
+        retry_backoff_base: Base backoff time in seconds (default: 1.0)
+        metrics_endpoint: Custom endpoint for metrics (defaults to /v1/metrics)
+        logs_endpoint: Custom endpoint for logs (defaults to /v1/logs)
+        enabled: Enable/disable telemetry (None = auto-detect from environment)
+        verbose: Enable verbose logging (None = use AUTOMAGIK_TELEMETRY_VERBOSE env var)
+        clickhouse_endpoint: ClickHouse HTTP endpoint (default: http://localhost:8123)
+        clickhouse_database: ClickHouse database name (default: telemetry)
+        clickhouse_table: ClickHouse table name for traces (default: traces)
+        clickhouse_metrics_table: ClickHouse table name for metrics (default: metrics)
+        clickhouse_logs_table: ClickHouse table name for logs (default: logs)
+        clickhouse_username: ClickHouse username (default: default)
+        clickhouse_password: ClickHouse password (default: "")
+    """
+
+    project_name: str
+    version: str
+    backend: str = "otlp"  # "otlp" or "clickhouse"
+    endpoint: str | None = None
+    organization: str = "namastex"
+    timeout: int | None = None  # None = use env var or default
+    batch_size: int = 100  # Batch events for optimal performance
+    flush_interval: float = 5.0
+    compression_enabled: bool = True
+    compression_threshold: int = 1024
+    max_retries: int = 3
+    retry_backoff_base: float = 1.0
+    metrics_endpoint: str | None = None
+    logs_endpoint: str | None = None
+    enabled: bool | None = None  # Enable/disable telemetry (None = auto-detect from environment)
+    verbose: bool | None = None  # Enable verbose logging (None = use environment variable)
+    # ClickHouse-specific options
+    clickhouse_endpoint: str = "http://localhost:8123"
+    clickhouse_database: str = "telemetry"
+    clickhouse_table: str = "traces"
+    clickhouse_metrics_table: str = "metrics"
+    clickhouse_logs_table: str = "logs"
+    clickhouse_username: str = "default"
+    clickhouse_password: str = ""
 
 
 @dataclass
@@ -167,13 +220,13 @@ def load_config_from_env() -> ConfigSchema:
     return config
 
 
-def merge_config(user_config: "TelemetryConfig") -> ValidatedConfig:
+def merge_config(user_config: TelemetryConfig) -> ValidatedConfig:
     """
     Merge user configuration with defaults and environment variables.
 
     Priority (highest to lowest):
-    1. User-provided config
-    2. Environment variables
+    1. User-provided config (if explicitly set, i.e., not None)
+    2. Environment variables (if set)
     3. Default values
 
     Args:
@@ -201,7 +254,11 @@ def merge_config(user_config: "TelemetryConfig") -> ValidatedConfig:
         version=user_config.version,
         endpoint=str(user_config.endpoint or env_config.endpoint or DEFAULT_CONFIG["endpoint"]),
         organization=str(user_config.organization or DEFAULT_CONFIG["organization"]),
-        timeout=int(user_config.timeout or env_config.timeout or DEFAULT_CONFIG["timeout"]),
+        timeout=int(
+            user_config.timeout
+            if user_config.timeout is not None
+            else (env_config.timeout if env_config.timeout is not None else DEFAULT_CONFIG["timeout"])
+        ),
         enabled=bool(
             user_config.enabled
             if user_config.enabled is not None
@@ -219,7 +276,7 @@ def merge_config(user_config: "TelemetryConfig") -> ValidatedConfig:
     )
 
 
-def validate_config(config: "TelemetryConfig") -> None:
+def validate_config(config: TelemetryConfig) -> None:
     """
     Validate configuration values and throw helpful errors.
 
@@ -276,7 +333,7 @@ def validate_config(config: "TelemetryConfig") -> None:
         raise ValueError("TelemetryConfig: organization cannot be empty if provided")
 
 
-def create_config(user_config: "TelemetryConfig") -> ValidatedConfig:
+def create_config(user_config: TelemetryConfig) -> ValidatedConfig:
     """
     Create and validate a complete configuration.
 

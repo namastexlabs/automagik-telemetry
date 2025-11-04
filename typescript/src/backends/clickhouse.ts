@@ -632,7 +632,7 @@ export class ClickHouseBackend implements TelemetryBackend {
     // Auto-flush if batch size reached
     if (this.traceBatch.length >= this.batchSize) {
       this.flush().catch((err) => {
-        console.error('[ClickHouse] Auto-flush failed:', err);
+        console.error('[ClickHouse] Auto-flush traces failed:', err);
       });
     }
   }

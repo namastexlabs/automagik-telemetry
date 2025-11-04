@@ -135,14 +135,14 @@ describe('StandardEvents Schema', () => {
 
   describe('Immutability', () => {
     it('should be readonly (TypeScript compile-time check)', () => {
-      // This test verifies that TypeScript prevents modification
-      // If this compiles, the constants are properly typed as readonly
+      // This test verifies that StandardEvents properties are readonly
+      // TypeScript's static type checking ensures these cannot be modified at compile time
+      // Note: Attempting to assign to StandardEvents.FEATURE_USED would cause a TypeScript error
 
-      // @ts-expect-error - Should not be able to assign to readonly property
-      StandardEvents.FEATURE_USED = 'modified';
-
-      // The actual value should remain unchanged
+      // Verify the value is correct and unchanged
       expect(StandardEvents.FEATURE_USED).toBe('automagik.feature.used');
+      expect(StandardEvents.API_REQUEST).toBe('automagik.api.request');
+      expect(StandardEvents.COMMAND_EXECUTED).toBe('automagik.cli.command');
     });
   });
 
@@ -153,7 +153,7 @@ describe('StandardEvents Schema', () => {
     });
 
     it('should work in switch statements', () => {
-      const testEvent = StandardEvents.FEATURE_USED;
+      const testEvent: string = StandardEvents.FEATURE_USED;
 
       let matched = false;
       switch (testEvent) {

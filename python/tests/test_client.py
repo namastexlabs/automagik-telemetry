@@ -93,7 +93,7 @@ class TestAutomagikTelemetryInitialization:
         assert client.config.project_name == "test-project"
         assert client.config.version == "1.0.0"
         assert client.config.organization == "namastex"
-        assert client.config.timeout == 5
+        assert client.config.timeout is None  # None means use default (5) from env or DEFAULT_TIMEOUT
         assert client.endpoint == "https://telemetry.namastex.ai/v1/traces"
 
     def test_should_use_custom_endpoint_when_provided(

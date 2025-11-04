@@ -708,6 +708,9 @@ describe('AutomagikTelemetry', () => {
     });
 
     it('should flush when batch size is reached', async () => {
+      // Use real timers for this test since we need actual async operations
+      jest.useRealTimers();
+
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       const client = new AutomagikTelemetry({
         projectName: mockConfig.projectName,
@@ -721,17 +724,21 @@ describe('AutomagikTelemetry', () => {
       client.trackEvent('test.event.3'); // This triggers flush
 
       // Wait for async flush to complete
-      // The queueEvent method is async and calls flush() when batch size is reached
-      await Promise.resolve(); // Let microtasks complete
-      await Promise.resolve(); // Give flush() time to execute
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(global.fetch).toHaveBeenCalledTimes(3);
 
       // Clean up timer
       await client.disable();
+
+      // Restore fake timers for other tests in this describe block
+      jest.useFakeTimers();
     });
 
     it('should flush on interval', async () => {
+      // Use real timers for this test since interval-based flush needs actual timing
+      jest.useRealTimers();
+
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       const client = new AutomagikTelemetry({
         projectName: mockConfig.projectName,
@@ -744,17 +751,16 @@ describe('AutomagikTelemetry', () => {
       client.trackEvent('test.event.1');
       client.trackEvent('test.event.2');
 
-      // Advance fake timers to trigger the flush interval
-      jest.advanceTimersByTime(200);
-
-      // Wait for async flush to complete
-      await Promise.resolve();
-      await Promise.resolve();
+      // Wait for the flush interval to trigger
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       expect(global.fetch).toHaveBeenCalled();
 
       // Clean up timer
       await client.disable();
+
+      // Restore fake timers for other tests in this describe block
+      jest.useFakeTimers();
     });
 
     it('should flush manually when flush() is called', async () => {
@@ -1578,8 +1584,8 @@ describe('AutomagikTelemetry', () => {
         client.trackEvent('test.event', {});
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Verbose mode should have logged
-        expect(consoleLogSpy).toHaveBeenCalled();
+        // Verbose mode should have logged (using console.debug)
+        expect(consoleDebugSpy).toHaveBeenCalled();
 
         consoleLogSpy.mockRestore();
         consoleDebugSpy.mockRestore();
@@ -1589,7 +1595,7 @@ describe('AutomagikTelemetry', () => {
         process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
         process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
 
-        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 
         const client = new AutomagikTelemetry({
           ...mockConfig,
@@ -1599,19 +1605,19 @@ describe('AutomagikTelemetry', () => {
         client.trackEvent('test.event', { key: 'value' });
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Should have logged queuing message
-        expect(consoleLogSpy).toHaveBeenCalledWith(
+        // Should have logged queuing message (using console.debug)
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
           expect.stringContaining('[Telemetry] Queuing trace event')
         );
 
-        consoleLogSpy.mockRestore();
+        consoleDebugSpy.mockRestore();
       });
 
       it('should log verbose output for metrics', async () => {
         process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
         process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
 
-        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 
         const client = new AutomagikTelemetry({
           ...mockConfig,
@@ -1621,19 +1627,19 @@ describe('AutomagikTelemetry', () => {
         client.trackMetric('test.metric', 42);
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Should have logged queuing message
-        expect(consoleLogSpy).toHaveBeenCalledWith(
+        // Should have logged queuing message (using console.debug)
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
           expect.stringContaining('[Telemetry] Queuing metric')
         );
 
-        consoleLogSpy.mockRestore();
+        consoleDebugSpy.mockRestore();
       });
 
       it('should log verbose output for logs', async () => {
         process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
         process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
 
-        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 
         const client = new AutomagikTelemetry({
           ...mockConfig,
@@ -1643,19 +1649,19 @@ describe('AutomagikTelemetry', () => {
         client.trackLog('test message');
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Should have logged queuing message
-        expect(consoleLogSpy).toHaveBeenCalledWith(
+        // Should have logged queuing message (using console.debug)
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
           expect.stringContaining('[Telemetry] Queuing log')
         );
 
-        consoleLogSpy.mockRestore();
+        consoleDebugSpy.mockRestore();
       });
 
       it('should log verbose output during flush', async () => {
         process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
         process.env.AUTOMAGIK_TELEMETRY_VERBOSE = 'true';
 
-        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+        const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 
         const client = new AutomagikTelemetry({
           ...mockConfig,
@@ -1667,12 +1673,12 @@ describe('AutomagikTelemetry', () => {
 
         await client.flush();
 
-        // Should have logged flushing message
-        expect(consoleLogSpy).toHaveBeenCalledWith(
+        // Should have logged flushing message (using console.debug)
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
           expect.stringContaining('[Telemetry] Flushing')
         );
 
-        consoleLogSpy.mockRestore();
+        consoleDebugSpy.mockRestore();
       });
     });
 
@@ -1732,7 +1738,7 @@ describe('AutomagikTelemetry', () => {
 
         // Should log the non-200 status in verbose mode
         expect(consoleDebugSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Telemetry event failed with status 202')
+          expect.stringContaining('Telemetry trace failed with status 202')
         );
 
         consoleDebugSpy.mockRestore();
@@ -1759,7 +1765,7 @@ describe('AutomagikTelemetry', () => {
 
         // Should log the 4xx error
         expect(consoleDebugSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Telemetry event failed with status 403')
+          expect.stringContaining('Telemetry trace failed with status 403')
         );
 
         // Should not retry

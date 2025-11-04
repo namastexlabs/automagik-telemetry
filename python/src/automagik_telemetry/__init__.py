@@ -8,19 +8,17 @@ from automagik_telemetry.client import (
     AutomagikTelemetry,
     LogSeverity,
     MetricType,
-    TelemetryConfig,
 )
 from automagik_telemetry.config import (
     DEFAULT_CONFIG,
     ENV_VARS,
+    ConfigSchema,
+    TelemetryConfig,
     ValidatedConfig,
     create_config,
     load_config_from_env,
     merge_config,
     validate_config,
-)
-from automagik_telemetry.config import (
-    ConfigSchema,
 )
 from automagik_telemetry.opt_in import (
     TelemetryOptIn,

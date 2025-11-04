@@ -158,41 +158,43 @@ class OTLPBackend(TelemetryBackend):
             logger.debug(f"Telemetry {signal_type} error: {e}")
             return False
 
-    def send_trace(self, otlp_payload: dict[str, Any]) -> bool:
+    def send_trace(self, payload: dict[str, Any]) -> bool:
         """
         Send an OTLP trace payload to the traces endpoint.
 
         Args:
-            otlp_payload: OTLP-formatted trace payload with resourceSpans structure
+            payload: OTLP-formatted trace payload with resourceSpans structure
 
         Returns:
             True if successful, False otherwise
         """
-        return self._send_with_retry(self.endpoint, otlp_payload, "trace")
+        return self._send_with_retry(self.endpoint, payload, "trace")
 
-    def send_metric(self, otlp_payload: dict[str, Any]) -> bool:
+    def send_metric(self, payload: dict[str, Any], **kwargs: Any) -> bool:
         """
         Send an OTLP metric payload to the metrics endpoint.
 
         Args:
-            otlp_payload: OTLP-formatted metric payload with resourceMetrics structure
+            payload: OTLP-formatted metric payload with resourceMetrics structure
+            **kwargs: Additional parameters (unused by OTLP backend, kept for interface compatibility)
 
         Returns:
             True if successful, False otherwise
         """
-        return self._send_with_retry(self.metrics_endpoint, otlp_payload, "metric")
+        return self._send_with_retry(self.metrics_endpoint, payload, "metric")
 
-    def send_log(self, otlp_payload: dict[str, Any]) -> bool:
+    def send_log(self, payload: dict[str, Any], **kwargs: Any) -> bool:
         """
         Send an OTLP log payload to the logs endpoint.
 
         Args:
-            otlp_payload: OTLP-formatted log payload with resourceLogs structure
+            payload: OTLP-formatted log payload with resourceLogs structure
+            **kwargs: Additional parameters (unused by OTLP backend, kept for interface compatibility)
 
         Returns:
             True if successful, False otherwise
         """
-        return self._send_with_retry(self.logs_endpoint, otlp_payload, "log")
+        return self._send_with_retry(self.logs_endpoint, payload, "log")
 
     def flush(self) -> bool:
         """

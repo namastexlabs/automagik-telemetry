@@ -49,7 +49,7 @@ class TelemetryBackend(ABC):
         pass
 
     @abstractmethod
-    def send_metric(self, payload: dict[str, Any]) -> bool:
+    def send_metric(self, payload: dict[str, Any], **kwargs: Any) -> bool:
         """
         Send a metric to the backend.
 
@@ -57,6 +57,7 @@ class TelemetryBackend(ABC):
             payload: Metric payload in the backend's expected format.
                      For OTLP backends, this is OTLP-formatted metric data.
                      For ClickHouse backends, this can be OTLP or native format.
+            **kwargs: Additional backend-specific parameters (e.g., metric_name, value, etc.)
 
         Returns:
             True if the metric was sent successfully (or queued for sending),
@@ -69,7 +70,7 @@ class TelemetryBackend(ABC):
         pass
 
     @abstractmethod
-    def send_log(self, payload: dict[str, Any]) -> bool:
+    def send_log(self, payload: dict[str, Any], **kwargs: Any) -> bool:
         """
         Send a log entry to the backend.
 
@@ -77,6 +78,7 @@ class TelemetryBackend(ABC):
             payload: Log payload in the backend's expected format.
                      For OTLP backends, this is OTLP-formatted log data.
                      For ClickHouse backends, this can be OTLP or native format.
+            **kwargs: Additional backend-specific parameters (e.g., message, level, etc.)
 
         Returns:
             True if the log was sent successfully (or queued for sending),

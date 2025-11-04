@@ -4,7 +4,7 @@ Example: Using automagik-telemetry in Automagik Omni
 This shows real-world usage based on the actual Omni implementation.
 """
 
-from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, StandardEvents
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, StandardEvents, MetricType
 
 # Initialize telemetry client once at app startup
 config = TelemetryConfig(
@@ -83,9 +83,9 @@ def process_webhook(channel: str, data: dict):
         duration_ms = (time.time() - start_time) * 1000
         telemetry.track_metric(
             StandardEvents.OPERATION_LATENCY,
-            value=duration_ms,
-            metric_type=MetricType.HISTOGRAM,
-        attributes={
+            duration_ms,
+            MetricType.HISTOGRAM,
+            {
                 "operation_type": "webhook_processing",
                 "channel": channel
             }
@@ -116,16 +116,16 @@ def show_telemetry_status():
 
 
 # === Example 6: Opt-In/Opt-Out ===
-def disable_telemetry_command():
+async def disable_telemetry_command():
     """CLI command to disable telemetry"""
-    telemetry.disable()
+    await telemetry.disable()
     print("✅ Telemetry disabled. Created ~/.automagik-no-telemetry")
     print("   No data will be collected.")
 
 
-def enable_telemetry_command():
+async def enable_telemetry_command():
     """CLI command to enable telemetry"""
-    telemetry.enable()
+    await telemetry.enable()
     print("✅ Telemetry enabled. Removed ~/.automagik-no-telemetry")
     print("   Anonymous usage data will help improve Automagik!")
 

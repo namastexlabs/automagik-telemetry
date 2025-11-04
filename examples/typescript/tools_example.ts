@@ -298,20 +298,20 @@ function showTelemetryStatus(): void {
 }
 
 // === Example 13: Opt-In/Opt-Out ===
-function disableTelemetry(): void {
+async function disableTelemetry(): Promise<void> {
   /**
    * Disable telemetry collection
    */
-  telemetry.disable();
+  await telemetry.disable();
   console.log('✅ Telemetry disabled. Created ~/.automagik-no-telemetry');
   console.log('   No data will be collected.');
 }
 
-function enableTelemetry(): void {
+async function enableTelemetry(): Promise<void> {
   /**
    * Enable telemetry collection
    */
-  telemetry.enable();
+  await telemetry.enable();
   console.log('✅ Telemetry enabled. Removed ~/.automagik-no-telemetry');
   console.log('   Anonymous usage data will help improve Automagik Tools!');
 }
