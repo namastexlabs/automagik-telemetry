@@ -277,7 +277,7 @@ client = AutomagikTelemetry(
 <summary><strong>📝 Events & Metrics</strong></summary>
 
 ```typescript
-import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 
 // Initialize
 const client = new AutomagikTelemetry({
@@ -316,7 +316,7 @@ try {
 <summary><strong>📝 Logs (Structured Logging)</strong></summary>
 
 ```typescript
-import { AutomagikTelemetry, LogSeverity } from '@automagik/telemetry';
+import { AutomagikTelemetry, LogSeverity } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -372,7 +372,7 @@ client.trackLog('Method entry', LogSeverity.TRACE, {
 <summary><strong>⚙️ Configuration</strong></summary>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 // OTLP Backend
 const client = new AutomagikTelemetry({

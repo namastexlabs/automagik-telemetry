@@ -611,7 +611,7 @@ client.flush()
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
   projectName: 'my-project',

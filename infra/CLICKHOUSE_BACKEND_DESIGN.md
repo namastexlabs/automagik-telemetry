@@ -214,7 +214,7 @@ client.track_event("user.login", {"user_id": "123"})
 
 ### TypeScript Example
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 // Use ClickHouse backend for local dev
 const client = new AutomagikTelemetry({

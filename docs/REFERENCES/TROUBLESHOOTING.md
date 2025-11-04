@@ -46,7 +46,7 @@ print(telemetry.get_status())
 <summary><strong>TypeScript - Quick Status Check</strong></summary>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({ projectName: 'test', version: '1.0.0' });
 console.log(telemetry.getStatus());
@@ -946,7 +946,7 @@ console.log('Queue size:', status.queueSize);
 ```bash
 # SDK version
 pip show automagik-telemetry  # Python
-npm list @automagik/telemetry  # TypeScript
+npm list automagik-telemetry  # TypeScript
 
 # Environment
 echo "OS: $(uname -s)"

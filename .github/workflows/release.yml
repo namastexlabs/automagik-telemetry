@@ -116,9 +116,9 @@ jobs:
 
             ### Installation
             ```bash
-            npm install @automagik/telemetry
+            npm install automagik-telemetry
             # or
-            pnpm add @automagik/telemetry
+            pnpm add automagik-telemetry
             ```
 
             ### What's Changed
@@ -154,9 +154,9 @@ jobs:
 
             ### TypeScript SDK
             ```bash
-            npm install @automagik/telemetry
+            npm install automagik-telemetry
             # or
-            pnpm add @automagik/telemetry
+            pnpm add automagik-telemetry
             ```
 
             ### What's Changed

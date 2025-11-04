@@ -222,7 +222,7 @@ client = AutomagikTelemetry(
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -367,7 +367,7 @@ client = AutomagikTelemetry(
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',

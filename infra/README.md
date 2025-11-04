@@ -255,7 +255,7 @@ client = AutomagikTelemetry(
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
   projectName: 'my-app',
@@ -293,7 +293,7 @@ client = AutomagikTelemetry(
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
   projectName: 'my-app',
@@ -742,7 +742,7 @@ client.flush()  # Forces immediate insertion
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({ backend: 'clickhouse', ... });
 
@@ -798,7 +798,7 @@ client = AutomagikTelemetry(backend="clickhouse", ...)
 // Set environment variable before running
 process.env.DEBUG = 'automagik:*';
 
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 const client = new AutomagikTelemetry({ backend: 'clickhouse', ... });
 ```
 

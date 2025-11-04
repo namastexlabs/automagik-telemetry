@@ -45,18 +45,18 @@ python -c "from automagik_telemetry import AutomagikTelemetry; print('✅ Ready!
 
 ```bash
 # Using pnpm (recommended)
-pnpm add @automagik/telemetry
+pnpm add automagik-telemetry
 
 # Or using npm
-npm install @automagik/telemetry
+npm install automagik-telemetry
 
 # Or using yarn
-yarn add @automagik/telemetry
+yarn add automagik-telemetry
 ```
 
 **Verify installation:**
 ```bash
-node -e "require('@automagik/telemetry'); console.log('✅ Ready!')"
+node -e "require('automagik-telemetry'); console.log('✅ Ready!')"
 ```
 
 </details>
@@ -87,7 +87,7 @@ client = AutomagikTelemetry(config=config)
 <summary><strong>📘 TypeScript</strong></summary>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 // Create your telemetry client
 const client = new AutomagikTelemetry({
@@ -177,7 +177,7 @@ client.track_metric(
 <summary><strong>📘 TypeScript</strong></summary>
 
 ```typescript
-import { MetricType } from '@automagik/telemetry';
+import { MetricType } from 'automagik-telemetry';
 
 // Track a counter (increments)
 client.trackMetric(
@@ -304,7 +304,7 @@ advanced_client = AutomagikTelemetry(config=advanced_config)
 <summary><strong>📘 TypeScript Configuration</strong></summary>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 // Simple initialization (uses defaults)
 const client = new AutomagikTelemetry({
@@ -376,7 +376,7 @@ print("✅ Check console for telemetry output!")
 <summary><strong>📘 TypeScript Example</strong></summary>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'test-app',
@@ -455,7 +455,7 @@ def handle_request(endpoint: str):
 <summary><strong>📘 TypeScript</strong></summary>
 
 ```typescript
-import { MetricType } from '@automagik/telemetry';
+import { MetricType } from 'automagik-telemetry';
 
 async function handleRequest(endpoint: string) {
     const start = Date.now();
@@ -556,7 +556,7 @@ def monitor_system():
 
 ```typescript
 import os from 'os';
-import { MetricType } from '@automagik/telemetry';
+import { MetricType } from 'automagik-telemetry';
 
 function monitorSystem() {
     // CPU usage (requires additional libraries for detailed metrics)
@@ -804,7 +804,7 @@ We're here to help you succeed!
 ### 📦 Package Pages
 
 - **[PyPI](https://pypi.org/project/automagik-telemetry/)** - Python package
-- **[npm](https://www.npmjs.com/package/@automagik/telemetry)** - TypeScript/JavaScript package
+- **[npm](https://www.npmjs.com/package/automagik-telemetry)** - TypeScript/JavaScript package
 
 ---
 

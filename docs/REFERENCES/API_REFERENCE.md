@@ -56,7 +56,7 @@ advanced_telemetry = AutomagikTelemetry(config=advanced_config)
 <td>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 // Simple initialization
 const telemetry = new AutomagikTelemetry({
@@ -146,7 +146,7 @@ config = TelemetryConfig(
 <td>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const config = {
     // Required
@@ -247,7 +247,7 @@ MetricType.HISTOGRAM  # Distribution of values
 <td>
 
 ```typescript
-import { MetricType } from '@automagik/telemetry';
+import { MetricType } from 'automagik-telemetry';
 
 // Available values
 MetricType.GAUGE      // Point-in-time value
@@ -297,7 +297,7 @@ LogSeverity.FATAL  # 21 - Fatal error
 <td>
 
 ```typescript
-import { LogSeverity } from '@automagik/telemetry';
+import { LogSeverity } from 'automagik-telemetry';
 
 // Available values (OTLP standard)
 LogSeverity.TRACE  // 1  - Finest detail
@@ -419,7 +419,7 @@ telemetry.track_event("feature.used", {
 <td>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -560,7 +560,7 @@ telemetry.track_metric(
 import {
     AutomagikTelemetry,
     MetricType
-} from '@automagik/telemetry';
+} from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -711,7 +711,7 @@ telemetry.track_log(
 import {
     AutomagikTelemetry,
     LogSeverity
-} from '@automagik/telemetry';
+} from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -850,7 +850,7 @@ except requests.HTTPError as e:
 <td>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -955,7 +955,7 @@ telemetry.flush()
 <td>
 
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -1236,7 +1236,7 @@ telemetry.track_metric(
 import {
     AutomagikTelemetry,
     MetricType
-} from '@automagik/telemetry';
+} from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -1363,7 +1363,7 @@ def get_users():
 <td>
 
 ```typescript
-import { MetricType } from '@automagik/telemetry';
+import { MetricType } from 'automagik-telemetry';
 
 app.get('/api/users', async (req, res) => {
     const start = performance.now();

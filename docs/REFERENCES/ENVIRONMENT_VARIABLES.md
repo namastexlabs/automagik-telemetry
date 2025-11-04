@@ -75,7 +75,7 @@
 
   **TypeScript Config (Alternative):**
   ```typescript
-  import { AutomagikTelemetry } from '@automagik/telemetry';
+  import { AutomagikTelemetry } from 'automagik-telemetry';
 
   const client = new AutomagikTelemetry({
       projectName: 'myapp',

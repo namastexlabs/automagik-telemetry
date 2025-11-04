@@ -105,19 +105,19 @@ pip install -e ".[dev]"
 #### Option 1: Using pnpm (Recommended)
 
 ```bash
-pnpm add @automagik/telemetry
+pnpm add automagik-telemetry
 ```
 
 #### Option 2: Using npm
 
 ```bash
-npm install @automagik/telemetry
+npm install automagik-telemetry
 ```
 
 #### Option 3: Using yarn
 
 ```bash
-yarn add @automagik/telemetry
+yarn add automagik-telemetry
 ```
 
 ---
@@ -264,7 +264,7 @@ AUTOMAGIK_TELEMETRY_ENDPOINT=https://telemetry.namastex.ai
 /**
  * Centralized telemetry configuration for Express application.
  */
-import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 import { Request, Response, NextFunction } from 'express';
 
 // Initialize telemetry client (singleton pattern)
@@ -611,7 +611,7 @@ if __name__ == "__main__":
  * AWS Lambda handler with telemetry.
  */
 import { Handler, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 
 // Initialize outside handler for cold start optimization
 const telemetry = new AutomagikTelemetry({
@@ -787,7 +787,7 @@ app_logger.log_application_event(
 /**
  * Application logging with structured context.
  */
-import { AutomagikTelemetry, LogSeverity } from '@automagik/telemetry';
+import { AutomagikTelemetry, LogSeverity } from 'automagik-telemetry';
 import winston from 'winston';
 
 class ApplicationLogger {
@@ -1114,7 +1114,7 @@ class AgentOrchestrator:
 
 ```typescript
 // File: forge/task-manager.ts
-import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
   projectName: 'forge',
@@ -1282,7 +1282,7 @@ telemetry.track_event("user.action", sanitize_user_data({
 **TypeScript Implementation:**
 
 ```typescript
-import { sanitizeAttributes } from '@automagik/telemetry';
+import { sanitizeAttributes } from 'automagik-telemetry';
 import crypto from 'crypto';
 
 function sanitizeUserData(attributes: Record<string, any>): Record<string, any> {

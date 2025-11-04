@@ -466,7 +466,7 @@ Example:
  * Brief description of what this module does.
  *
  * @example
- * import { AutomagikTelemetry } from '@automagik/telemetry';
+ * import { AutomagikTelemetry } from 'automagik-telemetry';
  * const client = new AutomagikTelemetry({ projectName: 'my-app', version: '1.0.0' });
  */
 ```

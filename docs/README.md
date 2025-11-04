@@ -322,7 +322,7 @@ client.track_metric("api.requests", value=1, metric_type=MetricType.COUNTER)
 ### TypeScript (Zero Dependencies)
 
 ```typescript
-import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 
 // Initialize
 const client = new AutomagikTelemetry({ projectName: 'my-app', version: '1.0.0' });
@@ -453,7 +453,7 @@ Using telemetry for the first time? Follow this checklist:
 
 ### Installation & Setup
 - [ ] Choose your SDK (Python or TypeScript)
-- [ ] Install package (`pip install automagik-telemetry` or `pnpm add @automagik/telemetry`)
+- [ ] Install package (`pip install automagik-telemetry` or `pnpm add automagik-telemetry`)
 - [ ] Read [Quickstart Guide](GETTING_STARTED.md)
 - [ ] Send your first event
 - [ ] Verify event received (verbose mode)

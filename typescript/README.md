@@ -7,9 +7,9 @@ Privacy-first OpenTelemetry SDK for TypeScript/JavaScript applications with zero
 ## Installation
 
 ```bash
-npm install @automagik/telemetry
+npm install automagik-telemetry
 # or
-pnpm add @automagik/telemetry
+pnpm add automagik-telemetry
 ```
 
 **Requirements:** Node.js 18+
@@ -17,7 +17,7 @@ pnpm add @automagik/telemetry
 ## Quick Start
 
 ```typescript
-import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 
 // Initialize client
 const client = new AutomagikTelemetry({

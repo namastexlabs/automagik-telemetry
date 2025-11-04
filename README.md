@@ -13,7 +13,7 @@
   <a href="https://github.com/namastexlabs/automagik-telemetry/actions/workflows/python-ci.yml"><img alt="Python CI" src="https://img.shields.io/github/actions/workflow/status/namastexlabs/automagik-telemetry/python-ci.yml?branch=main&style=flat-square&label=python%20ci" /></a>
   <a href="https://github.com/namastexlabs/automagik-telemetry/actions/workflows/typescript-ci.yml"><img alt="TypeScript CI" src="https://img.shields.io/github/actions/workflow/status/namastexlabs/automagik-telemetry/typescript-ci.yml?branch=main&style=flat-square&label=typescript%20ci" /></a>
   <a href="https://pypi.org/project/automagik-telemetry/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/automagik-telemetry?style=flat-square&color=00D9FF" /></a>
-  <a href="https://www.npmjs.com/package/@automagik/telemetry"><img alt="npm version" src="https://img.shields.io/npm/v/@automagik/telemetry?style=flat-square&color=00D9FF" /></a>
+  <a href="https://www.npmjs.com/package/automagik-telemetry"><img alt="npm version" src="https://img.shields.io/npm/v/automagik-telemetry?style=flat-square&color=00D9FF" /></a>
   <a href="https://github.com/namastexlabs/automagik-telemetry/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/namastexlabs/automagik-telemetry?style=flat-square&color=00D9FF" /></a>
   <a href="https://discord.gg/xcW8c7fF3R"><img alt="Discord" src="https://img.shields.io/discord/1095114867012292758?style=flat-square&color=00D9FF&label=discord" /></a>
 </p>
@@ -99,7 +99,7 @@ client.track_event("api.request", {"endpoint": "/users", "status": 200})
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({ projectName: 'my-app', version: '1.0.0' });
 client.trackEvent('api.request', { endpoint: '/users', status: 200 });
@@ -135,7 +135,7 @@ client.track_log("Payment processing failed", LogSeverity.ERROR, {
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry, LogSeverity } from '@automagik/telemetry';
+import { AutomagikTelemetry, LogSeverity } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({ projectName: 'my-app', version: '1.0.0' });
 
@@ -384,14 +384,14 @@ client = AutomagikTelemetry(config=config)
 
 **Installation:**
 ```bash
-npm install @automagik/telemetry
+npm install automagik-telemetry
 # or
-pnpm add @automagik/telemetry
+pnpm add automagik-telemetry
 ```
 
 **Basic Usage:**
 ```typescript
-import { AutomagikTelemetry, StandardEvents } from '@automagik/telemetry';
+import { AutomagikTelemetry, StandardEvents } from 'automagik-telemetry';
 
 // Initialize client
 const client = new AutomagikTelemetry({
@@ -408,7 +408,7 @@ client.trackEvent(StandardEvents.FEATURE_USED, {
 });
 
 // Track metrics
-import { MetricType } from '@automagik/telemetry';
+import { MetricType } from 'automagik-telemetry';
 
 client.trackMetric('api.requests', 1, MetricType.COUNTER, {
     endpoint: '/api/users',
@@ -420,7 +420,7 @@ client.trackMetric('system.memory_mb', 512.5, MetricType.GAUGE);
 client.trackMetric('api.response_time_ms', 125.3, MetricType.HISTOGRAM);
 
 // Track logs with severity levels
-import { LogSeverity } from '@automagik/telemetry';
+import { LogSeverity } from 'automagik-telemetry';
 
 client.trackLog('Application started successfully', LogSeverity.INFO);
 
@@ -477,7 +477,7 @@ client.track_event("user.login", {"user_id": "123"})
 
 **TypeScript with ClickHouse:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 // Direct ClickHouse backend
 const client = new AutomagikTelemetry({
@@ -668,7 +668,7 @@ client = AutomagikTelemetry(config=config)
 
 ```typescript
 // TypeScript - Advanced configuration with all options
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -937,7 +937,7 @@ await client.flush_async()
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -984,7 +984,7 @@ client.disable()
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -1060,7 +1060,7 @@ print(f"Queue sizes: {status['queue_sizes']}")
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -1504,7 +1504,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - **GitHub**: [github.com/namastexlabs/automagik-telemetry](https://github.com/namastexlabs/automagik-telemetry)
 - **PyPI**: [pypi.org/project/automagik-telemetry](https://pypi.org/project/automagik-telemetry)
-- **npm**: [npmjs.com/package/@automagik/telemetry](https://www.npmjs.com/package/@automagik/telemetry)
+- **npm**: [npmjs.com/package/automagik-telemetry](https://www.npmjs.com/package/automagik-telemetry)
 - **Discord**: [discord.gg/xcW8c7fF3R](https://discord.gg/xcW8c7fF3R)
 - **Twitter**: [@namastexlabs](https://twitter.com/namastexlabs)
 - **DeepWiki Docs**: [deepwiki.com/namastexlabs/automagik-telemetry](https://deepwiki.com/namastexlabs/automagik-telemetry)

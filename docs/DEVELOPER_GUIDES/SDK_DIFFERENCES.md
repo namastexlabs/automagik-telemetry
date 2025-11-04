@@ -152,7 +152,7 @@ client.shutdown()
 import {
     AutomagikTelemetry,
     MetricType
-} from '@automagik/telemetry';
+} from 'automagik-telemetry';
 
 // Initialize
 const client = new AutomagikTelemetry({
@@ -430,7 +430,7 @@ client.track_metric(
 <td>
 
 ```typescript
-import { MetricType } from '@automagik/telemetry';
+import { MetricType } from 'automagik-telemetry';
 
 // Counter
 client.trackMetric(
@@ -535,7 +535,7 @@ client.track_log(
 <td>
 
 ```typescript
-import { LogLevel } from '@automagik/telemetry';
+import { LogLevel } from 'automagik-telemetry';
 
 client.trackLog(
     'User logged in',
@@ -1353,14 +1353,14 @@ flowchart TD
 pip uninstall automagik-telemetry
 
 # Install TypeScript SDK
-pnpm add @automagik/telemetry
+pnpm add automagik-telemetry
 ```
 
 #### Step 2: Update Import Statements
 
 ```diff
 - from automagik_telemetry import AutomagikTelemetry, MetricType
-+ import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
++ import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 ```
 
 #### Step 3: Update Initialization
@@ -1425,7 +1425,7 @@ pnpm add @automagik/telemetry
 
 ```bash
 # Remove TypeScript SDK (if needed)
-pnpm remove @automagik/telemetry
+pnpm remove automagik-telemetry
 
 # Install Python SDK
 pip install automagik-telemetry
@@ -1434,7 +1434,7 @@ pip install automagik-telemetry
 #### Step 2: Update Import Statements
 
 ```diff
-- import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+- import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
 + from automagik_telemetry import AutomagikTelemetry, MetricType
 ```
 
@@ -1521,7 +1521,7 @@ When porting code from one SDK to another, follow this checklist:
 1. **Update imports**
    ```diff
    - from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, MetricType
-   + import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+   + import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
    ```
 
 2. **Convert initialization pattern**
@@ -1627,7 +1627,7 @@ client.disable()
 import {
     AutomagikTelemetry,
     MetricType
-} from '@automagik/telemetry';
+} from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -1661,7 +1661,7 @@ await client.disable();
 
 1. **Update imports**
    ```diff
-   - import { AutomagikTelemetry, MetricType } from '@automagik/telemetry';
+   - import { AutomagikTelemetry, MetricType } from 'automagik-telemetry';
    + from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, MetricType
    ```
 
@@ -1734,7 +1734,7 @@ await client.disable();
 import {
     AutomagikTelemetry,
     MetricType
-} from '@automagik/telemetry';
+} from 'automagik-telemetry';
 
 const client = new AutomagikTelemetry({
     projectName: 'my-app',

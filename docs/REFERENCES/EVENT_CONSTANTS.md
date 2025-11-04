@@ -180,7 +180,7 @@ telemetry.track_event("feature.used", {  # Missing namespace, typo risk
 ### TypeScript SDK
 
 ```typescript
-import { AutomagikTelemetry, StandardEvents } from '@automagik/telemetry';
+import { AutomagikTelemetry, StandardEvents } from 'automagik-telemetry';
 
 // Initialize client
 const telemetry = new AutomagikTelemetry({
@@ -246,7 +246,7 @@ telemetry.track_metric(
 
 ```typescript
 // TypeScript
-import { StandardEvents, MetricType } from '@automagik/telemetry';
+import { StandardEvents, MetricType } from 'automagik-telemetry';
 
 const start = Date.now();
 // ... perform operation ...
@@ -290,7 +290,7 @@ except Exception as e:
 
 ```typescript
 // TypeScript
-import { StandardEvents } from '@automagik/telemetry';
+import { StandardEvents } from 'automagik-telemetry';
 
 try {
     riskyOperation();

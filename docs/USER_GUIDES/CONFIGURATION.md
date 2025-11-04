@@ -47,7 +47,7 @@ telemetry = AutomagikTelemetry(
 
 **TypeScript - Minimal Setup:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -774,7 +774,7 @@ config = TelemetryConfig(
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -917,7 +917,7 @@ telemetry = AutomagikTelemetry(config=config)
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
@@ -1010,7 +1010,7 @@ telemetry = AutomagikTelemetry(config=config)
 
 **TypeScript:**
 ```typescript
-import { AutomagikTelemetry } from '@automagik/telemetry';
+import { AutomagikTelemetry } from 'automagik-telemetry';
 
 const telemetry = new AutomagikTelemetry({
     projectName: 'high-traffic-app',
