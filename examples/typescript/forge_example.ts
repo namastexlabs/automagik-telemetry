@@ -1,11 +1,11 @@
 /**
- * Example: Using @automagik/telemetry in Automagik Forge
+ * Example: Using automagik-telemetry in Automagik Forge
  *
  * This shows real-world usage for tracking task execution, agent performance,
  * worktree usage, and errors in the Forge AI development environment.
  */
 
-import { AutomagikTelemetry, StandardEvents, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, StandardEvents, MetricType } from 'automagik-telemetry';
 
 // Initialize telemetry client once at app startup
 const telemetry = new AutomagikTelemetry({

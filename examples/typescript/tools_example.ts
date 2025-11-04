@@ -1,11 +1,11 @@
 /**
- * Example: Using @automagik/telemetry in Automagik Tools
+ * Example: Using automagik-telemetry in Automagik Tools
  *
  * This shows real-world usage for tracking tool invocations, MCP usage,
  * integration health, API requests, and performance monitoring.
  */
 
-import { AutomagikTelemetry, StandardEvents, MetricType } from '@automagik/telemetry';
+import { AutomagikTelemetry, StandardEvents, MetricType } from 'automagik-telemetry';
 
 // Initialize telemetry client once at app startup
 const telemetry = new AutomagikTelemetry({

@@ -1,5 +1,5 @@
 /**
- * @automagik/telemetry
+ * automagik-telemetry
  *
  * Privacy-first, opt-in telemetry SDK for the Automagik ecosystem
  */
