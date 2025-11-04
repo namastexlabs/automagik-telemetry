@@ -462,6 +462,51 @@ export class AutomagikTelemetry {
   }
 
   /**
+   * Create standard resource attributes shared across traces, metrics, and logs.
+   * Extracts duplication from sendEvent, sendMetric, and sendLog methods.
+   */
+  private createResourceAttributes(): OTLPAttribute[] {
+    return [
+      {
+        key: "service.name",
+        value: { stringValue: this.projectName },
+      },
+      {
+        key: "service.version",
+        value: { stringValue: this.projectVersion },
+      },
+      {
+        key: "project.name", // ClickHouse backend uses this
+        value: { stringValue: this.projectName },
+      },
+      {
+        key: "project.version", // ClickHouse backend uses this
+        value: { stringValue: this.projectVersion },
+      },
+      {
+        key: "service.organization",
+        value: { stringValue: this.organization },
+      },
+      {
+        key: "user.id",
+        value: { stringValue: this.userId },
+      },
+      {
+        key: "session.id",
+        value: { stringValue: this.sessionId },
+      },
+      {
+        key: "telemetry.sdk.name",
+        value: { stringValue: "automagik-telemetry" },
+      },
+      {
+        key: "telemetry.sdk.version",
+        value: { stringValue: this.getSDKVersion() },
+      },
+    ];
+  }
+
+  /**
    * Convert data to OTLP attribute format with type safety.
    *
    * @param data - Event data to convert
@@ -574,45 +619,8 @@ export class AutomagikTelemetry {
       // Get current time in nanoseconds
       const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
 
-      // Resource attributes
-      const resourceAttributes = [
-        {
-          key: "service.name",
-          value: { stringValue: this.projectName },
-        },
-        {
-          key: "service.version",
-          value: { stringValue: this.projectVersion },
-        },
-        {
-          key: "project.name", // ClickHouse backend uses this
-          value: { stringValue: this.projectName },
-        },
-        {
-          key: "project.version", // ClickHouse backend uses this
-          value: { stringValue: this.projectVersion },
-        },
-        {
-          key: "service.organization",
-          value: { stringValue: this.organization },
-        },
-        {
-          key: "user.id",
-          value: { stringValue: this.userId },
-        },
-        {
-          key: "session.id",
-          value: { stringValue: this.sessionId },
-        },
-        {
-          key: "telemetry.sdk.name",
-          value: { stringValue: "automagik-telemetry" },
-        },
-        {
-          key: "telemetry.sdk.version",
-          value: { stringValue: this.getSDKVersion() },
-        },
-      ];
+      // Resource attributes (using shared helper method)
+      const resourceAttributes = this.createResourceAttributes();
 
       // Create OTLP-compatible span
       const span: OTLPSpan = {
@@ -740,44 +748,7 @@ export class AutomagikTelemetry {
         resourceMetrics: [
           {
             resource: {
-              attributes: [
-                {
-                  key: "service.name",
-                  value: { stringValue: this.projectName },
-                },
-                {
-                  key: "service.version",
-                  value: { stringValue: this.projectVersion },
-                },
-                {
-                  key: "project.name", // ClickHouse backend uses this
-                  value: { stringValue: this.projectName },
-                },
-                {
-                  key: "project.version", // ClickHouse backend uses this
-                  value: { stringValue: this.projectVersion },
-                },
-                {
-                  key: "service.organization",
-                  value: { stringValue: this.organization },
-                },
-                {
-                  key: "user.id",
-                  value: { stringValue: this.userId },
-                },
-                {
-                  key: "session.id",
-                  value: { stringValue: this.sessionId },
-                },
-                {
-                  key: "telemetry.sdk.name",
-                  value: { stringValue: "automagik-telemetry" },
-                },
-                {
-                  key: "telemetry.sdk.version",
-                  value: { stringValue: this.getSDKVersion() },
-                },
-              ],
+              attributes: this.createResourceAttributes(),
             },
             scopeMetrics: [
               {
@@ -840,44 +811,7 @@ export class AutomagikTelemetry {
         resourceLogs: [
           {
             resource: {
-              attributes: [
-                {
-                  key: "service.name",
-                  value: { stringValue: this.projectName },
-                },
-                {
-                  key: "service.version",
-                  value: { stringValue: this.projectVersion },
-                },
-                {
-                  key: "project.name", // ClickHouse backend uses this
-                  value: { stringValue: this.projectName },
-                },
-                {
-                  key: "project.version", // ClickHouse backend uses this
-                  value: { stringValue: this.projectVersion },
-                },
-                {
-                  key: "service.organization",
-                  value: { stringValue: this.organization },
-                },
-                {
-                  key: "user.id",
-                  value: { stringValue: this.userId },
-                },
-                {
-                  key: "session.id",
-                  value: { stringValue: this.sessionId },
-                },
-                {
-                  key: "telemetry.sdk.name",
-                  value: { stringValue: "automagik-telemetry" },
-                },
-                {
-                  key: "telemetry.sdk.version",
-                  value: { stringValue: this.getSDKVersion() },
-                },
-              ],
+              attributes: this.createResourceAttributes(),
             },
             scopeLogs: [
               {

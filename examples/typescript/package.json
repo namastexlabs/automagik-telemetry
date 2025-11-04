@@ -1,0 +1,22 @@
+{
+  "name": "automagik-telemetry-examples",
+  "version": "0.1.0",
+  "description": "Examples for Automagik Telemetry TypeScript SDK",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "basic": "tsx basic_example.ts",
+    "forge": "tsx forge_example.ts",
+    "tools": "tsx tools_example.ts"
+  },
+  "dependencies": {
+    "automagik-telemetry": "^0.1.4"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

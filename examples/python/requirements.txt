@@ -1,0 +1,9 @@
+# Python Example Dependencies
+# Install with: pip install -r requirements.txt
+
+# Automagik Telemetry SDK
+automagik-telemetry>=0.1.4
+
+# Optional: For development/testing
+# Install from local source instead:
+# pip install -e ../../python
