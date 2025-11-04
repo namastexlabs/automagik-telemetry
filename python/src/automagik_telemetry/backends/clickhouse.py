@@ -144,6 +144,11 @@ class ClickHouseBackend:
             "os_version": resource_attrs.get("os.version", ""),
             "runtime_name": resource_attrs.get("process.runtime.name", ""),
             "runtime_version": resource_attrs.get("process.runtime.version", ""),
+            "cloud_provider": resource_attrs.get("cloud.provider", ""),
+            "cloud_region": resource_attrs.get("cloud.region", ""),
+            "cloud_availability_zone": resource_attrs.get("cloud.availability_zone", ""),
+            "instrumentation_library_name": resource_attrs.get("telemetry.sdk.name", ""),
+            "instrumentation_library_version": resource_attrs.get("telemetry.sdk.version", ""),
         }
 
     def add_to_batch(self, otlp_span: dict[str, Any]) -> None:

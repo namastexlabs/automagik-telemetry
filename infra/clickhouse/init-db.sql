@@ -44,6 +44,15 @@ CREATE TABLE IF NOT EXISTS traces (
     runtime_name String DEFAULT '',
     runtime_version String DEFAULT '',
 
+    -- Cloud metadata
+    cloud_provider String DEFAULT '',
+    cloud_region String DEFAULT '',
+    cloud_availability_zone String DEFAULT '',
+
+    -- Instrumentation
+    instrumentation_library_name String DEFAULT '',
+    instrumentation_library_version String DEFAULT '',
+
     -- Indexing
     INDEX idx_timestamp timestamp TYPE minmax GRANULARITY 1,
     INDEX idx_service_name service_name TYPE bloom_filter GRANULARITY 1,

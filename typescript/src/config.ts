@@ -11,24 +11,50 @@
 export interface TelemetryConfig {
   /** Name of the Automagik project (omni, hive, forge, etc.) */
   projectName: string;
-
   /** Version of the project */
   version: string;
-
+  /** Backend to use ("otlp" or "clickhouse", default: "otlp") */
+  backend?: string;
   /** Custom telemetry endpoint (defaults to telemetry.namastex.ai) */
   endpoint?: string;
-
-  /** Organization name */
+  /** Organization name (default: namastex) */
   organization?: string;
-
-  /** HTTP timeout in seconds (converted to milliseconds internally) */
+  /** HTTP timeout in seconds (default: 5) */
   timeout?: number;
-
   /** Whether telemetry is enabled (opt-in only) */
   enabled?: boolean;
-
   /** Enable verbose logging to console */
   verbose?: boolean;
+  /** Batch size for event queue (default: 100) */
+  batchSize?: number;
+  /** Flush interval in milliseconds (default: 5000ms) */
+  flushInterval?: number;
+  /** Enable payload compression (default: true) */
+  compressionEnabled?: boolean;
+  /** Compression threshold in bytes (default: 1024) */
+  compressionThreshold?: number;
+  /** Maximum retry attempts (default: 3) */
+  maxRetries?: number;
+  /** Retry backoff base in milliseconds (default: 1000ms) */
+  retryBackoffBase?: number;
+  /** Custom metrics endpoint (defaults to /v1/metrics) */
+  metricsEndpoint?: string;
+  /** Custom logs endpoint (defaults to /v1/logs) */
+  logsEndpoint?: string;
+  /** ClickHouse HTTP endpoint (default: http://localhost:8123) */
+  clickhouseEndpoint?: string;
+  /** ClickHouse database name (default: telemetry) */
+  clickhouseDatabase?: string;
+  /** ClickHouse traces table name (default: traces) */
+  clickhouseTable?: string;
+  /** ClickHouse metrics table name (default: metrics) */
+  clickhouseMetricsTable?: string;
+  /** ClickHouse logs table name (default: logs) */
+  clickhouseLogsTable?: string;
+  /** ClickHouse username (default: default) */
+  clickhouseUsername?: string;
+  /** ClickHouse password (default: "") */
+  clickhousePassword?: string;
 }
 
 /**

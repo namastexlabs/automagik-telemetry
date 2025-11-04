@@ -358,12 +358,13 @@ export AUTOMAGIK_TELEMETRY_ENABLED=true
 <summary><strong>🐍 Python Example</strong></summary>
 
 ```python
-from automagik_telemetry import AutomagikTelemetry
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
 
-client = AutomagikTelemetry(
+config = TelemetryConfig(
     project_name="test-app",
     version="1.0.0"
 )
+client = AutomagikTelemetry(config=config)
 
 client.track_event("test.event", {"foo": "bar"})
 print("✅ Check console for telemetry output!")
@@ -679,10 +680,14 @@ Now that you're up and running, explore these advanced topics:
 
 1. **Increase timeout (Python)**
    ```python
-   client = AutomagikTelemetry(
+   from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+
+   config = TelemetryConfig(
        project_name="my-app",
+       version="1.0.0",
        timeout=10.0  # 10 seconds
    )
+   client = AutomagikTelemetry(config=config)
    ```
 
 2. **Check firewall rules**
@@ -711,10 +716,14 @@ Now that you're up and running, explore these advanced topics:
 
 2. **Increase flush frequency (Python)**
    ```python
-   client = AutomagikTelemetry(
+   from automagik_telemetry import AutomagikTelemetry, TelemetryConfig
+
+   config = TelemetryConfig(
        project_name="my-app",
+       version="1.0.0",
        flush_interval=1.0  # Flush every second
    )
+   client = AutomagikTelemetry(config=config)
    ```
 
 3. **Use immediate send**

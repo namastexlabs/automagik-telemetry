@@ -741,7 +741,7 @@ class TestEnableDisable:
 
         assert not opt_out_file.exists()
 
-    def test_should_disable_telemetry(
+    async def test_should_disable_telemetry(
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test disabling telemetry."""
@@ -752,11 +752,11 @@ class TestEnableDisable:
 
         assert client.enabled is True
 
-        client.disable()
+        await client.disable()
 
         assert client.enabled is False
 
-    def test_should_create_opt_out_file_when_disabled(
+    async def test_should_create_opt_out_file_when_disabled(
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that opt-out file is created when disabling."""
@@ -765,12 +765,12 @@ class TestEnableDisable:
         config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=1)
         client = AutomagikTelemetry(config=config)
 
-        client.disable()
+        await client.disable()
 
         opt_out_file = temp_home / ".automagik-no-telemetry"
         assert opt_out_file.exists()
 
-    def test_should_flush_pending_events_when_disabled(
+    async def test_should_flush_pending_events_when_disabled(
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that disable() flushes pending events before disabling."""
@@ -781,17 +781,17 @@ class TestEnableDisable:
         config = TelemetryConfig(project_name="test-project", version="1.0.0", batch_size=10)
         client = AutomagikTelemetry(config=config)
 
-        # Mock the flush method to track calls
-        with patch.object(client, "flush", wraps=client.flush) as mock_flush:
-            # Disable should call flush
-            client.disable()
+        # Mock the flush_async method to track calls
+        with patch.object(client, "flush_async", wraps=client.flush_async) as mock_flush:
+            # Disable should call flush_async
+            await client.disable()
 
-            # Verify flush was called
+            # Verify flush_async was called
             mock_flush.assert_called_once()
             assert client.enabled is False
             assert client._shutdown is True
 
-    def test_should_check_if_enabled(
+    async def test_should_check_if_enabled(
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test is_enabled() method."""
@@ -802,7 +802,7 @@ class TestEnableDisable:
 
         assert client.is_enabled() is True
 
-        client.disable()
+        await client.disable()
 
         assert client.is_enabled() is False
 
@@ -1475,7 +1475,7 @@ class TestEdgeCasesAndErrorPaths:
             # Should only try once
             assert mock_urlopen.call_count == 1
 
-    def test_should_handle_enable_disable_errors_silently(
+    async def test_should_handle_enable_disable_errors_silently(
         self, temp_home: Path, clean_env: None
     ) -> None:
         """Test that enable/disable handle file errors gracefully."""
@@ -1488,7 +1488,7 @@ class TestEdgeCasesAndErrorPaths:
 
         # Test disable with file touch error
         with patch("pathlib.Path.touch", side_effect=PermissionError):
-            client.disable()  # Should not raise
+            await client.disable()  # Should not raise
 
     def test_should_cleanup_on_delete(
         self, temp_home: Path, monkeypatch: pytest.MonkeyPatch, mock_urlopen: Mock
@@ -1809,7 +1809,7 @@ class TestAsyncMethods:
 class TestTimerAndBatchCoverage:
     """Tests specifically targeting timer and batch threshold lines for 100% coverage."""
 
-    def test_should_trigger_timer_flush_callback(self, mock_urlopen, temp_home):
+    async def test_should_trigger_timer_flush_callback(self, mock_urlopen, temp_home):
         """Test that timer callback flush_and_reschedule is executed (lines 312-315)."""
         config = TelemetryConfig(
             project_name="test",
@@ -1829,9 +1829,9 @@ class TestTimerAndBatchCoverage:
 
         # Timer should have triggered flush
         assert mock_urlopen.called
-        client.disable()
+        await client.disable()
 
-    def test_should_hit_exact_batch_threshold_for_traces(
+    async def test_should_hit_exact_batch_threshold_for_traces(
         self, mock_urlopen, temp_home, monkeypatch
     ):
         """Test hitting exactly batch_size for traces (line 455)."""
@@ -1852,9 +1852,9 @@ class TestTimerAndBatchCoverage:
 
         # Should have flushed due to batch threshold
         assert mock_urlopen.call_count >= 1
-        client.disable()
+        await client.disable()
 
-    def test_should_hit_exact_batch_threshold_for_metrics(
+    async def test_should_hit_exact_batch_threshold_for_metrics(
         self, mock_urlopen, temp_home, monkeypatch
     ):
         """Test hitting exactly batch_size for metrics (line 513)."""
@@ -1874,9 +1874,9 @@ class TestTimerAndBatchCoverage:
         client.track_metric("test.metric", 3.0, MetricType.GAUGE)
 
         assert mock_urlopen.call_count >= 1
-        client.disable()
+        await client.disable()
 
-    def test_should_hit_exact_batch_threshold_for_logs(self, mock_urlopen, temp_home, monkeypatch):
+    async def test_should_hit_exact_batch_threshold_for_logs(self, mock_urlopen, temp_home, monkeypatch):
         """Test hitting exactly batch_size for logs (line 543)."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 
@@ -1894,9 +1894,9 @@ class TestTimerAndBatchCoverage:
         client.track_log("Log message 3", LogSeverity.INFO)
 
         assert mock_urlopen.call_count >= 1
-        client.disable()
+        await client.disable()
 
-    def test_should_not_reschedule_when_shutdown(self, mock_urlopen, temp_home):
+    async def test_should_not_reschedule_when_shutdown(self, mock_urlopen, temp_home):
         """Test that timer doesn't reschedule after shutdown (line 310)."""
         config = TelemetryConfig(
             project_name="test",
@@ -1911,7 +1911,7 @@ class TestTimerAndBatchCoverage:
         client.track_event("test", {})
 
         # Disable to set _shutdown=True
-        client.disable()
+        await client.disable()
 
         # Wait to see if timer tries to reschedule (it shouldn't)
         time.sleep(0.1)

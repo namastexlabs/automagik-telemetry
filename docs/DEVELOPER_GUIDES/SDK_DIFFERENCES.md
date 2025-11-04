@@ -84,7 +84,7 @@ graph TD
 | Feature | Python | TypeScript | Portable? | Impact |
 |---------|--------|-----------|-----------|---------|
 | **disable() flushes** | ✅ YES (v0.1.3+) | ✅ YES | ✅ Yes | **LOW** - Both flush now |
-| **disable() signature** | `def disable() -> None` | `async disable() -> Promise<void>` | ❌ No | **CRITICAL** - Must await in TS |
+| **disable() signature** | `async def disable() -> None` | `async disable() -> Promise<void>` | ✅ Yes | **LOW** - Both async now |
 | **flush() signature** | `def flush() -> None` | `async flush() -> Promise<void>` | ❌ No | **HIGH** - Must await in TS |
 | **Async methods** | ✅ Explicit (`track_event_async`) | ❌ Internal only | ⚠️ Different | **HIGH** - API differs |
 | **Queue architecture** | 3 separate queues | 1 unified queue | ❌ No | **HIGH** - Different semantics |
@@ -573,7 +573,7 @@ The `disable()` method has signature differences but **both SDKs now flush pendi
 </tr>
 <tr>
 <td><strong>Signature</strong></td>
-<td><code>def disable(self) -> None</code></td>
+<td><code>async def disable(self) -> None</code></td>
 <td><code>async disable(): Promise&lt;void&gt;</code></td>
 </tr>
 <tr>
@@ -588,7 +588,7 @@ The `disable()` method has signature differences but **both SDKs now flush pendi
 </tr>
 <tr>
 <td><strong>Must be awaited?</strong></td>
-<td>❌ No (sync)</td>
+<td>✅ <strong>YES</strong> - Must await!</td>
 <td>✅ <strong>YES</strong> - Must await!</td>
 </tr>
 </table>
@@ -610,10 +610,10 @@ client.track_event("app.shutdown", {
 })
 
 # disable() flushes pending events automatically
-client.disable()  # Synchronous, flushes before disabling
+await client.disable()  # Async, must be awaited
 ```
 
-**Note:** As of v0.1.3, Python's `disable()` now flushes pending events before disabling, preventing data loss. No manual `flush()` call needed!
+**Note:** As of v0.1.4, Python's `disable()` is now async and must be awaited, matching TypeScript's behavior. It flushes pending events before disabling, preventing data loss.
 
 </td>
 <td>
@@ -814,7 +814,7 @@ await client.disable();  // Promise<void>
 </tr>
 <tr>
 <td><code>disable()</code></td>
-<td>Sync - Returns None</td>
+<td>✅ Async - Returns awaitable</td>
 <td>✅ Async - Returns Promise&lt;void&gt;</td>
 </tr>
 </table>
@@ -1706,8 +1706,7 @@ await client.disable();
    + await client.flush_async()
 
    - await client.disable();
-   + client.flush()  # IMPORTANT: Must flush manually!
-   + client.disable()
+   + await client.disable()  # Async in Python (v0.1.4+)
    ```
 
 7. **Add clickhouse_table if needed**
@@ -1788,8 +1787,8 @@ client.track_metric(
     metric_type=MetricType.COUNTER
 )
 
-# disable() flushes automatically (v0.1.3+)
-client.disable()
+# disable() flushes automatically (v0.1.4+ - now async)
+await client.disable()
 ```
 
 </td>
@@ -1798,9 +1797,19 @@ client.disable()
 
 ### Common Pitfalls
 
-#### ⚠️ Pitfall 1: Not awaiting disable() in TypeScript (CRITICAL)
+#### ⚠️ Pitfall 1: Not awaiting disable() (CRITICAL)
 
-**Note:** This pitfall was fixed in Python v0.1.3 - both SDKs now flush automatically!
+**Note:** As of Python v0.1.4, both SDKs require awaiting disable()!
+
+```python
+# ❌ WRONG - Not awaiting (Python v0.1.4+)
+client.track_event('important', {...})
+client.disable()  # TypeError: object async_generator can't be used in 'await' expression
+
+# ✅ CORRECT
+client.track_event('important', {...})
+await client.disable()  # Waits for flush to complete
+```
 
 ```typescript
 // ❌ WRONG - Race condition!

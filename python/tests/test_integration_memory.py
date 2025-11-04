@@ -38,7 +38,7 @@ def get_thread_count() -> int:
 
 
 @pytest.fixture
-def memory_test_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
+async def memory_test_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
     """Create telemetry client for memory testing."""
     # Enable telemetry
     monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
@@ -60,7 +60,7 @@ def memory_test_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
 
     # Cleanup
     client.flush()
-    client.disable()
+    await client.disable()
     gc.collect()
 
 
@@ -120,7 +120,7 @@ def test_no_memory_leak_simple_events(memory_test_client: AutomagikTelemetry) ->
         assert growth_rate < 5, "Memory appears to be growing linearly"
 
 
-def test_memory_returns_to_baseline_after_flush(memory_test_client: AutomagikTelemetry) -> None:
+async def test_memory_returns_to_baseline_after_flush(memory_test_client: AutomagikTelemetry) -> None:
     """Test that memory returns to baseline after flush."""
     print("\n=== Testing memory returns to baseline after flush ===")
 
@@ -159,7 +159,7 @@ def test_memory_returns_to_baseline_after_flush(memory_test_client: AutomagikTel
     assert memory_diff < 5, f"Memory didn't return to baseline (diff: {memory_diff:.2f} MB)"
 
 
-def test_no_thread_leaks(memory_test_client: AutomagikTelemetry) -> None:
+async def test_no_thread_leaks(memory_test_client: AutomagikTelemetry) -> None:
     """Test that threads are properly cleaned up."""
     print("\n=== Testing thread cleanup ===")
 
@@ -184,7 +184,7 @@ def test_no_thread_leaks(memory_test_client: AutomagikTelemetry) -> None:
 
     # Flush and disable client
     memory_test_client.flush()
-    memory_test_client.disable()
+    await memory_test_client.disable()
     time.sleep(1.0)
 
     # Thread count should return to baseline or close to it
@@ -421,7 +421,7 @@ def test_repeated_enable_disable_no_leak(monkeypatch: pytest.MonkeyPatch) -> Non
     assert final_threads <= baseline_threads + num_cycles + 5, "Severe thread leak detected"
 
 
-def test_queue_memory_bounds(memory_test_client: AutomagikTelemetry) -> None:
+async def test_queue_memory_bounds(memory_test_client: AutomagikTelemetry) -> None:
     """Test that queues don't grow unbounded in memory."""
     print("\n=== Testing queue memory bounds ===")
 
@@ -494,7 +494,7 @@ def test_queue_memory_bounds(memory_test_client: AutomagikTelemetry) -> None:
     print("Note: Memory freed can be negative due to Python's memory allocator behavior")
 
     # Cleanup
-    client.disable()
+    await client.disable()
 
 
 if __name__ == "__main__":

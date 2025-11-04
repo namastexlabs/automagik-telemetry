@@ -66,6 +66,11 @@ interface ClickHouseTraceRow {
   os_version: string;
   runtime_name: string;
   runtime_version: string;
+  cloud_provider: string;
+  cloud_region: string;
+  cloud_availability_zone: string;
+  instrumentation_library_name: string;
+  instrumentation_library_version: string;
 }
 
 /**
@@ -428,6 +433,12 @@ export class ClickHouseBackend {
       os_version: resourceAttrs["os.version"] || "",
       runtime_name: resourceAttrs["process.runtime.name"] || "",
       runtime_version: resourceAttrs["process.runtime.version"] || "",
+      cloud_provider: resourceAttrs["cloud.provider"] || "",
+      cloud_region: resourceAttrs["cloud.region"] || "",
+      cloud_availability_zone: resourceAttrs["cloud.availability_zone"] || "",
+      instrumentation_library_name: resourceAttrs["telemetry.sdk.name"] || "",
+      instrumentation_library_version:
+        resourceAttrs["telemetry.sdk.version"] || "",
     };
   }
 

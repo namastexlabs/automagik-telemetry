@@ -31,7 +31,7 @@ def otlp_endpoint() -> str:
 
 
 @pytest.fixture
-def otlp_client(monkeypatch: pytest.MonkeyPatch, otlp_endpoint: str) -> AutomagikTelemetry:
+async def otlp_client(monkeypatch: pytest.MonkeyPatch, otlp_endpoint: str) -> AutomagikTelemetry:
     """Create telemetry client configured for real OTLP collector."""
     # Enable telemetry for integration tests
     monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
@@ -55,7 +55,7 @@ def otlp_client(monkeypatch: pytest.MonkeyPatch, otlp_endpoint: str) -> Automagi
 
     # Cleanup: flush and disable
     client.flush()
-    client.disable()
+    await client.disable()
 
 
 def test_send_trace_to_collector(otlp_client: AutomagikTelemetry) -> None:

@@ -69,7 +69,9 @@ class TelemetryConfig:
         logs_endpoint: Custom endpoint for logs (defaults to /v1/logs)
         clickhouse_endpoint: ClickHouse HTTP endpoint (default: http://localhost:8123)
         clickhouse_database: ClickHouse database name (default: telemetry)
-        clickhouse_table: ClickHouse table name (default: traces)
+        clickhouse_table: ClickHouse table name for traces (default: traces)
+        clickhouse_metrics_table: ClickHouse table name for metrics (default: metrics)
+        clickhouse_logs_table: ClickHouse table name for logs (default: logs)
         clickhouse_username: ClickHouse username (default: default)
         clickhouse_password: ClickHouse password (default: "")
     """
@@ -92,6 +94,8 @@ class TelemetryConfig:
     clickhouse_endpoint: str = "http://localhost:8123"
     clickhouse_database: str = "telemetry"
     clickhouse_table: str = "traces"
+    clickhouse_metrics_table: str = "metrics"
+    clickhouse_logs_table: str = "logs"
     clickhouse_username: str = "default"
     clickhouse_password: str = ""
 
@@ -229,6 +233,14 @@ class AutomagikTelemetry:
                 "AUTOMAGIK_TELEMETRY_CLICKHOUSE_TABLE",
                 self.config.clickhouse_table,
             )
+            clickhouse_metrics_table = os.getenv(
+                "AUTOMAGIK_TELEMETRY_CLICKHOUSE_METRICS_TABLE",
+                self.config.clickhouse_metrics_table,
+            )
+            clickhouse_logs_table = os.getenv(
+                "AUTOMAGIK_TELEMETRY_CLICKHOUSE_LOGS_TABLE",
+                self.config.clickhouse_logs_table,
+            )
             clickhouse_username = os.getenv(
                 "AUTOMAGIK_TELEMETRY_CLICKHOUSE_USERNAME",
                 self.config.clickhouse_username,
@@ -241,9 +253,9 @@ class AutomagikTelemetry:
             self._clickhouse_backend = ClickHouseBackend(
                 endpoint=clickhouse_endpoint,
                 database=clickhouse_database,
-                traces_table=clickhouse_table,  # Use same table name for backward compat
-                metrics_table="metrics",
-                logs_table="logs",
+                traces_table=clickhouse_table,
+                metrics_table=clickhouse_metrics_table,
+                logs_table=clickhouse_logs_table,
                 username=clickhouse_username,
                 password=clickhouse_password,
                 timeout=self.config.timeout,
@@ -978,8 +990,25 @@ class AutomagikTelemetry:
             except Exception:
                 pass
 
-    def disable(self) -> None:
-        """Disable telemetry permanently and flush pending events."""
+    async def disable(self) -> None:
+        """
+        Disable telemetry permanently and flush pending events.
+
+        This is an async method that properly awaits the flush operation before
+        disabling telemetry, ensuring all pending events are sent.
+
+        Example:
+            >>> import asyncio
+            >>> from automagik_telemetry import AutomagikTelemetry
+            >>>
+            >>> telemetry = AutomagikTelemetry(project_name="my-app", version="1.0.0")
+            >>>
+            >>> async def main():
+            ...     telemetry.track_event("app.startup")
+            ...     await telemetry.disable()  # Flush and disable
+            >>>
+            >>> asyncio.run(main())
+        """
         self.enabled = False
         self._shutdown = True
 
@@ -989,7 +1018,7 @@ class AutomagikTelemetry:
             self._flush_timer = None
 
         # Flush pending events before disabling
-        self.flush()
+        await self.flush_async()
 
         # Create opt-out file
         try:

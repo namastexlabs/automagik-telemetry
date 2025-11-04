@@ -13,7 +13,7 @@
  */
 
 import { AutomagikTelemetry, MetricType, LogSeverity } from '../src';
-import type { TelemetryConfig } from '../src/client';
+import type { TelemetryConfig } from '../src/config';
 
 // Helper to skip tests in CI unless explicitly enabled
 const isCI = process.env.CI === 'true';

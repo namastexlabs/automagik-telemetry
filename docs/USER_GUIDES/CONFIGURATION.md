@@ -303,7 +303,7 @@ const telemetry = new AutomagikTelemetry({
 
 <table>
 <tr><td><strong>Type</strong></td><td><code>int</code></td></tr>
-<tr><td><strong>Default</strong></td><td>Python: <code>1</code> (immediate) | TypeScript: <code>100</code> (batched)</td></tr>
+<tr><td><strong>Default</strong></td><td>Python: <code>100</code> (batched) | TypeScript: <code>100</code> (batched)</td></tr>
 <tr><td><strong>Description</strong></td><td>Number of events to batch before sending</td></tr>
 </table>
 
@@ -318,30 +318,49 @@ graph LR
     D --> F[Better Performance<br/>Slight Delay]
 ```
 
-**Python - Enable Batching:**
+**Python - Default Batching (Recommended):**
 ```python
 from automagik_telemetry import TelemetryConfig
 
 config = TelemetryConfig(
     project_name="my-app",
-    version="1.0.0",
-    batch_size=100  # Send every 100 events
+    version="1.0.0"
+    # batch_size=100 by default - optimal for most applications
 )
 telemetry = AutomagikTelemetry(config=config)
 ```
 
-**TypeScript - Disable Batching:**
+**Python - Disable Batching for Testing:**
+```python
+config = TelemetryConfig(
+    project_name="my-app",
+    version="1.0.0",
+    batch_size=1  # Send immediately for testing/debugging
+)
+```
+
+**TypeScript - Default Batching (Recommended):**
+```typescript
+const telemetry = new AutomagikTelemetry({
+    projectName: 'my-app',
+    version: '1.0.0'
+    // batchSize=100 by default - optimal for most applications
+});
+```
+
+**TypeScript - Disable Batching for Testing:**
 ```typescript
 const telemetry = new AutomagikTelemetry({
     projectName: 'my-app',
     version: '1.0.0',
-    batchSize: 1  // Send immediately
+    batchSize: 1  // Send immediately for testing/debugging
 });
 ```
 
 > **🎯 Recommendation:**
-> - Use `batch_size=1` for debugging and low-volume apps
-> - Use `batch_size=100+` for production high-throughput apps
+> - Use default `batch_size=100` for production applications
+> - Use `batch_size=1` only for debugging and testing
+> - Never use `batch_size=100+` for low-latency requirements
 
 </details>
 

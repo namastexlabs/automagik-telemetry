@@ -19,7 +19,7 @@
 
 import * as http from "http";
 import { AutomagikTelemetry, MetricType, LogSeverity } from "../src/index";
-import type { TelemetryConfig } from "../src/client";
+import type { TelemetryConfig } from "../src/config";
 
 // Skip tests in CI unless explicitly enabled
 const isCI = process.env.CI === "true";

@@ -127,7 +127,7 @@ def test_project_name() -> str:
 
 
 @pytest.fixture
-def clickhouse_client(
+async def clickhouse_client(
     monkeypatch: pytest.MonkeyPatch,
     clickhouse_available: bool,
     clickhouse_endpoint: str,
@@ -160,7 +160,7 @@ def clickhouse_client(
     # Cleanup: flush and disable
     client.flush()
     time.sleep(1)  # Give time for final flush
-    client.disable()
+    await client.disable()
 
     # Clean up test data
     cleanup_test_data(test_project_name, clickhouse_endpoint)
@@ -481,7 +481,7 @@ def test_backend_configuration_from_config(
     client.disable()
 
 
-def test_backend_default_to_otlp(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_backend_default_to_otlp(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that backend defaults to OTLP for backward compatibility."""
     print("\n=== Testing backward compatibility (default to OTLP) ===")
 
@@ -504,7 +504,7 @@ def test_backend_default_to_otlp(monkeypatch: pytest.MonkeyPatch) -> None:
     client.disable()
 
 
-def test_backend_switching(
+async def test_backend_switching(
     monkeypatch: pytest.MonkeyPatch,
     clickhouse_available: bool,
     clickhouse_endpoint: str,
@@ -544,7 +544,7 @@ def test_backend_switching(
     print("Backend switching verified successfully")
 
     # Cleanup
-    clickhouse_client.disable()
+    await clickhouse_client.disable()
 
 
 def test_query_count_by_project(

@@ -303,7 +303,7 @@ def test_memory_usage_under_load() -> None:
     client.disable()
 
 
-def test_batch_efficiency(high_throughput_client: AutomagikTelemetry) -> None:
+async def test_batch_efficiency(high_throughput_client: AutomagikTelemetry) -> None:
     """Test that batching provides efficiency gains."""
     # Test 1: Small batches (batch_size=1, immediate send)
     small_batch_config = TelemetryConfig(
@@ -343,10 +343,10 @@ def test_batch_efficiency(high_throughput_client: AutomagikTelemetry) -> None:
     assert large_batch_time <= small_batch_time * 1.2
 
     # Cleanup
-    small_batch_client.disable()
+    await small_batch_client.disable()
 
 
-def test_compression_efficiency(high_throughput_client: AutomagikTelemetry) -> None:
+async def test_compression_efficiency(high_throughput_client: AutomagikTelemetry) -> None:
     """Test that compression reduces payload size for large batches."""
     # Create client with compression disabled
     no_compression_config = TelemetryConfig(
@@ -384,7 +384,7 @@ def test_compression_efficiency(high_throughput_client: AutomagikTelemetry) -> N
     print(f"  Without compression: {uncompressed_time:.3f}s")
 
     # Cleanup
-    no_compression_client.disable()
+    await no_compression_client.disable()
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def telemetry_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
+async def telemetry_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
     """Create telemetry client with test configuration."""
     # Enable telemetry for integration tests
     monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
@@ -43,7 +43,7 @@ def telemetry_client(monkeypatch: pytest.MonkeyPatch) -> AutomagikTelemetry:
 
     # Cleanup: flush and disable
     client.flush()
-    client.disable()
+    await client.disable()
 
 
 @pytest.fixture
@@ -224,7 +224,7 @@ def test_fastapi_concurrent_requests(
     telemetry_client.flush()
 
 
-def test_fastapi_telemetry_overhead(fastapi_app: FastAPI) -> None:
+async def test_fastapi_telemetry_overhead(fastapi_app: FastAPI) -> None:
     """Measure telemetry overhead in request/response cycle."""
     client = TestClient(fastapi_app)
 
@@ -258,7 +258,7 @@ def test_fastapi_telemetry_overhead(fastapi_app: FastAPI) -> None:
     assert avg_time < 0.03
 
 
-def test_fastapi_no_event_loop_blocking(fastapi_app: FastAPI) -> None:
+async def test_fastapi_no_event_loop_blocking(fastapi_app: FastAPI) -> None:
     """Ensure telemetry doesn't block the async event loop."""
     client = TestClient(fastapi_app)
 
