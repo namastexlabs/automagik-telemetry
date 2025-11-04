@@ -6,13 +6,6 @@ CREATE DATABASE IF NOT EXISTS telemetry;
 
 USE telemetry;
 
--- Create telemetry user with password for secure access
-CREATE USER IF NOT EXISTS telemetry IDENTIFIED WITH plaintext_password BY 'telemetry_password';
-
--- Grant all permissions on telemetry database to telemetry user
-GRANT ALL ON telemetry.* TO telemetry;
-
-
 -- Traces table - stores all telemetry events
 CREATE TABLE IF NOT EXISTS traces (
     -- Trace identification
@@ -113,16 +106,6 @@ CREATE TABLE IF NOT EXISTS metrics (
     cloud_provider String DEFAULT '',
     cloud_region String DEFAULT '',
 
-    -- OTLP-specific fields (added for SDK compatibility)
-    metric_unit String DEFAULT '',
-    metric_description String DEFAULT '',
-    aggregation_temporality Enum8('UNSPECIFIED' = 0, 'DELTA' = 1, 'CUMULATIVE' = 2) DEFAULT 0,
-    time_window_start DateTime DEFAULT now(),
-    time_window_end DateTime DEFAULT now(),
-    service_namespace String DEFAULT '',
-    service_instance_id String DEFAULT '',
-    schema_url String DEFAULT '',
-
     -- Indexes for fast queries
     INDEX idx_timestamp timestamp TYPE minmax GRANULARITY 1,
     INDEX idx_metric_name metric_name TYPE bloom_filter GRANULARITY 1,
@@ -188,13 +171,6 @@ CREATE TABLE IF NOT EXISTS logs (
     os_version String DEFAULT '',
     runtime_name String DEFAULT '',
     runtime_version String DEFAULT '',
-
-    -- OTLP-specific fields (added for SDK compatibility)
-    observed_timestamp_ns UInt64 DEFAULT 0,
-    service_namespace String DEFAULT '',
-    service_instance_id String DEFAULT '',
-    schema_url String DEFAULT '',
-    flags UInt32 DEFAULT 0,
 
     -- Indexes for fast queries
     INDEX idx_timestamp timestamp TYPE minmax GRANULARITY 1,

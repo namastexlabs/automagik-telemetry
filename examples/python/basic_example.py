@@ -14,7 +14,7 @@ For local infrastructure testing:
 
 import os
 import time
-from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, StandardEvents
+from automagik_telemetry import AutomagikTelemetry, TelemetryConfig, StandardEvents, LogSeverity
 
 # Configure for local infrastructure (uncomment to test locally)
 # os.environ["AUTOMAGIK_TELEMETRY_ENABLED"] = "true"
@@ -69,7 +69,7 @@ def main():
     print("\n3️⃣  Tracking a log message...")
     telemetry.track_log(
         message="Basic example completed successfully",
-        level="info",
+        severity=LogSeverity.INFO,
         attributes={
             "component": "basic_example",
             "duration_ms": 100,

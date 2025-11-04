@@ -1,0 +1,18 @@
+--- Schema additions needed for init-db.sql ---
+
+In the metrics table (around line 118), ADD these fields:
+    metric_unit String DEFAULT '',
+    metric_description String DEFAULT '',
+    time_window_start DateTime DEFAULT now(),
+    time_window_end DateTime DEFAULT now(),
+    service_namespace String DEFAULT '',
+    service_instance_id String DEFAULT '',
+    schema_url String DEFAULT '',
+    aggregation_temporality Enum8('UNSPECIFIED' = 0, 'DELTA' = 1, 'CUMULATIVE' = 2) DEFAULT 0,
+
+In the logs table (around line 186), ADD these fields:
+    observed_timestamp_ns UInt64 DEFAULT 0,
+    service_namespace String DEFAULT '',
+    service_instance_id String DEFAULT '',
+    schema_url String DEFAULT '',
+    flags UInt32 DEFAULT 0

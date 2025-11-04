@@ -77,7 +77,36 @@ export class TelemetryOptIn {
   }
 
   /**
-   * Save user's telemetry preference.
+   * Persist user's telemetry preference to filesystem.
+   *
+   * Saves the user's decision to enable or disable telemetry. Uses a preference file
+   * for opt-in and a simple marker file for opt-out. Silently fails if filesystem
+   * operations fail (directory creation, file write).
+   *
+   * @param enabled - true to enable telemetry, false to disable
+   * @returns void
+   *
+   * @remarks
+   * - If enabled: Creates ~/.automagik/telemetry_preference file with "enabled"
+   * - If disabled: Creates ~/.automagik-no-telemetry marker file
+   * - Opposite files are deleted when changing preference
+   * - Directory ~/.automagik/ created automatically if missing
+   * - Errors are silently caught to avoid breaking application flow
+   * - Takes precedence over environment variables when reading preference
+   * - Subsequent calls to getUserPreference() will return the saved value
+   *
+   * @example
+   * ```typescript
+   * // User opts in to telemetry
+   * TelemetryOptIn.savePreference(true);
+   * // Creates: ~/.automagik/telemetry_preference
+   * // Removes: ~/.automagik-no-telemetry (if exists)
+   *
+   * // User opts out
+   * TelemetryOptIn.savePreference(false);
+   * // Creates: ~/.automagik-no-telemetry
+   * // Removes: ~/.automagik/telemetry_preference (if exists)
+   * ```
    */
   static savePreference(enabled: boolean): void {
     try {
@@ -108,7 +137,35 @@ export class TelemetryOptIn {
   }
 
   /**
-   * Check if terminal supports ANSI colors.
+   * Check if terminal supports ANSI color codes.
+   *
+   * Detects terminal color support using multiple heuristics: environment variables,
+   * TTY detection, platform detection, and terminal type. Respects NO_COLOR convention
+   * and FORCE_COLOR override.
+   *
+   * @returns boolean - true if ANSI colors can be used, false otherwise
+   *
+   * @remarks
+   * - NO_COLOR env var takes precedence (returns false if set)
+   * - FORCE_COLOR env var forces colors (returns true if set)
+   * - Requires stdout to be a TTY (interactive terminal)
+   * - Windows 10+ supports ANSI natively (returns true)
+   * - Unix/Linux checks TERM variable (must not be "dumb")
+   * - Empty TERM environment variable treated as no color support
+   * - Safe fallback: returns false if uncertain
+   *
+   * @example
+   * ```typescript
+   * // In interactive terminal
+   * TelemetryOptIn['supportsColor'](); // Returns true
+   *
+   * // With NO_COLOR set
+   * process.env.NO_COLOR = "1";
+   * TelemetryOptIn['supportsColor'](); // Returns false
+   *
+   * // In piped output or file redirect
+   * // stdout.isTTY will be false, returns false
+   * ```
    */
   private static supportsColor(): boolean {
     // Check NO_COLOR environment variable
@@ -137,7 +194,44 @@ export class TelemetryOptIn {
   }
 
   /**
-   * Add ANSI color codes if supported.
+   * Wrap text with ANSI color codes if terminal supports colors.
+   *
+   * Conditionally applies ANSI escape sequences to colorize text. If terminal
+   * doesn't support colors (detected via supportsColor()), returns plain text.
+   * Supports multiple style attributes via compound color codes.
+   *
+   * @param text - The text to colorize
+   * @param colorCode - ANSI color code or compound style (e.g., "92", "1;96", "2;33")
+   * @returns string - Colored text with ANSI codes or plain text
+   *
+   * @remarks
+   * - Color codes follow ANSI SGR (Select Graphic Rendition) standard
+   * - Format: \x1b[{code}m{text}\x1b[0m
+   * - 0m resets all styles after text
+   * - Multiple styles: semicolon-separated (e.g., "1;92" = bold + bright green)
+   * - Common codes:
+   *   - 1 = bold
+   *   - 2 = dim
+   *   - 91-97 = bright foreground colors (red, green, yellow, blue, magenta, cyan, white)
+   *   - 30-37 = normal foreground colors
+   * - Safe: no throw even with invalid codes (shell just ignores them)
+   * - Performance: single function call, no regex needed
+   *
+   * @example
+   * ```typescript
+   * // Bright green text
+   * TelemetryOptIn['colorize']("✓", "92"); // Returns "\\x1b[92m✓\\x1b[0m"
+   *
+   * // Bold bright cyan
+   * TelemetryOptIn['colorize']("Title", "1;96"); // Returns "\\x1b[1;96mTitle\\x1b[0m"
+   *
+   * // Dim text
+   * TelemetryOptIn['colorize']("Footer", "2"); // Returns "\\x1b[2mFooter\\x1b[0m"
+   *
+   * // No color support - returns plain text
+   * process.env.NO_COLOR = "1";
+   * TelemetryOptIn['colorize']("Text", "92"); // Returns "Text"
+   * ```
    */
   private static colorize(text: string, colorCode: string): string {
     if (!this.supportsColor()) {
@@ -254,7 +348,34 @@ ${this.colorize("More info:", DIM)} https://docs.automagik.ai/privacy
   }
 
   /**
-   * Check if we're in an interactive terminal.
+   * Check if running in an interactive terminal environment.
+   *
+   * Determines whether the user can interact with prompts and input. Checks both
+   * TTY status and CI environment variables to avoid prompting in automated contexts.
+   *
+   * @returns boolean - true if running interactively, false in CI or non-TTY context
+   *
+   * @remarks
+   * - Both stdin and stdout must be TTY (not pipes, files, or sockets)
+   * - Returns false in CI environments to prevent hanging builds
+   * - CI detection: checks common CI platform env vars
+   * - Non-interactive contexts: cron jobs, service restarts, background tasks
+   * - Safe: defaults to false if uncertain
+   * - Side effect free: only reads environment and process properties
+   *
+   * @example
+   * ```typescript
+   * // In interactive terminal
+   * TelemetryOptIn['isInteractive'](); // Returns true
+   *
+   * // In CI pipeline
+   * process.env.GITHUB_ACTIONS = "true";
+   * TelemetryOptIn['isInteractive'](); // Returns false
+   *
+   * // Piped to file
+   * // node script.js > output.txt
+   * // TelemetryOptIn['isInteractive'](); // Returns false (stdout.isTTY = false)
+   * ```
    */
   private static isInteractive(): boolean {
     // Check if stdin/stdout are TTYs

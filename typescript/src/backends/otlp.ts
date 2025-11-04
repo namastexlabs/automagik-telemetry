@@ -77,12 +77,14 @@ export class OTLPBackend implements TelemetryBackend {
    *
    * @param endpoint - Target endpoint
    * @param payload - Request payload
+   * @param signalType - Type of signal (trace, metric, log) for logging
    * @param attempt - Current attempt number (internal)
    * @returns True if request succeeded, false otherwise
    */
   private async sendWithRetry(
     endpoint: string,
     payload: unknown,
+    signalType: string = "trace",
     attempt: number = 0,
   ): Promise<boolean> {
     try {
@@ -99,6 +101,14 @@ export class OTLPBackend implements TelemetryBackend {
       ) {
         body = await this.compressPayload(payloadString);
         headers["Content-Encoding"] = "gzip";
+      }
+
+      // Verbose mode logging
+      if (this.verbose) {
+        console.debug(`\n[Telemetry] Sending ${signalType}`);
+        console.debug(`  Endpoint: ${endpoint}`);
+        console.debug(`  Size: ${Buffer.byteLength(payloadString, "utf-8")} bytes (compressed: ${typeof body !== "string"})`);
+        console.debug(`  Payload preview: ${payloadString.substring(0, 200)}...\n`);
       }
 
       // Send HTTP request using native fetch (Node.js 18+)
@@ -125,7 +135,7 @@ export class OTLPBackend implements TelemetryBackend {
         if (response.status >= 400 && response.status < 500) {
           if (this.verbose) {
             console.debug(
-              `Telemetry event failed with status ${response.status}`,
+              `Telemetry ${signalType} failed with status ${response.status}`,
             );
           }
           return false; // Don't retry
@@ -134,12 +144,15 @@ export class OTLPBackend implements TelemetryBackend {
         if (response.status !== 200) {
           if (this.verbose) {
             console.debug(
-              `Telemetry event failed with status ${response.status}`,
+              `Telemetry ${signalType} failed with status ${response.status}`,
             );
           }
           return false;
         }
 
+        if (this.verbose) {
+          console.debug(`OTLP ${signalType} sent successfully`);
+        }
         return true;
       } catch (error) {
         clearTimeout(timeoutId);
@@ -151,20 +164,20 @@ export class OTLPBackend implements TelemetryBackend {
         const backoffDelay = this.retryBackoffBase * Math.pow(2, attempt);
         if (this.verbose) {
           console.debug(
-            `Telemetry request failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffDelay}ms...`,
+            `Telemetry ${signalType} request failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffDelay}ms...`,
           );
         }
         await new Promise((resolve) => {
           const timer = setTimeout(resolve, backoffDelay);
           timer.unref(); // Allow process to exit
         });
-        return this.sendWithRetry(endpoint, payload, attempt + 1);
+        return this.sendWithRetry(endpoint, payload, signalType, attempt + 1);
       }
 
       // Max retries exceeded
       if (this.verbose) {
         console.debug(
-          `Telemetry event error after ${this.maxRetries + 1} attempts:`,
+          `Telemetry ${signalType} failed after ${this.maxRetries + 1} attempts:`,
           error,
         );
       }
@@ -179,7 +192,7 @@ export class OTLPBackend implements TelemetryBackend {
    * @returns Promise that resolves to true if successful, false otherwise
    */
   async sendTrace(payload: unknown): Promise<boolean> {
-    return this.sendWithRetry(this.endpoint, payload);
+    return this.sendWithRetry(this.endpoint, payload, "trace");
   }
 
   /**
@@ -194,7 +207,7 @@ export class OTLPBackend implements TelemetryBackend {
     metricsEndpoint?: string,
   ): Promise<boolean> {
     const endpoint = metricsEndpoint || this.endpoint;
-    return this.sendWithRetry(endpoint, payload);
+    return this.sendWithRetry(endpoint, payload, "metric");
   }
 
   /**
@@ -206,7 +219,7 @@ export class OTLPBackend implements TelemetryBackend {
    */
   async sendLog(payload: unknown, logsEndpoint?: string): Promise<boolean> {
     const endpoint = logsEndpoint || this.endpoint;
-    return this.sendWithRetry(endpoint, payload);
+    return this.sendWithRetry(endpoint, payload, "log");
   }
 
   /**

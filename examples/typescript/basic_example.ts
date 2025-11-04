@@ -51,27 +51,27 @@ async function main(): Promise<void> {
 
   // Example 2: Track a metric
   console.log('\n2️⃣  Tracking a metric...');
-  telemetry.trackMetric({
-    name: 'example.response_time',
-    value: 123.45,
-    type: MetricType.GAUGE,
-    attributes: {
+  telemetry.trackMetric(
+    'example.response_time',
+    123.45,
+    MetricType.GAUGE,
+    {
       endpoint: '/api/example',
       status: 'success',
-    },
-  });
+    }
+  );
   console.log('✅ Metric tracked!');
 
   // Example 3: Track a log
   console.log('\n3️⃣  Tracking a log message...');
-  telemetry.trackLog({
-    message: 'Basic example completed successfully',
-    level: 'info',
-    attributes: {
+  telemetry.trackLog(
+    'Basic example completed successfully',
+    LogSeverity.INFO,
+    {
       component: 'basic_example',
       duration_ms: 100,
-    },
-  });
+    }
+  );
   console.log('✅ Log tracked!');
 
   // Example 4: Track custom events
@@ -97,7 +97,6 @@ async function main(): Promise<void> {
   console.log(`   Enabled: ${status.enabled}`);
   console.log(`   User ID: ${status.userId}`);
   console.log(`   Endpoint: ${status.endpoint}`);
-  console.log(`   Queue Size: ${status.queueSize}`);
 
   console.log('\n' + '='.repeat(50));
   console.log('✨ Example completed!');

@@ -41,6 +41,8 @@ class ClickHouseBackend(TelemetryBackend):
         batch_size: int = 100,
         compression_enabled: bool = True,
         max_retries: int = 3,
+        retry_backoff_base: float = 1.0,
+        verbose: bool = False,
     ):
         """
         Initialize ClickHouse backend.
@@ -57,6 +59,8 @@ class ClickHouseBackend(TelemetryBackend):
             batch_size: Number of rows to batch before inserting
             compression_enabled: Enable gzip compression
             max_retries: Maximum retry attempts
+            retry_backoff_base: Base backoff time in seconds for exponential backoff (default: 1.0)
+            verbose: Enable verbose logging (default: False)
         """
         self.endpoint = endpoint.rstrip("/")
         self.database = database
@@ -69,6 +73,8 @@ class ClickHouseBackend(TelemetryBackend):
         self.batch_size = batch_size
         self.compression_enabled = compression_enabled
         self.max_retries = max_retries
+        self.retry_backoff_base = retry_backoff_base
+        self.verbose = verbose
 
         # Separate batches for each telemetry type
         self._trace_batch: list[dict[str, Any]] = []
@@ -242,6 +248,7 @@ class ClickHouseBackend(TelemetryBackend):
             auth_header = None
 
         # Retry logic with exponential backoff
+        last_exception = None
         for attempt in range(self.max_retries):
             try:
                 headers = {"Content-Type": "application/x-ndjson"}
@@ -254,35 +261,50 @@ class ClickHouseBackend(TelemetryBackend):
 
                 with urlopen(request, timeout=self.timeout) as response:
                     if response.status == 200:
+                        if self.verbose:
+                            print(f"Inserted {len(rows)} rows to ClickHouse table {table_name} successfully")
                         logger.debug(
                             f"Inserted {len(rows)} rows to ClickHouse table {table_name} successfully"
                         )
                         return True
+                    elif response.status >= 500:
+                        # Server error - retry
+                        last_exception = Exception(
+                            f"ClickHouse returned status {response.status}: {response.read().decode('utf-8')}"
+                        )
                     else:
+                        # Client error - don't retry
+                        if self.verbose:
+                            print(f"ClickHouse returned status {response.status}")
                         logger.warning(
                             f"ClickHouse returned status {response.status}: {response.read().decode('utf-8')}"
                         )
+                        return False
 
-            except HTTPError as e:
-                logger.error(
-                    f"HTTP error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}"
-                )
-                if attempt < self.max_retries - 1:
-                    time.sleep(2**attempt)  # Exponential backoff
-                    continue
+            except (HTTPError, URLError, TimeoutError, Exception) as e:
+                last_exception = e
+                # Check if we should retry
+                if isinstance(e, HTTPError) and e.code < 500:
+                    # Client error - don't retry
+                    if self.verbose:
+                        print(f"Failed to insert to ClickHouse: {e}")
+                    logger.error(f"HTTP error inserting to ClickHouse: {e}")
+                    return False
 
-            except URLError as e:
-                logger.error(
-                    f"Network error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}"
-                )
-                if attempt < self.max_retries - 1:
-                    time.sleep(2**attempt)
-                    continue
+                if self.verbose:
+                    print(f"Error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}")
+                logger.debug(f"Error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}")
 
-            except Exception as e:
-                logger.error(f"Unexpected error inserting to ClickHouse: {e}")
-                break
+            # Wait before retry (exponential backoff)
+            if attempt < self.max_retries - 1:
+                backoff_time = self.retry_backoff_base * (2**attempt)
+                time.sleep(backoff_time)
 
+        # All retries exhausted
+        if last_exception:
+            if self.verbose:
+                print(f"Failed to insert to ClickHouse after {self.max_retries} retries: {last_exception}")
+            logger.debug(f"Failed to insert to ClickHouse after {self.max_retries} retries: {last_exception}")
         return False
 
     def send_trace(self, otlp_span: dict[str, Any]) -> bool:
@@ -306,30 +328,72 @@ class ClickHouseBackend(TelemetryBackend):
 
     def send_metric(
         self,
-        metric_name: str,
-        value: float,
+        payload: dict[str, Any] | str | None = None,
+        value: float | None = None,
         metric_type: str = "gauge",
         unit: str = "",
         attributes: dict[str, Any] | None = None,
         resource_attributes: dict[str, Any] | None = None,
         timestamp: datetime | None = None,
+        **kwargs: Any,
     ) -> bool:
         """
         Send a single metric to ClickHouse.
 
+        This method supports two calling conventions:
+        1. Dict payload (matches base class interface):
+           send_metric(payload={'metric_name': '...', 'value': 1.0, ...})
+        2. Keyword arguments (backward compatible):
+           send_metric(metric_name='...', value=1.0, ...)
+
         Args:
-            metric_name: Name of the metric (e.g., http.request.duration)
-            value: Numeric value of the metric
+            payload: Dict containing metric data (new interface, matches base class).
+                     If provided as dict, takes precedence over keyword arguments.
+                     If provided as str, treated as metric_name (backward compatible).
+                     Expected dict keys: metric_name, value, metric_type, unit,
+                                        attributes, resource_attributes, timestamp
+            value: Numeric value of the metric (for backward compatibility)
             metric_type: Type of metric (gauge, counter, histogram, summary) - default: gauge
             unit: Unit of measurement (ms, bytes, requests, etc.)
             attributes: Metric-specific attributes/labels
             resource_attributes: Service/application resource attributes
             timestamp: Timestamp for the metric (default: now)
+            **kwargs: Additional keyword arguments (supports metric_name for backward compatibility)
 
         Returns:
             True if added to batch successfully
         """
         try:
+            # Support both dict payload (new interface) and keyword args (backward compatible)
+            metric_name: str
+            metric_value: float
+
+            if isinstance(payload, dict):
+                # New interface: extract from payload dict
+                metric_name = payload.get("metric_name", "")
+                metric_value = payload.get("value", 0.0)
+                metric_type = payload.get("metric_type", "gauge")
+                unit = payload.get("unit", "")
+                attributes = payload.get("attributes")
+                resource_attributes = payload.get("resource_attributes")
+                timestamp = payload.get("timestamp")
+            elif isinstance(payload, str):
+                # Backward compatible: payload is metric_name
+                metric_name = payload
+                metric_value = value if value is not None else 0.0
+            else:
+                # Backward compatible: check kwargs for metric_name
+                metric_name = kwargs.get("metric_name", "")
+                metric_value = value if value is not None else 0.0
+
+            # Validate required parameters
+            if not metric_name:
+                logger.error("send_metric requires metric_name")
+                return False
+            if value is None and not isinstance(payload, dict):
+                logger.error("send_metric requires value")
+                return False
+
             # Default values
             if attributes is None:
                 attributes = {}
@@ -359,9 +423,9 @@ class ClickHouseBackend(TelemetryBackend):
             attrs_map = {str(k): str(v) for k, v in attributes.items()}
 
             # Determine if value is int or float
-            is_int = isinstance(value, int) and not isinstance(value, bool)
-            value_int = int(value) if is_int else 0
-            value_double = 0.0 if is_int else float(value)
+            is_int = isinstance(metric_value, int) and not isinstance(metric_value, bool)
+            value_int = int(metric_value) if is_int else 0
+            value_double = 0.0 if is_int else float(metric_value)
 
             # Build metric row matching ClickHouse schema
             metric_row = {
@@ -426,30 +490,63 @@ class ClickHouseBackend(TelemetryBackend):
 
     def send_log(
         self,
-        message: str,
+        payload: dict[str, Any] | str | None = None,
         level: str = "INFO",
         attributes: dict[str, Any] | None = None,
         resource_attributes: dict[str, Any] | None = None,
         timestamp: datetime | None = None,
         trace_id: str = "",
         span_id: str = "",
+        **kwargs: Any,
     ) -> bool:
         """
         Send a single log entry to ClickHouse.
 
+        This method supports two calling conventions:
+        1. Dict payload (matches base class interface):
+           send_log(payload={'message': '...', 'level': 'INFO', ...})
+        2. Keyword arguments (backward compatible):
+           send_log(message='...', level='INFO', ...)
+
         Args:
-            message: The log message
+            payload: Dict containing log data (new interface, matches base class).
+                     If provided as dict, takes precedence over keyword arguments.
+                     If provided as str, treated as message (backward compatible).
+                     Expected dict keys: message, level, attributes, resource_attributes,
+                                        timestamp, trace_id, span_id
             level: Severity level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
             attributes: Log-specific attributes/context
             resource_attributes: Service/application resource attributes
             timestamp: Timestamp for the log (default: now)
             trace_id: Optional trace ID for correlation
             span_id: Optional span ID for correlation
+            **kwargs: Additional keyword arguments (supports message for backward compatibility)
 
         Returns:
             True if added to batch successfully
         """
         try:
+            # Support both dict payload (new interface) and keyword args (backward compatible)
+            message: str
+
+            if isinstance(payload, dict):
+                # New interface: extract from payload dict
+                message = payload.get("message", "")
+                level = payload.get("level", "INFO")
+                attributes = payload.get("attributes")
+                resource_attributes = payload.get("resource_attributes")
+                timestamp = payload.get("timestamp")
+                trace_id = payload.get("trace_id", "")
+                span_id = payload.get("span_id", "")
+            elif isinstance(payload, str):
+                # Backward compatible: payload is message
+                message = payload
+            else:
+                # Backward compatible: check kwargs for message
+                message = kwargs.get("message", "")
+
+            # Note: Empty messages are allowed (unlike metrics which require values)
+
             # Default values
             if attributes is None:
                 attributes = {}

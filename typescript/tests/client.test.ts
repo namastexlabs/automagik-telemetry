@@ -707,7 +707,7 @@ describe('AutomagikTelemetry', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it.skip('should flush when batch size is reached', async () => {
+    it('should flush when batch size is reached', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       const client = new AutomagikTelemetry({
         projectName: mockConfig.projectName,
@@ -720,7 +720,10 @@ describe('AutomagikTelemetry', () => {
       client.trackEvent('test.event.2');
       client.trackEvent('test.event.3'); // This triggers flush
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Wait for async flush to complete
+      // The queueEvent method is async and calls flush() when batch size is reached
+      await Promise.resolve(); // Let microtasks complete
+      await Promise.resolve(); // Give flush() time to execute
 
       expect(global.fetch).toHaveBeenCalledTimes(3);
 
@@ -728,7 +731,7 @@ describe('AutomagikTelemetry', () => {
       await client.disable();
     });
 
-    it.skip('should flush on interval', async () => {
+    it('should flush on interval', async () => {
       process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
       const client = new AutomagikTelemetry({
         projectName: mockConfig.projectName,
@@ -741,8 +744,12 @@ describe('AutomagikTelemetry', () => {
       client.trackEvent('test.event.1');
       client.trackEvent('test.event.2');
 
-      // Wait for the flush interval to trigger
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Advance fake timers to trigger the flush interval
+      jest.advanceTimersByTime(200);
+
+      // Wait for async flush to complete
+      await Promise.resolve();
+      await Promise.resolve();
 
       expect(global.fetch).toHaveBeenCalled();
 

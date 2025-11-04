@@ -217,16 +217,54 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Generate a UUID v4.
+   * Generate a UUID v4 identifier.
+   *
+   * Uses Node.js crypto module for cryptographically secure random UUID generation.
+   * Compliant with RFC 4122 specification.
+   *
+   * @returns string - UUID v4 identifier (36 characters with hyphens)
+   *
+   * @remarks
+   * Used for generating unique identifiers for traces, metrics, and logs.
+   * Each call produces a unique value suitable for distributed systems.
+   *
+   * @example
+   * ```typescript
+   * const traceId = backend['generateUUID']();
+   * // Returns: "a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5"
+   * ```
    */
   private generateUUID(): string {
     return crypto.randomUUID();
   }
 
   /**
-   * Generate timestamp and nanosecond timestamp from optional Date.
-   * @param timestamp - Optional timestamp (defaults to current time)
-   * @returns Object with formatted timestamp string and nanosecond timestamp
+   * Generate ISO timestamp and nanosecond representation.
+   *
+   * Converts a Date object to ClickHouse-compatible timestamp formats.
+   * Produces both human-readable ISO format and nanosecond precision Unix timestamp.
+   *
+   * @param timestamp - Optional Date object (defaults to current time)
+   * @returns Object containing:
+   *   - ts: Original Date object
+   *   - timestamp: ISO format string (YYYY-MM-DD HH:MM:SS)
+   *   - timestampNs: Nanosecond Unix timestamp (milliseconds * 1,000,000)
+   *
+   * @remarks
+   * - Timestamp format: "YYYY-MM-DD HH:MM:SS" (ignores seconds precision)
+   * - Nanosecond calculation: millisecond precision, padded with zeros for nanos
+   * - Timezone: Uses UTC via Date.toISOString()
+   * - Precision: Millisecond input, nanosecond output
+   *
+   * @example
+   * ```typescript
+   * const result = backend['generateTimestamp'](new Date("2024-01-15T10:30:45.123Z"));
+   * // Returns: {
+   * //   ts: Date("2024-01-15T10:30:45.123Z"),
+   * //   timestamp: "2024-01-15 10:30:45",
+   * //   timestampNs: 1705319445123000000
+   * // }
+   * ```
    */
   private generateTimestamp(timestamp?: Date): {
     ts: Date;
@@ -243,9 +281,35 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Flatten attributes to string key-value pairs.
-   * @param attributes - Optional attributes object
-   * @returns Flattened attributes with string values
+   * Flatten attributes object to string key-value pairs.
+   *
+   * Converts all attribute values to strings for ClickHouse storage.
+   * Handles mixed types (strings, numbers, booleans, objects) uniformly.
+   *
+   * @param attributes - Optional attributes object with arbitrary value types
+   * @returns Record<string, string> - Flattened attributes with all values as strings
+   *
+   * @remarks
+   * - Empty object returned if attributes is undefined or null
+   * - All values coerced to strings using String() constructor
+   * - Object values become "[object Object]" (use JSON.stringify manually if needed)
+   * - Arrays become comma-separated values
+   * - null/undefined values become "null"/"undefined" strings
+   * - Original attributes object is not modified
+   *
+   * @example
+   * ```typescript
+   * const result = backend['flattenAttributes']({
+   *   userId: 123,
+   *   isActive: true,
+   *   metadata: { nested: "value" }
+   * });
+   * // Returns: {
+   * //   userId: "123",
+   * //   isActive: "true",
+   * //   metadata: "[object Object]"
+   * // }
+   * ```
    */
   private flattenAttributes(
     attributes?: Record<string, unknown>,
@@ -260,9 +324,43 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Extract extended resource attributes including OS, runtime, cloud, and instrumentation info.
-   * @param resourceAttributes - Optional resource attributes
-   * @returns Object with all extended resource attributes
+   * Extract and normalize extended resource attributes for ClickHouse storage.
+   *
+   * Parses resource attributes using both OpenTelemetry standard naming conventions
+   * and custom snake_case variants. Maps to typed output fields with sensible defaults.
+   * Covers service info, OS, runtime, cloud deployment, and instrumentation metadata.
+   *
+   * @param resourceAttributes - Optional resource attributes object
+   * @returns Object with normalized attributes:
+   *   - serviceName, serviceNamespace, serviceInstanceId
+   *   - projectName, projectVersion, environment, hostname
+   *   - osType, osVersion
+   *   - runtimeName, runtimeVersion
+   *   - cloudProvider, cloudRegion, cloudAvailabilityZone
+   *   - instrumentationLibraryName, instrumentationLibraryVersion
+   *
+   * @remarks
+   * - Supports both dot-notation (service.name) and snake_case (service_name)
+   * - Defaults to "unknown" for serviceName, "production" for environment
+   * - Empty strings for optional fields if not found
+   * - All values coerced to strings
+   * - Order of preference: dot-notation first, then snake_case
+   * - Environment key aliases: deployment.environment, env
+   * - Runtime key: process.runtime.name, process_runtime_name
+   * - Cloud keys follow OpenTelemetry semantic conventions
+   *
+   * @example
+   * ```typescript
+   * const attrs = backend['extractExtendedResourceAttributes']({
+   *   "service.name": "payment-api",
+   *   "service.version": "1.2.3",
+   *   "deployment.environment": "production",
+   *   "host.name": "node-01",
+   *   "cloud.provider": "aws",
+   *   "cloud.region": "us-east-1"
+   * });
+   * // Returns all 16 fields with values extracted and merged
+   * ```
    */
   private extractExtendedResourceAttributes(
     resourceAttributes?: Record<string, unknown>,
@@ -337,9 +435,26 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Detect if a string contains valid JSON.
-   * @param body - The string to check
-   * @returns "JSON" if valid JSON, "STRING" otherwise
+   * Detect if log body is valid JSON or plain text.
+   *
+   * Attempts to parse the body string as JSON. Used for categorizing
+   * log entries for better searchability in ClickHouse.
+   *
+   * @param body - Log message body string to analyze
+   * @returns "JSON" if valid JSON parseable, "STRING" for plain text
+   *
+   * @remarks
+   * - Fast path: attempts parse, catches any error
+   * - Used only for log entries (traces/metrics don't need this)
+   * - Affects body_type field in ClickHouse logs table
+   * - No validation of JSON structure depth or content
+   * - Empty strings return "STRING"
+   *
+   * @example
+   * ```typescript
+   * backend['detectBodyType']('{"key":"value"}'); // Returns "JSON"
+   * backend['detectBodyType']('error occurred'); // Returns "STRING"
+   * ```
    */
   private detectBodyType(body: string): string {
     try {
@@ -351,7 +466,43 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Transform OTLP span format to our ClickHouse schema.
+   * Transform OTLP span format to ClickHouse trace row schema.
+   *
+   * Converts OpenTelemetry Protocol (OTLP) span objects to the internal ClickHouse
+   * trace schema. Handles timestamp conversions, attribute flattening, duration
+   * calculations, and resource attribute extraction.
+   *
+   * @param otlpSpan - OTLP span object with traceId, spanId, timestamps, etc.
+   * @returns ClickHouseTraceRow - Fully populated trace row ready for insertion
+   *
+   * @remarks
+   * - Timestamp handling: startTimeUnixNano in nanoseconds, converted to milliseconds
+   * - Duration: calculated from startTimeUnixNano and endTimeUnixNano
+   * - Attributes: OTLP array format converted to flat Record<string, string>
+   * - Status: OTLP status code 1 maps to "OK", others use message
+   * - Resource attributes: extracted separately from span attributes
+   * - Defaults: "unknown" for service name, 0 for durations when not provided
+   * - Attribute values: supports stringValue, intValue, doubleValue, boolValue
+   *
+   * @example
+   * ```typescript
+   * const row = backend['transformOTLPToClickHouse']({
+   *   traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+   *   spanId: "00f067aa0ba902b7",
+   *   name: "http.request",
+   *   startTimeUnixNano: 1699107600000000000,
+   *   endTimeUnixNano: 1699107600050000000,
+   *   attributes: [
+   *     { key: "http.method", value: { stringValue: "GET" } },
+   *     { key: "http.status_code", value: { intValue: 200 } }
+   *   ],
+   *   resource: {
+   *     attributes: [
+   *       { key: "service.name", value: { stringValue: "web-api" } }
+   *     ]
+   *   }
+   * });
+   * ```
    */
   private transformOTLPToClickHouse(
     otlpSpan: Record<string, unknown>,
@@ -448,7 +599,31 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Add a span to the trace batch queue.
+   * Add a trace span to the batch queue for deferred insertion.
+   *
+   * Transforms the OTLP span format to the ClickHouse schema and adds it to the internal
+   * batch queue. When the batch size is reached, automatically flushes all pending rows
+   * to ClickHouse in a single INSERT query.
+   *
+   * @param otlpSpan - OTLP format span object containing trace data
+   * @returns void
+   *
+   * @remarks
+   * - Automatically triggers `flush()` when batch size threshold is reached
+   * - Errors during auto-flush are logged but do not propagate
+   * - Transform errors are silently caught (see `sendTrace()` for error handling)
+   * - Uses memory batching to reduce network roundtrips and improve throughput
+   *
+   * @example
+   * ```typescript
+   * backend.addToBatch({
+   *   traceId: "abc123...",
+   *   spanId: "def456...",
+   *   name: "http.request",
+   *   startTimeUnixNano: 1699107600000000000,
+   *   endTimeUnixNano: 1699107600100000000
+   * });
+   * ```
    */
   public addToBatch(otlpSpan: Record<string, unknown>): void {
     const row = this.transformOTLPToClickHouse(otlpSpan);
@@ -463,7 +638,33 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Flush all batches (traces, metrics, logs) to ClickHouse.
+   * Flush all pending batches (traces, metrics, logs) to ClickHouse.
+   *
+   * Sends all accumulated telemetry data to the ClickHouse database using batched
+   * INSERT queries. Operates on all three data types in parallel and requires all
+   * flushes to succeed for the overall operation to be considered successful.
+   *
+   * @returns Promise<boolean> - true if all flushes succeeded, false if any failed
+   *
+   * @remarks
+   * - Clears batch queues immediately to prevent duplicate sends
+   * - Parallel execution: all batch types flush concurrently
+   * - No retry on partial failure (some batches may be committed)
+   * - Empty batches are skipped (no unnecessary network calls)
+   * - Individual insert operations include retry logic with exponential backoff
+   * - Does not modify batches if operation is still in progress
+   * - Call before process termination to avoid data loss
+   *
+   * @example
+   * ```typescript
+   * // Flush after processing batch or before shutdown
+   * const success = await backend.flush();
+   * if (success) {
+   *   console.log("All data persisted to ClickHouse");
+   * } else {
+   *   console.error("Some data failed to persist (check retry logs)");
+   * }
+   * ```
    */
   public async flush(): Promise<boolean> {
     const promises: Promise<boolean>[] = [];
@@ -498,7 +699,28 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Insert a batch of rows into ClickHouse.
+   * Insert a batch of rows into ClickHouse with retry logic.
+   *
+   * Converts rows to JSONEachRow format, applies gzip compression if configured,
+   * and sends via HTTP POST with exponential backoff retry on failure.
+   *
+   * @param rows - Array of ClickHouse rows (traces, metrics, or logs)
+   * @param tableName - Target table name (e.g., "traces", "metrics", "logs")
+   * @returns Promise<boolean> - true if insertion succeeded, false after max retries exhausted
+   *
+   * @remarks
+   * - Retry logic: exponential backoff starting at 1 second (2^attempt base)
+   * - Compression: gzip applied if enabled AND data exceeds 1024 bytes
+   * - Format: JSONEachRow (one JSON object per line)
+   * - Empty batches return immediately with success
+   * - HTTP errors and timeouts trigger retry attempts
+   * - Final failure returns false without throwing
+   *
+   * @example
+   * ```typescript
+   * const rows = [{trace_id: "abc", span_id: "def", ...}];
+   * const success = await backend['insertBatch'](rows, "traces");
+   * ```
    */
   private async insertBatch(
     rows: Array<ClickHouseTraceRow | ClickHouseMetricRow | ClickHouseLogRow>,
@@ -533,6 +755,7 @@ export class ClickHouseBackend implements TelemetryBackend {
     }
 
     // Retry logic with exponential backoff
+    let lastError: Error | null = null;
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
       try {
         const success = await this.httpPost(
@@ -545,33 +768,73 @@ export class ClickHouseBackend implements TelemetryBackend {
         if (success) {
           if (this.verbose) {
             console.debug(
-              `Inserted ${rows.length} rows to ClickHouse successfully`,
+              `Inserted ${rows.length} rows to ClickHouse table ${tableName} successfully`,
             );
           }
           return true;
         }
       } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
         if (this.verbose) {
-          console.error(
-            `Error inserting to ClickHouse (attempt ${attempt + 1}/${this.maxRetries}):`,
-            error,
+          console.debug(
+            `Error inserting to ClickHouse (attempt ${attempt + 1}/${this.maxRetries}): ${lastError.message}`,
           );
         }
 
         if (attempt < this.maxRetries - 1) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, attempt) * 1000),
-          );
+          const backoffDelay = Math.pow(2, attempt) * 1000;
+          await new Promise((resolve) => {
+            const timer = setTimeout(resolve, backoffDelay);
+            timer.unref(); // Allow process to exit
+          });
           continue;
         }
       }
     }
 
+    // All retries exhausted
+    if (lastError && this.verbose) {
+      console.debug(
+        `Failed to insert to ClickHouse after ${this.maxRetries} retries: ${lastError.message}`,
+      );
+    }
     return false;
   }
 
   /**
-   * Make HTTP POST request to ClickHouse.
+   * Make HTTP POST request to ClickHouse with timeout handling.
+   *
+   * Low-level HTTP request implementation using Node.js http/https modules.
+   * Handles both HTTP and HTTPS endpoints with automatic protocol detection.
+   * Includes configurable timeout and optional gzip compression headers.
+   *
+   * @param url - Full ClickHouse HTTP endpoint URL with query parameters
+   * @param data - Request body as Buffer (JSON or compressed data)
+   * @param contentEncoding - Optional Content-Encoding header value (e.g., "gzip")
+   * @param authHeader - Optional Authorization header for Basic auth
+   * @returns Promise<boolean> - true if HTTP 200 received, false otherwise
+   *
+   * @remarks
+   * - Protocol detection: automatically selects http/https based on URL
+   * - Timeout: configured per instance, applies to entire request-response cycle
+   * - Error handling: rejects promise on network/timeout errors (caller retries)
+   * - Status codes: only HTTP 200 is considered success
+   * - Chunked responses: accumulates all response data before completion
+   * - Headers: automatically sets Content-Type and Content-Length
+   *
+   * @internal
+   * This is a private implementation detail. Use `flush()` for normal usage.
+   *
+   * @example
+   * ```typescript
+   * const result = await backend['httpPost'](
+   *   "http://localhost:8123/?query=INSERT%20INTO...",
+   *   Buffer.from(jsonData),
+   *   "gzip",
+   *   "Basic dXNlcjpwYXNz"
+   * );
+   * ```
    */
   private httpPost(
     url: string,
@@ -617,7 +880,7 @@ export class ClickHouseBackend implements TelemetryBackend {
             resolve(true);
           } else {
             if (this.verbose) {
-              console.warn(
+              console.debug(
                 `ClickHouse returned status ${res.statusCode}: ${responseData}`,
               );
             }
@@ -641,9 +904,36 @@ export class ClickHouseBackend implements TelemetryBackend {
   }
 
   /**
-   * Send a single trace span to ClickHouse.
+   * Send a single trace span to ClickHouse with error handling.
    *
-   * This is a convenience method that batches internally.
+   * Convenience wrapper around `addToBatch()` that provides synchronous error handling.
+   * Transforms OTLP span format to ClickHouse schema and queues for batched insertion.
+   * This method is fire-and-forget - it does not wait for the actual database write.
+   *
+   * @param otlpSpan - OTLP format span object containing trace data
+   * @returns true if span was successfully queued, false if an error occurred during transformation
+   *
+   * @remarks
+   * - Returns immediately after queueing (not after database write)
+   * - Errors are only logged if `verbose` mode is enabled
+   * - Network/database errors are handled by the auto-flush mechanism
+   * - Recommended for high-volume tracing scenarios
+   * - Thread-safe for concurrent calls
+   *
+   * @example
+   * ```typescript
+   * const success = backend.sendTrace({
+   *   traceId: "abc123",
+   *   spanId: "def456",
+   *   name: "database.query",
+   *   startTimeUnixNano: Date.now() * 1_000_000,
+   *   endTimeUnixNano: (Date.now() + 100) * 1_000_000,
+   *   attributes: [
+   *     { key: "db.operation", value: { stringValue: "SELECT" } },
+   *     { key: "db.rows_returned", value: { intValue: 42 } }
+   *   ]
+   * });
+   * ```
    */
   public sendTrace(otlpSpan: Record<string, unknown>): boolean {
     try {

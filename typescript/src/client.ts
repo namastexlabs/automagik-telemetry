@@ -163,6 +163,24 @@ interface QueuedEvent {
   endpoint: string;
 }
 
+// Truncation and size limits
+const MAX_ATTRIBUTE_LENGTH = 500;
+const MAX_ERROR_MESSAGE_LENGTH = 500;
+
+// Time unit constants
+const NANOSECONDS_PER_MILLISECOND = 1_000_000;
+
+// Default configuration values
+const DEFAULT_BATCH_SIZE = 100;
+const DEFAULT_FLUSH_INTERVAL = 5000;
+const DEFAULT_TIMEOUT = 5;
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_RETRY_BACKOFF_BASE = 1000;
+const DEFAULT_COMPRESSION_THRESHOLD = 1024;
+
+// OTLP status codes
+const OTLP_STATUS_CODE_OK = 1;
+
 /**
  * Log severity levels (OTLP format).
  * All severity levels are exported as part of the public API,
@@ -541,7 +559,7 @@ export class AutomagikTelemetry {
         attributes.push({ key, value: { doubleValue: value } });
       } else {
         // Truncate long strings to prevent payload bloat
-        const sanitizedValue = String(value).slice(0, 500);
+        const sanitizedValue = String(value).slice(0, MAX_ATTRIBUTE_LENGTH);
         attributes.push({ key, value: { stringValue: sanitizedValue } });
       }
     }
@@ -617,7 +635,7 @@ export class AutomagikTelemetry {
       const spanId = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
       // Get current time in nanoseconds
-      const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
+      const timeNano = BigInt(Date.now()) * BigInt(NANOSECONDS_PER_MILLISECOND);
 
       // Resource attributes (using shared helper method)
       const resourceAttributes = this.createResourceAttributes();
@@ -631,7 +649,7 @@ export class AutomagikTelemetry {
         startTimeUnixNano: timeNano.toString(),
         endTimeUnixNano: timeNano.toString(),
         attributes: this.createAttributes(data),
-        status: { code: 1 }, // STATUS_CODE_OK = 1
+        status: { code: OTLP_STATUS_CODE_OK },
         resource: { attributes: resourceAttributes },
       };
 
@@ -702,7 +720,7 @@ export class AutomagikTelemetry {
 
     try {
       // Get current time in nanoseconds
-      const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
+      const timeNano = BigInt(Date.now()) * BigInt(NANOSECONDS_PER_MILLISECOND);
 
       // Create OTLP-compatible metric payload
       const dataPoint: OTLPMetricDataPoint = {
@@ -804,7 +822,7 @@ export class AutomagikTelemetry {
 
     try {
       // Get current time in nanoseconds
-      const timeNano = BigInt(Date.now()) * BigInt(1_000_000);
+      const timeNano = BigInt(Date.now()) * BigInt(NANOSECONDS_PER_MILLISECOND);
 
       // Create OTLP-compatible log payload
       const payload = {
@@ -899,7 +917,7 @@ export class AutomagikTelemetry {
   trackError(error: Error, context?: Record<string, unknown>): void {
     const data = {
       error_type: error.name,
-      error_message: error.message.slice(0, 500), // Truncate long errors
+      error_message: error.message.slice(0, MAX_ERROR_MESSAGE_LENGTH), // Truncate long errors
       ...(context || {}),
     };
     this.sendEvent("automagik.error", data).catch(() => {
@@ -959,6 +977,111 @@ export class AutomagikTelemetry {
     this.sendLog(message, severity, attributes || {}).catch(() => {
       // Silent failure
     });
+  }
+
+  // === Async Method Variants (for API parity with Python SDK) ===
+
+  /**
+   * Async version of trackEvent - awaitable for promise chains.
+   *
+   * @param eventName - Event name (use StandardEvents constants)
+   * @param attributes - Event attributes (automatically sanitized for privacy)
+   * @returns Promise that resolves when event is queued
+   *
+   * @example
+   * ```typescript
+   * await telemetry.trackEventAsync(StandardEvents.FEATURE_USED, {
+   *   feature_name: 'list_contacts',
+   *   feature_category: 'api_endpoint'
+   * });
+   * ```
+   */
+  async trackEventAsync(
+    eventName: string,
+    attributes?: Record<string, unknown>,
+  ): Promise<void> {
+    return this.sendEvent(eventName, attributes || {});
+  }
+
+  /**
+   * Async version of trackError - awaitable for promise chains.
+   *
+   * @param error - The error that occurred
+   * @param context - Additional context about the error
+   * @returns Promise that resolves when error is queued
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   riskyOperation();
+   * } catch (error) {
+   *   await telemetry.trackErrorAsync(error as Error, {
+   *     error_code: 'OMNI-1001',
+   *     operation: 'message_send'
+   *   });
+   * }
+   * ```
+   */
+  async trackErrorAsync(
+    error: Error,
+    context?: Record<string, unknown>,
+  ): Promise<void> {
+    const data = {
+      error_type: error.name,
+      error_message: error.message.slice(0, 500), // Truncate long errors
+      ...(context || {}),
+    };
+    return this.sendEvent("automagik.error", data);
+  }
+
+  /**
+   * Async version of trackMetric - awaitable for promise chains.
+   *
+   * @param metricName - Metric name
+   * @param value - Metric value
+   * @param metricType - Metric type (default: GAUGE)
+   * @param attributes - Metric attributes
+   * @returns Promise that resolves when metric is queued
+   *
+   * @example
+   * ```typescript
+   * await telemetry.trackMetricAsync('api.request.latency', 123, MetricType.HISTOGRAM, {
+   *   operation_type: 'api_request',
+   *   unit: 'ms'
+   * });
+   * ```
+   */
+  async trackMetricAsync(
+    metricName: string,
+    value: number,
+    metricType: MetricType = MetricType.GAUGE,
+    attributes?: Record<string, unknown>,
+  ): Promise<void> {
+    return this.sendMetric(metricName, value, metricType, attributes || {});
+  }
+
+  /**
+   * Async version of trackLog - awaitable for promise chains.
+   *
+   * @param message - Log message
+   * @param severity - Log severity level (default: INFO)
+   * @param attributes - Log attributes
+   * @returns Promise that resolves when log is queued
+   *
+   * @example
+   * ```typescript
+   * await telemetry.trackLogAsync('User action completed', LogSeverity.INFO, {
+   *   action: 'file_upload',
+   *   file_size: 1024
+   * });
+   * ```
+   */
+  async trackLogAsync(
+    message: string,
+    severity: LogSeverity = LogSeverity.INFO,
+    attributes?: Record<string, unknown>,
+  ): Promise<void> {
+    return this.sendLog(message, severity, attributes || {});
   }
 
   /**
@@ -1095,6 +1218,14 @@ export class AutomagikTelemetry {
    */
   getStatus(): Record<string, unknown> {
     const optOutFile = path.join(os.homedir(), ".automagik-no-telemetry");
+
+    // Count queue sizes by event type
+    const queueSizes = {
+      traces: this.eventQueue.filter((e) => e.type === "trace").length,
+      metrics: this.eventQueue.filter((e) => e.type === "metric").length,
+      logs: this.eventQueue.filter((e) => e.type === "log").length,
+    };
+
     return {
       enabled: this.enabled,
       user_id: this.userId,
@@ -1107,6 +1238,7 @@ export class AutomagikTelemetry {
       opt_out_file_exists: fs.existsSync(optOutFile),
       env_var: process.env.AUTOMAGIK_TELEMETRY_ENABLED,
       verbose: this.verbose,
+      queue_sizes: queueSizes,
     };
   }
 }

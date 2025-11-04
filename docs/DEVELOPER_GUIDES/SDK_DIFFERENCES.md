@@ -1008,11 +1008,13 @@ When implementing custom backends:
 
 #### Complete Time Units Comparison
 
-| Parameter | Python Unit | Python Type | TypeScript Unit | TypeScript Type | Notes |
-|-----------|------------|-------------|-----------------|-----------------|-------|
-| **`timeout`** | **seconds** | `int` | **seconds** | `number` | ✅ Same unit - HTTP request timeout |
-| **`flush_interval`** | **seconds** | `float` | **milliseconds** | `number` | ⚠️ Different units! |
-| **`retry_backoff_base`** | **seconds** | `float` | **milliseconds** | `number` | ⚠️ Different units! |
+| Parameter | Python | TypeScript | Status | Conversion |
+|-----------|--------|------------|--------|-----------|
+| **`timeout`** | Seconds (`int`) | Seconds (`number`) | ✅ **Identical** | No conversion needed |
+| **`flush_interval`** | **Seconds** (`float`) | **Milliseconds** (`number`) | ⚠️ **Different** | Multiply/divide by 1000 |
+| **`retry_backoff_base`** | **Seconds** (`float`) | **Milliseconds** (`number`) | ⚠️ **Different** | Multiply/divide by 1000 |
+
+**Key Insight:** The `timeout` parameter is intentionally **the same unit (seconds) in both SDKs** to provide API consistency, even though TypeScript internally converts to milliseconds for HTTP clients. Other time parameters follow their platform's conventions.
 
 #### Detailed Explanation
 
@@ -1090,14 +1092,20 @@ graph LR
 #### Conversion Guide
 
 **From Python to TypeScript:**
-- `timeout`: Keep the same value (both use seconds)
-- `flush_interval`: Multiply by 1000 (seconds → milliseconds)
-- `retry_backoff_base`: Multiply by 1000 (seconds → milliseconds)
+
+| Python Parameter | Value | TypeScript Parameter | Converted Value |
+|-----------------|-------|----------------------|-----------------|
+| `timeout` | `5` sec | `timeout` | `5` (no change) |
+| `flush_interval` | `5.0` sec | `flushInterval` | `5000` ms (multiply by 1000) |
+| `retry_backoff_base` | `1.0` sec | `retryBackoffBase` | `1000` ms (multiply by 1000) |
 
 **From TypeScript to Python:**
-- `timeout`: Keep the same value (both use seconds)
-- `flushInterval`: Divide by 1000 (milliseconds → seconds)
-- `retryBackoffBase`: Divide by 1000 (milliseconds → seconds)
+
+| TypeScript Parameter | Value | Python Parameter | Converted Value |
+|--------------------|---------|--------------------|-----------------|
+| `timeout` | `5` sec | `timeout` | `5` (no change) |
+| `flushInterval` | `5000` ms | `flush_interval` | `5.0` sec (divide by 1000) |
+| `retryBackoffBase` | `1000` ms | `retry_backoff_base` | `1.0` sec (divide by 1000) |
 
 #### Common Examples
 

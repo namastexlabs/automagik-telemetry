@@ -24,6 +24,26 @@ from automagik_telemetry.backends.otlp import OTLPBackend
 
 logger = logging.getLogger(__name__)
 
+# Truncation and size limits
+MAX_ATTRIBUTE_LENGTH = 500
+MAX_LOG_MESSAGE_LENGTH = 1000
+MAX_ERROR_MESSAGE_LENGTH = 500
+
+# Time unit constants
+NANOSECONDS_PER_SECOND = 1_000_000_000
+NANOSECONDS_PER_MILLISECOND = 1_000_000
+
+# Default configuration values
+DEFAULT_FLUSH_INTERVAL = 5.0
+DEFAULT_BATCH_SIZE = 100
+DEFAULT_TIMEOUT = 5
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_RETRY_BACKOFF_BASE = 1.0
+DEFAULT_COMPRESSION_THRESHOLD = 1024
+
+# OTLP status codes
+OTLP_STATUS_CODE_OK = 1
+
 
 class MetricType(Enum):
     """OTLP metric types."""
@@ -64,6 +84,8 @@ class TelemetryConfig:
         retry_backoff_base: Base backoff time in seconds (default: 1.0)
         metrics_endpoint: Custom endpoint for metrics (defaults to /v1/metrics)
         logs_endpoint: Custom endpoint for logs (defaults to /v1/logs)
+        enabled: Enable/disable telemetry (None = auto-detect from environment)
+        verbose: Enable verbose logging (None = use AUTOMAGIK_TELEMETRY_VERBOSE env var)
         clickhouse_endpoint: ClickHouse HTTP endpoint (default: http://localhost:8123)
         clickhouse_database: ClickHouse database name (default: telemetry)
         clickhouse_table: ClickHouse table name for traces (default: traces)
@@ -87,6 +109,8 @@ class TelemetryConfig:
     retry_backoff_base: float = 1.0
     metrics_endpoint: str | None = None
     logs_endpoint: str | None = None
+    enabled: bool | None = None  # Enable/disable telemetry (None = auto-detect from environment)
+    verbose: bool | None = None  # Enable verbose logging (None = use environment variable)
     # ClickHouse-specific options
     clickhouse_endpoint: str = "http://localhost:8123"
     clickhouse_database: str = "telemetry"
@@ -388,7 +412,7 @@ class AutomagikTelemetry:
                 attributes.append({"key": key, "value": {"doubleValue": float(value)}})
             else:
                 # Truncate long strings to prevent payload bloat
-                sanitized_value = str(value)[:500]
+                sanitized_value = str(value)[:MAX_ATTRIBUTE_LENGTH]
                 attributes.append({"key": key, "value": {"stringValue": sanitized_value}})
 
         return attributes
@@ -473,10 +497,10 @@ class AutomagikTelemetry:
             "spanId": span_id,
             "name": event_type,
             "kind": "SPAN_KIND_INTERNAL",
-            "startTimeUnixNano": int(time.time() * 1_000_000_000),
-            "endTimeUnixNano": int(time.time() * 1_000_000_000),
+            "startTimeUnixNano": int(time.time() * NANOSECONDS_PER_SECOND),
+            "endTimeUnixNano": int(time.time() * NANOSECONDS_PER_SECOND),
             "attributes": self._create_attributes(data),
-            "status": {"code": 1},  # STATUS_CODE_OK = 1
+            "status": {"code": OTLP_STATUS_CODE_OK},
             "resource": {"attributes": self._get_resource_attributes()},
         }
 
@@ -516,7 +540,7 @@ class AutomagikTelemetry:
         if not self.enabled:
             return
 
-        timestamp_nano = int(time.time() * 1_000_000_000)
+        timestamp_nano = int(time.time() * NANOSECONDS_PER_SECOND)
         attrs = self._create_attributes(attributes or {}, include_system=False)
 
         # Create data point based on metric type
@@ -625,14 +649,14 @@ class AutomagikTelemetry:
         if not self.enabled:
             return
 
-        timestamp_nano = int(time.time() * 1_000_000_000)
+        timestamp_nano = int(time.time() * NANOSECONDS_PER_SECOND)
         attrs = self._create_attributes(attributes or {}, include_system=False)
 
         log_record = {
             "timeUnixNano": timestamp_nano,
             "severityNumber": severity.value,
             "severityText": severity.name,
-            "body": {"stringValue": message[:1000]},  # Truncate long messages
+            "body": {"stringValue": message[:MAX_LOG_MESSAGE_LENGTH]},  # Truncate long messages
             "attributes": attrs,
         }
 
@@ -830,7 +854,7 @@ class AutomagikTelemetry:
         """
         data = {
             "error_type": type(error).__name__,
-            "error_message": str(error)[:500],  # Truncate long errors
+            "error_message": str(error)[:MAX_ERROR_MESSAGE_LENGTH],  # Truncate long errors
             **(context or {}),
         }
         self._send_trace("automagik.error", data)

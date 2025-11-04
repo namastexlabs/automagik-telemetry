@@ -805,7 +805,7 @@ class TestErrorHandling:
                 assert sleep_calls[1] == 2  # 2^1
 
     def test_should_not_retry_on_generic_exception(self) -> None:
-        """Test that generic exceptions don't trigger retries."""
+        """Test that generic exceptions trigger retries with exponential backoff."""
         backend = ClickHouseBackend(max_retries=3)
         rows = [{"trace_id": "123"}]
 
@@ -815,8 +815,8 @@ class TestErrorHandling:
             result = backend._insert_batch(rows, backend.traces_table)
 
         assert result is False
-        # Should only try once (no retries for generic exceptions)
-        assert mock_urlopen.call_count == 1
+        # Should retry on all exceptions (max_retries attempts total)
+        assert mock_urlopen.call_count == 3
 
     def test_should_handle_non_200_status_code(self) -> None:
         """Test handling of non-200 HTTP status codes."""

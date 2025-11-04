@@ -112,6 +112,22 @@ Configuration values are resolved in the following order (highest to lowest prio
 
 > Options that apply to both OTLP and ClickHouse backends
 
+### ⏱️ Time Unit Reference
+
+**Critical Difference:** Time units differ between Python and TypeScript SDKs. Pay attention when configuring!
+
+| Parameter | Python Unit | TypeScript Unit | Example (5 seconds) |
+|-----------|-------------|-----------------|---------------------|
+| **`timeout`** | Seconds | Seconds | Both: `timeout: 5` |
+| **`flush_interval`** | **Seconds** | **Milliseconds** | Python: `5.0` / TypeScript: `5000` |
+| **`retry_backoff_base`** | **Seconds** | **Milliseconds** | Python: `1.0` / TypeScript: `1000` |
+
+**Conversion Rule:**
+- Python to TypeScript: Multiply by 1000 (seconds → milliseconds)
+- TypeScript to Python: Divide by 1000 (milliseconds → seconds)
+
+---
+
 ### 📌 Required Fields
 
 #### `projectName` / `project_name`
@@ -267,8 +283,9 @@ const telemetry = new AutomagikTelemetry({
 #### `timeout`
 
 <table>
-<tr><td><strong>Type</strong></td><td><code>int</code> (seconds for both SDKs)</td></tr>
-<tr><td><strong>Default</strong></td><td><code>5</code> seconds (TypeScript converts to milliseconds internally)</td></tr>
+<tr><td><strong>Type</strong></td><td><code>int</code></td></tr>
+<tr><td><strong>Unit</strong></td><td><strong>Seconds (both SDKs)</strong> - TypeScript converts internally to milliseconds</td></tr>
+<tr><td><strong>Default</strong></td><td><code>5</code> seconds</td></tr>
 <tr><td><strong>Environment Variable</strong></td><td><code>AUTOMAGIK_TELEMETRY_TIMEOUT</code></td></tr>
 </table>
 
@@ -448,8 +465,9 @@ const telemetry = new AutomagikTelemetry({
 #### `flushInterval` / `flush_interval`
 
 <table>
-<tr><td><strong>Type</strong></td><td><code>float</code> (Python: seconds) | <code>number</code> (TypeScript: milliseconds)</td></tr>
-<tr><td><strong>Default</strong></td><td>Python: <code>5.0</code> seconds | TypeScript: <code>5000</code> milliseconds</td></tr>
+<tr><td><strong>Type</strong></td><td><code>float</code> (Python) | <code>number</code> (TypeScript)</td></tr>
+<tr><td><strong>Unit</strong></td><td><strong>⚠️ Different units!</strong><br/>Python: <strong>seconds</strong> (float)<br/>TypeScript: <strong>milliseconds</strong> (number)</td></tr>
+<tr><td><strong>Default</strong></td><td>Python: <code>5.0</code> sec | TypeScript: <code>5000</code> ms</td></tr>
 <tr><td><strong>Description</strong></td><td>Interval for automatically flushing queued events</td></tr>
 </table>
 
@@ -522,8 +540,9 @@ const telemetry = new AutomagikTelemetry({
 #### `retryBackoffBase` / `retry_backoff_base`
 
 <table>
-<tr><td><strong>Type</strong></td><td><code>float</code> (Python: seconds) | <code>number</code> (TypeScript: milliseconds)</td></tr>
-<tr><td><strong>Default</strong></td><td>Python: <code>1.0</code> second | TypeScript: <code>1000</code> milliseconds</td></tr>
+<tr><td><strong>Type</strong></td><td><code>float</code> (Python) | <code>number</code> (TypeScript)</td></tr>
+<tr><td><strong>Unit</strong></td><td><strong>⚠️ Different units!</strong><br/>Python: <strong>seconds</strong> (float)<br/>TypeScript: <strong>milliseconds</strong> (number)</td></tr>
+<tr><td><strong>Default</strong></td><td>Python: <code>1.0</code> sec | TypeScript: <code>1000</code> ms</td></tr>
 <tr><td><strong>Description</strong></td><td>Base time for exponential backoff between retry attempts</td></tr>
 </table>
 

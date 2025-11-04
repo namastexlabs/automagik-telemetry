@@ -82,9 +82,10 @@ def process_webhook(channel: str, data: dict):
         # Track performance
         duration_ms = (time.time() - start_time) * 1000
         telemetry.track_metric(
-            metric_name=StandardEvents.OPERATION_LATENCY,
+            StandardEvents.OPERATION_LATENCY,
             value=duration_ms,
-            attributes={
+            metric_type=MetricType.HISTOGRAM,
+        attributes={
                 "operation_type": "webhook_processing",
                 "channel": channel
             }

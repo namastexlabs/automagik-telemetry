@@ -19,7 +19,7 @@ export interface TelemetryConfig {
   endpoint?: string;
   /** Organization name (default: namastex) */
   organization?: string;
-  /** HTTP timeout in seconds (default: 5) */
+  /** HTTP timeout in seconds for requests (both SDKs accept seconds; internally converted to milliseconds) (default: 5 seconds) */
   timeout?: number;
   /** Whether telemetry is enabled (opt-in only) */
   enabled?: boolean;
@@ -27,7 +27,7 @@ export interface TelemetryConfig {
   verbose?: boolean;
   /** Batch size for event queue (default: 100) */
   batchSize?: number;
-  /** Flush interval in milliseconds (default: 5000ms) */
+  /** Flush interval in milliseconds - TypeScript uses milliseconds (Python uses seconds) (default: 5000ms = 5 seconds) */
   flushInterval?: number;
   /** Enable payload compression (default: true) */
   compressionEnabled?: boolean;
@@ -35,7 +35,7 @@ export interface TelemetryConfig {
   compressionThreshold?: number;
   /** Maximum retry attempts (default: 3) */
   maxRetries?: number;
-  /** Retry backoff base in milliseconds (default: 1000ms) */
+  /** Retry backoff base in milliseconds - TypeScript uses milliseconds (Python uses seconds) (default: 1000ms = 1 second) */
   retryBackoffBase?: number;
   /** Custom metrics endpoint (defaults to /v1/metrics) */
   metricsEndpoint?: string;

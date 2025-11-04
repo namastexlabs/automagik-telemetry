@@ -131,11 +131,13 @@ class OTLPBackend(TelemetryBackend):
                             )
                             return False
 
-                except (URLError, HTTPError, TimeoutError) as e:
+                except (HTTPError, URLError, TimeoutError, Exception) as e:
                     last_exception = e
                     # Check if we should retry
                     if isinstance(e, HTTPError) and e.code < 500:
                         # Client error - don't retry
+                        if self.verbose:
+                            print(f"Telemetry {signal_type} failed: {e}")
                         logger.debug(f"Telemetry {signal_type} failed: {e}")
                         return False
 

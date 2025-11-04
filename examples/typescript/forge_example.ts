@@ -10,7 +10,7 @@ import { AutomagikTelemetry, StandardEvents, MetricType } from 'automagik-teleme
 // Initialize telemetry client once at app startup
 const telemetry = new AutomagikTelemetry({
   projectName: 'automagik-forge',
-  version: '1.0.0',
+  projectVersion: '1.0.0',
 });
 
 // === Example 1: Track Task Execution ===
@@ -252,7 +252,7 @@ if (require.main === module) {
   // Create test client
   const telemetryTest = new AutomagikTelemetry({
     projectName: 'forge',
-    version: '1.0.0',
+    projectVersion: '1.0.0',
   });
 
   // Send a test event

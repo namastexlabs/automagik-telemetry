@@ -508,22 +508,28 @@ client.trackEvent('user.login', { userId: '123' });
 
 All available configuration parameters with their defaults:
 
-| Parameter | Python | TypeScript | Default (Python) | Default (TypeScript) | Description |
-|-----------|--------|------------|------------------|----------------------|-------------|
-| `project_name` / `projectName` | ✅ | ✅ | *Required* | *Required* | Name of your project |
-| `version` | ✅ | ✅ | *Required* | *Required* | Project version |
-| `backend` | ✅ | ✅ | `"otlp"` | `"otlp"` | Backend type: `"otlp"` or `"clickhouse"` |
-| `endpoint` | ✅ | ✅ | `"https://telemetry.namastex.ai/v1/traces"` | `"https://telemetry.namastex.ai/v1/traces"` | Main traces endpoint |
-| `organization` | ✅ | ✅ | `"namastex"` | `"namastex"` | Organization name |
-| `timeout` | ✅ | ✅ | `5` (seconds) | `5` (seconds) | HTTP request timeout |
-| `batch_size` / `batchSize` | ✅ | ✅ | `100` | `100` | OTLP: events queued; ClickHouse: rows batched |
-| `flush_interval` / `flushInterval` | ✅ | ✅ | `5.0` (seconds) | `5000` (milliseconds) | Auto-flush interval |
-| `compression_enabled` / `compressionEnabled` | ✅ | ✅ | `True` | `true` | Enable gzip compression |
-| `compression_threshold` / `compressionThreshold` | ✅ | ✅ | `1024` (bytes) | `1024` (bytes) | Minimum size for compression |
-| `max_retries` / `maxRetries` | ✅ | ✅ | `3` | `3` | Maximum retry attempts |
-| `retry_backoff_base` / `retryBackoffBase` | ✅ | ✅ | `1.0` (seconds) | `1000` (milliseconds) | Base backoff time for retries |
-| `metrics_endpoint` / `metricsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | Custom metrics endpoint |
-| `logs_endpoint` / `logsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | Custom logs endpoint |
+| Parameter | Python | TypeScript | Default (Python) | Default (TypeScript) | Unit | Description |
+|-----------|--------|------------|------------------|----------------------|------|-------------|
+| `project_name` / `projectName` | ✅ | ✅ | *Required* | *Required* | N/A | Name of your project |
+| `version` | ✅ | ✅ | *Required* | *Required* | N/A | Project version |
+| `backend` | ✅ | ✅ | `"otlp"` | `"otlp"` | N/A | Backend type: `"otlp"` or `"clickhouse"` |
+| `endpoint` | ✅ | ✅ | `"https://telemetry.namastex.ai/v1/traces"` | `"https://telemetry.namastex.ai/v1/traces"` | N/A | Main traces endpoint |
+| `organization` | ✅ | ✅ | `"namastex"` | `"namastex"` | N/A | Organization name |
+| `timeout` | ✅ | ✅ | `5` | `5` | **seconds (both SDKs)** | HTTP request timeout |
+| `batch_size` / `batchSize` | ✅ | ✅ | `100` | `100` | N/A | OTLP: events queued; ClickHouse: rows batched |
+| `flush_interval` / `flushInterval` | ✅ | ✅ | `5.0` | `5000` | **seconds (Py) / milliseconds (TS)** | Auto-flush interval |
+| `compression_enabled` / `compressionEnabled` | ✅ | ✅ | `True` | `true` | N/A | Enable gzip compression |
+| `compression_threshold` / `compressionThreshold` | ✅ | ✅ | `1024` | `1024` | **bytes (both SDKs)** | Minimum size for compression |
+| `max_retries` / `maxRetries` | ✅ | ✅ | `3` | `3` | N/A | Maximum retry attempts |
+| `retry_backoff_base` / `retryBackoffBase` | ✅ | ✅ | `1.0` | `1000` | **seconds (Py) / milliseconds (TS)** | Base backoff time for retries |
+| `metrics_endpoint` / `metricsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | N/A | Custom metrics endpoint |
+| `logs_endpoint` / `logsEndpoint` | ✅ | ✅ | Auto-derived | Auto-derived | N/A | Custom logs endpoint |
+
+**Time Unit Reference:**
+- **`timeout`**: Both SDKs accept seconds. TypeScript converts internally to milliseconds (you don't need to do this).
+- **`flush_interval` / `flushInterval`**: Python uses **seconds** (5.0), TypeScript uses **milliseconds** (5000). Same 5-second flush interval, different units.
+- **`retry_backoff_base` / `retryBackoffBase`**: Python uses **seconds** (1.0), TypeScript uses **milliseconds** (1000). Same 1-second base backoff, different units.
+- **Conversion**: Python seconds × 1000 = TypeScript milliseconds
 
 **Understanding batch_size**
 
@@ -978,8 +984,8 @@ client.enable()
 # Track events - now active
 client.track_event("user.action")
 
-# Disable telemetry (creates opt-out file)
-client.disable()
+# Disable telemetry (creates opt-out file) - async method
+await client.disable()
 ```
 
 **TypeScript:**
@@ -998,7 +1004,7 @@ client.enable();
 client.trackEvent('user.action');
 
 // Disable telemetry (creates opt-out file, flushes pending events)
-await client.disable();  // Flushes before disabling
+await await client.disable();  // Flushes before disabling
 ```
 
 **What happens when you disable:**
