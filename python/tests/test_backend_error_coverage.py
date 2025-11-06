@@ -8,13 +8,10 @@ This test file targets specific uncovered lines:
 """
 
 import io
-import json
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
-
-import pytest
 
 from automagik_telemetry.backends.clickhouse import ClickHouseBackend
 from automagik_telemetry.backends.otlp import OTLPBackend
