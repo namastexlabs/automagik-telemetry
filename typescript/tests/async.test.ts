@@ -12,22 +12,22 @@
  * Port of Python's test_async.py to TypeScript
  */
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { AutomagikTelemetry, LogSeverity, MetricType } from '../src/client';
-import type { TelemetryConfig } from '../src/config';
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { AutomagikTelemetry, LogSeverity, MetricType } from "../src/client";
+import type { TelemetryConfig } from "../src/config";
 
 // Mock file system operations
-jest.mock('fs');
-jest.mock('os');
+jest.mock("fs");
+jest.mock("os");
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
-describe('Async Telemetry Operations', () => {
-  const mockHomedir = '/home/testuser';
-  const mockUserIdFile = path.join(mockHomedir, '.automagik', 'user_id');
+describe("Async Telemetry Operations", () => {
+  const mockHomedir = "/home/testuser";
+  const mockUserIdFile = path.join(mockHomedir, ".automagik", "user_id");
 
   let mockConfig: TelemetryConfig;
 
@@ -37,13 +37,13 @@ describe('Async Telemetry Operations', () => {
 
     // Mock os methods
     (os.homedir as jest.Mock).mockReturnValue(mockHomedir);
-    (os.platform as jest.Mock).mockReturnValue('linux');
-    (os.release as jest.Mock).mockReturnValue('5.10.0');
-    (os.arch as jest.Mock).mockReturnValue('x64');
+    (os.platform as jest.Mock).mockReturnValue("linux");
+    (os.release as jest.Mock).mockReturnValue("5.10.0");
+    (os.arch as jest.Mock).mockReturnValue("x64");
 
     // Mock fs methods
     (fs.existsSync as jest.Mock).mockReturnValue(false);
-    (fs.readFileSync as jest.Mock).mockReturnValue('');
+    (fs.readFileSync as jest.Mock).mockReturnValue("");
     (fs.writeFileSync as jest.Mock).mockReturnValue(undefined);
     (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
 
@@ -56,14 +56,14 @@ describe('Async Telemetry Operations', () => {
 
     // Default config with immediate flushing
     mockConfig = {
-      projectName: 'test-async',
-      version: '1.0.0',
+      projectName: "test-async",
+      version: "1.0.0",
       batchSize: 1, // Immediate send for testing
       compressionEnabled: false,
     };
 
     // Enable telemetry via environment variable
-    process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+    process.env.AUTOMAGIK_TELEMETRY_ENABLED = "true";
   });
 
   afterEach(() => {
@@ -71,12 +71,12 @@ describe('Async Telemetry Operations', () => {
     delete process.env.AUTOMAGIK_TELEMETRY_ENABLED;
   });
 
-  describe('Async Flush Operations', () => {
-    it('should complete flush operation asynchronously', async () => {
+  describe("Async Flush Operations", () => {
+    it("should complete flush operation asynchronously", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       // Track event (adds to queue)
-      client.trackEvent('test.event', { key: 'value' });
+      client.trackEvent("test.event", { key: "value" });
 
       // Flush should return a Promise that resolves
       await expect(client.flush()).resolves.toBeUndefined();
@@ -85,7 +85,7 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should handle flush when telemetry is disabled', async () => {
+    it("should handle flush when telemetry is disabled", async () => {
       delete process.env.AUTOMAGIK_TELEMETRY_ENABLED;
       const client = new AutomagikTelemetry(mockConfig);
 
@@ -96,7 +96,7 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('should flush multiple pending events', async () => {
+    it("should flush multiple pending events", async () => {
       // Use larger batch size to accumulate events
       const client = new AutomagikTelemetry({
         ...mockConfig,
@@ -104,9 +104,9 @@ describe('Async Telemetry Operations', () => {
       });
 
       // Track multiple events
-      client.trackEvent('event.1');
-      client.trackEvent('event.2');
-      client.trackEvent('event.3');
+      client.trackEvent("event.1");
+      client.trackEvent("event.2");
+      client.trackEvent("event.3");
 
       // Flush all at once
       await client.flush();
@@ -115,33 +115,33 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should handle network errors during flush gracefully', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+    it("should handle network errors during flush gracefully", async () => {
+      (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
       const client = new AutomagikTelemetry(mockConfig);
-      client.trackEvent('test.event');
+      client.trackEvent("test.event");
 
       // Should not throw, silent failure
       await expect(client.flush()).resolves.toBeUndefined();
     });
 
-    it('should handle HTTP errors during flush gracefully', async () => {
+    it("should handle HTTP errors during flush gracefully", async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 500,
-        json: async () => ({ error: 'Internal server error' }),
+        json: async () => ({ error: "Internal server error" }),
       });
 
       const client = new AutomagikTelemetry(mockConfig);
-      client.trackEvent('test.event');
+      client.trackEvent("test.event");
 
       // Should not throw, silent failure
       await expect(client.flush()).resolves.toBeUndefined();
     });
   });
 
-  describe('Concurrent Operations', () => {
-    it('should handle concurrent trackEvent calls', async () => {
+  describe("Concurrent Operations", () => {
+    it("should handle concurrent trackEvent calls", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       // Track multiple events concurrently
@@ -156,17 +156,19 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalledTimes(10);
     });
 
-    it('should handle mixed concurrent operations', async () => {
+    it("should handle mixed concurrent operations", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       // Mix different operation types
       const operations = [
-        Promise.resolve(client.trackEvent('event.1')),
-        Promise.resolve(client.trackMetric('metric.1', 42.0)),
-        Promise.resolve(client.trackLog('Log message 1')),
-        Promise.resolve(client.trackEvent('event.2')),
-        Promise.resolve(client.trackMetric('metric.2', 100.0, MetricType.COUNTER)),
-        Promise.resolve(client.trackError(new Error('test error'))),
+        Promise.resolve(client.trackEvent("event.1")),
+        Promise.resolve(client.trackMetric("metric.1", 42.0)),
+        Promise.resolve(client.trackLog("Log message 1")),
+        Promise.resolve(client.trackEvent("event.2")),
+        Promise.resolve(
+          client.trackMetric("metric.2", 100.0, MetricType.COUNTER),
+        ),
+        Promise.resolve(client.trackError(new Error("test error"))),
       ];
 
       // All operations should complete
@@ -176,20 +178,20 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalledTimes(6);
     });
 
-    it('should handle concurrent operations with some errors', async () => {
+    it("should handle concurrent operations with some errors", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       // First call succeeds, second fails, third succeeds
       (global.fetch as jest.Mock)
         .mockResolvedValueOnce({ ok: true, status: 200 })
-        .mockRejectedValueOnce(new Error('Network error'))
+        .mockRejectedValueOnce(new Error("Network error"))
         .mockResolvedValueOnce({ ok: true, status: 200 });
 
       // Should not raise exceptions (silent failure)
       const operations = [
-        Promise.resolve(client.trackEvent('event.1')),
-        Promise.resolve(client.trackEvent('event.2')),
-        Promise.resolve(client.trackEvent('event.3')),
+        Promise.resolve(client.trackEvent("event.1")),
+        Promise.resolve(client.trackEvent("event.2")),
+        Promise.resolve(client.trackEvent("event.3")),
       ];
 
       // All should complete without throwing
@@ -199,15 +201,15 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalledTimes(3);
     });
 
-    it('should handle concurrent flush calls', async () => {
+    it("should handle concurrent flush calls", async () => {
       const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 100,
       });
 
       // Track some events
-      client.trackEvent('event.1');
-      client.trackEvent('event.2');
+      client.trackEvent("event.1");
+      client.trackEvent("event.2");
 
       // Call flush concurrently
       await Promise.all([client.flush(), client.flush(), client.flush()]);
@@ -217,14 +219,14 @@ describe('Async Telemetry Operations', () => {
     });
   });
 
-  describe('Non-Blocking Behavior', () => {
-    it('should not block when tracking events', async () => {
+  describe("Non-Blocking Behavior", () => {
+    it("should not block when tracking events", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       const start = Date.now();
 
       // Track event (should return immediately)
-      client.trackEvent('test.event');
+      client.trackEvent("test.event");
 
       const elapsed = Date.now() - start;
 
@@ -232,7 +234,7 @@ describe('Async Telemetry Operations', () => {
       expect(elapsed).toBeLessThan(10);
     });
 
-    it('should allow concurrent work while tracking events', async () => {
+    it("should allow concurrent work while tracking events", async () => {
       // Mock slow network (100ms delay)
       (global.fetch as jest.Mock).mockImplementation(
         () =>
@@ -244,12 +246,12 @@ describe('Async Telemetry Operations', () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       // Track event (triggers async send)
-      client.trackEvent('test.event');
+      client.trackEvent("test.event");
 
       // Do other work concurrently
       const otherWork = async () => {
         await new Promise((resolve) => setTimeout(resolve, 50)); // 50ms
-        return 'completed';
+        return "completed";
       };
 
       const start = Date.now();
@@ -257,14 +259,14 @@ describe('Async Telemetry Operations', () => {
       const elapsed = Date.now() - start;
 
       // Other work should complete without waiting for network
-      expect(result).toBe('completed');
+      expect(result).toBe("completed");
       expect(elapsed).toBeLessThan(80); // Should be ~50ms, not 150ms
 
       // Wait for event to finish
       await new Promise((resolve) => setTimeout(resolve, 100));
     });
 
-    it('should allow async work during flush', async () => {
+    it("should allow async work during flush", async () => {
       // Mock slow network
       (global.fetch as jest.Mock).mockImplementation(
         () =>
@@ -278,7 +280,7 @@ describe('Async Telemetry Operations', () => {
         batchSize: 100,
       });
 
-      client.trackEvent('test.event');
+      client.trackEvent("test.event");
 
       // Start flush (returns Promise)
       const flushPromise = client.flush();
@@ -300,56 +302,58 @@ describe('Async Telemetry Operations', () => {
     });
   });
 
-  describe('Promise-Based Error Handling', () => {
-    it('should handle network errors without throwing', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+  describe("Promise-Based Error Handling", () => {
+    it("should handle network errors without throwing", async () => {
+      (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
       const client = new AutomagikTelemetry(mockConfig);
 
       // Should not throw exception
-      expect(() => client.trackEvent('test.event')).not.toThrow();
+      expect(() => client.trackEvent("test.event")).not.toThrow();
 
       // Wait for async operation to complete
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
-    it('should handle timeout errors without throwing', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Request timeout'));
+    it("should handle timeout errors without throwing", async () => {
+      (global.fetch as jest.Mock).mockRejectedValue(
+        new Error("Request timeout"),
+      );
 
       const client = new AutomagikTelemetry(mockConfig);
 
       // Should not throw exception
-      expect(() => client.trackMetric('test.metric', 42.0)).not.toThrow();
+      expect(() => client.trackMetric("test.metric", 42.0)).not.toThrow();
 
       // Wait for async operation to complete
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
-    it('should handle invalid response errors without throwing', async () => {
+    it("should handle invalid response errors without throwing", async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 400,
-        json: async () => ({ error: 'Bad request' }),
+        json: async () => ({ error: "Bad request" }),
       });
 
       const client = new AutomagikTelemetry(mockConfig);
 
       // Should not throw exception
-      expect(() => client.trackLog('test log')).not.toThrow();
+      expect(() => client.trackLog("test log")).not.toThrow();
 
       // Wait for async operation to complete
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
   });
 
-  describe('Integration with Async/Await Patterns', () => {
-    it('should work in async function context', async () => {
+  describe("Integration with Async/Await Patterns", () => {
+    it("should work in async function context", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       const asyncOperation = async () => {
-        client.trackEvent('operation.start');
+        client.trackEvent("operation.start");
         await new Promise((resolve) => setTimeout(resolve, 10));
-        client.trackEvent('operation.end');
+        client.trackEvent("operation.end");
       };
 
       await asyncOperation();
@@ -358,36 +362,36 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
-    it('should work with async/await and flush', async () => {
+    it("should work with async/await and flush", async () => {
       const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 100,
       });
 
       const operation = async () => {
-        client.trackEvent('event.1');
-        client.trackEvent('event.2');
+        client.trackEvent("event.1");
+        client.trackEvent("event.2");
         await client.flush();
-        return 'done';
+        return "done";
       };
 
       const result = await operation();
 
-      expect(result).toBe('done');
+      expect(result).toBe("done");
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should work with Promise.all and multiple clients', async () => {
+    it("should work with Promise.all and multiple clients", async () => {
       // Environment variable is already set in beforeEach
       const client1 = new AutomagikTelemetry({
-        projectName: 'project-1',
-        version: '1.0.0',
+        projectName: "project-1",
+        version: "1.0.0",
         batchSize: 1,
       });
 
       const client2 = new AutomagikTelemetry({
-        projectName: 'project-2',
-        version: '1.0.0',
+        projectName: "project-2",
+        version: "1.0.0",
         batchSize: 1,
       });
 
@@ -397,8 +401,8 @@ describe('Async Telemetry Operations', () => {
 
       // Track events from multiple clients
       await Promise.all([
-        Promise.resolve(client1.trackEvent('client1.event')),
-        Promise.resolve(client2.trackEvent('client2.event')),
+        Promise.resolve(client1.trackEvent("client1.event")),
+        Promise.resolve(client2.trackEvent("client2.event")),
       ]);
 
       // Wait for async operations to complete
@@ -409,8 +413,8 @@ describe('Async Telemetry Operations', () => {
     });
   });
 
-  describe('Performance Characteristics', () => {
-    it('should have concurrent execution faster than sequential', async () => {
+  describe("Performance Characteristics", () => {
+    it("should have concurrent execution faster than sequential", async () => {
       // Mock 50ms network delay
       (global.fetch as jest.Mock).mockImplementation(
         () =>
@@ -453,7 +457,7 @@ describe('Async Telemetry Operations', () => {
       expect(conTime).toBeLessThan(seqTime / 2);
     });
 
-    it('should handle high-volume concurrent operations', async () => {
+    it("should handle high-volume concurrent operations", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       const start = Date.now();
@@ -472,7 +476,7 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalledTimes(100);
     });
 
-    it('should handle rapid flush calls efficiently', async () => {
+    it("should handle rapid flush calls efficiently", async () => {
       const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 100,
@@ -486,7 +490,12 @@ describe('Async Telemetry Operations', () => {
       const start = Date.now();
 
       // Call flush multiple times rapidly
-      await Promise.all([client.flush(), client.flush(), client.flush(), client.flush()]);
+      await Promise.all([
+        client.flush(),
+        client.flush(),
+        client.flush(),
+        client.flush(),
+      ]);
 
       const elapsed = Date.now() - start;
 
@@ -495,17 +504,17 @@ describe('Async Telemetry Operations', () => {
     });
   });
 
-  describe('Cleanup and Shutdown', () => {
-    it('should complete pending operations before disable', async () => {
+  describe("Cleanup and Shutdown", () => {
+    it("should complete pending operations before disable", async () => {
       const client = new AutomagikTelemetry({
         ...mockConfig,
         batchSize: 100,
       });
 
       // Track multiple events
-      client.trackEvent('event.1');
-      client.trackEvent('event.2');
-      client.trackEvent('event.3');
+      client.trackEvent("event.1");
+      client.trackEvent("event.2");
+      client.trackEvent("event.3");
 
       // Disable (should flush remaining events)
       client.disable();
@@ -517,7 +526,7 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should not accept new events after disable', async () => {
+    it("should not accept new events after disable", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
       // Disable client
@@ -533,7 +542,7 @@ describe('Async Telemetry Operations', () => {
       jest.clearAllMocks();
 
       // Try to track event after disable
-      client.trackEvent('should.not.send');
+      client.trackEvent("should.not.send");
 
       // Wait for any async operations
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -543,38 +552,38 @@ describe('Async Telemetry Operations', () => {
     });
   });
 
-  describe('Async Method Variants', () => {
-    it('should track event using trackEventAsync', async () => {
+  describe("Async Method Variants", () => {
+    it("should track event using trackEventAsync", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackEventAsync('test.event', { key: 'value' });
+      await client.trackEventAsync("test.event", { key: "value" });
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track event using trackEventAsync without attributes', async () => {
+    it("should track event using trackEventAsync without attributes", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackEventAsync('test.event');
+      await client.trackEventAsync("test.event");
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track error using trackErrorAsync', async () => {
+    it("should track error using trackErrorAsync", async () => {
       const client = new AutomagikTelemetry(mockConfig);
-      const testError = new Error('Test error message');
+      const testError = new Error("Test error message");
 
-      await client.trackErrorAsync(testError, { context_key: 'context_value' });
+      await client.trackErrorAsync(testError, { context_key: "context_value" });
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track error using trackErrorAsync without context', async () => {
+    it("should track error using trackErrorAsync without context", async () => {
       const client = new AutomagikTelemetry(mockConfig);
-      const testError = new Error('Test error message');
+      const testError = new Error("Test error message");
 
       await client.trackErrorAsync(testError);
 
@@ -582,9 +591,9 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should truncate long error messages in trackErrorAsync', async () => {
+    it("should truncate long error messages in trackErrorAsync", async () => {
       const client = new AutomagikTelemetry(mockConfig);
-      const longMessage = 'x'.repeat(5000); // Very long message
+      const longMessage = "x".repeat(5000); // Very long message
       const testError = new Error(longMessage);
 
       await client.trackErrorAsync(testError);
@@ -593,104 +602,116 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track metric using trackMetricAsync with default type', async () => {
+    it("should track metric using trackMetricAsync with default type", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackMetricAsync('test.metric', 42.5);
+      await client.trackMetricAsync("test.metric", 42.5);
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track metric using trackMetricAsync with specific type', async () => {
+    it("should track metric using trackMetricAsync with specific type", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackMetricAsync('test.metric', 100, MetricType.COUNTER, { unit: 'count' });
+      await client.trackMetricAsync("test.metric", 100, MetricType.COUNTER, {
+        unit: "count",
+      });
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track metric using trackMetricAsync without attributes', async () => {
+    it("should track metric using trackMetricAsync without attributes", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackMetricAsync('test.metric', 100, MetricType.HISTOGRAM);
+      await client.trackMetricAsync("test.metric", 100, MetricType.HISTOGRAM);
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track log using trackLogAsync with default severity', async () => {
+    it("should track log using trackLogAsync with default severity", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackLogAsync('Test log message');
+      await client.trackLogAsync("Test log message");
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track log using trackLogAsync with specific severity', async () => {
+    it("should track log using trackLogAsync with specific severity", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackLogAsync('Test error log', LogSeverity.ERROR, { error_code: 'ERR001' });
+      await client.trackLogAsync("Test error log", LogSeverity.ERROR, {
+        error_code: "ERR001",
+      });
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should track log using trackLogAsync without attributes', async () => {
+    it("should track log using trackLogAsync without attributes", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      await client.trackLogAsync('Test warning log', LogSeverity.WARN);
+      await client.trackLogAsync("Test warning log", LogSeverity.WARN);
 
       // Verify fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should handle concurrent async method calls', async () => {
+    it("should handle concurrent async method calls", async () => {
       const client = new AutomagikTelemetry(mockConfig);
-      const testError = new Error('Test error');
+      const testError = new Error("Test error");
 
       await Promise.all([
-        client.trackEventAsync('event.1', { key: 'value1' }),
-        client.trackErrorAsync(testError, { context: 'test' }),
-        client.trackMetricAsync('metric.1', 42.5, MetricType.GAUGE),
-        client.trackLogAsync('Log message', LogSeverity.INFO, { source: 'test' }),
+        client.trackEventAsync("event.1", { key: "value1" }),
+        client.trackErrorAsync(testError, { context: "test" }),
+        client.trackMetricAsync("metric.1", 42.5, MetricType.GAUGE),
+        client.trackLogAsync("Log message", LogSeverity.INFO, {
+          source: "test",
+        }),
       ]);
 
       // All four calls should have been made
       expect(global.fetch).toHaveBeenCalledTimes(4);
     });
 
-    it('should return promises from async methods', async () => {
+    it("should return promises from async methods", async () => {
       const client = new AutomagikTelemetry(mockConfig);
 
-      const eventPromise = client.trackEventAsync('test.event');
+      const eventPromise = client.trackEventAsync("test.event");
       expect(eventPromise).toBeInstanceOf(Promise);
       await eventPromise;
 
-      const errorPromise = client.trackErrorAsync(new Error('test'));
+      const errorPromise = client.trackErrorAsync(new Error("test"));
       expect(errorPromise).toBeInstanceOf(Promise);
       await errorPromise;
 
-      const metricPromise = client.trackMetricAsync('test.metric', 1);
+      const metricPromise = client.trackMetricAsync("test.metric", 1);
       expect(metricPromise).toBeInstanceOf(Promise);
       await metricPromise;
 
-      const logPromise = client.trackLogAsync('test log');
+      const logPromise = client.trackLogAsync("test log");
       expect(logPromise).toBeInstanceOf(Promise);
       await logPromise;
     });
 
-    it('should handle errors gracefully in async methods', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+    it("should handle errors gracefully in async methods", async () => {
+      (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
       const client = new AutomagikTelemetry(mockConfig);
 
       // Should not throw
-      await expect(client.trackEventAsync('test.event')).resolves.toBeUndefined();
-      await expect(client.trackErrorAsync(new Error('test'))).resolves.toBeUndefined();
-      await expect(client.trackMetricAsync('test.metric', 1)).resolves.toBeUndefined();
-      await expect(client.trackLogAsync('test log')).resolves.toBeUndefined();
+      await expect(
+        client.trackEventAsync("test.event"),
+      ).resolves.toBeUndefined();
+      await expect(
+        client.trackErrorAsync(new Error("test")),
+      ).resolves.toBeUndefined();
+      await expect(
+        client.trackMetricAsync("test.metric", 1),
+      ).resolves.toBeUndefined();
+      await expect(client.trackLogAsync("test log")).resolves.toBeUndefined();
     });
   });
 });

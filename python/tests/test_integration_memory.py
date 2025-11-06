@@ -120,7 +120,9 @@ def test_no_memory_leak_simple_events(memory_test_client: AutomagikTelemetry) ->
         assert growth_rate < 5, "Memory appears to be growing linearly"
 
 
-async def test_memory_returns_to_baseline_after_flush(memory_test_client: AutomagikTelemetry) -> None:
+async def test_memory_returns_to_baseline_after_flush(
+    memory_test_client: AutomagikTelemetry,
+) -> None:
     """Test that memory returns to baseline after flush."""
     print("\n=== Testing memory returns to baseline after flush ===")
 

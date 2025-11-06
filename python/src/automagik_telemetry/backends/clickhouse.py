@@ -262,7 +262,9 @@ class ClickHouseBackend(TelemetryBackend):
                 with urlopen(request, timeout=self.timeout) as response:
                     if response.status == 200:
                         if self.verbose:
-                            print(f"Inserted {len(rows)} rows to ClickHouse table {table_name} successfully")
+                            print(
+                                f"Inserted {len(rows)} rows to ClickHouse table {table_name} successfully"
+                            )
                         logger.debug(
                             f"Inserted {len(rows)} rows to ClickHouse table {table_name} successfully"
                         )
@@ -292,8 +294,12 @@ class ClickHouseBackend(TelemetryBackend):
                     return False
 
                 if self.verbose:
-                    print(f"Error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}")
-                logger.debug(f"Error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}")
+                    print(
+                        f"Error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}"
+                    )
+                logger.debug(
+                    f"Error inserting to ClickHouse (attempt {attempt + 1}/{self.max_retries}): {e}"
+                )
 
             # Wait before retry (exponential backoff)
             if attempt < self.max_retries - 1:
@@ -303,8 +309,12 @@ class ClickHouseBackend(TelemetryBackend):
         # All retries exhausted
         if last_exception:
             if self.verbose:
-                print(f"Failed to insert to ClickHouse after {self.max_retries} retries: {last_exception}")
-            logger.debug(f"Failed to insert to ClickHouse after {self.max_retries} retries: {last_exception}")
+                print(
+                    f"Failed to insert to ClickHouse after {self.max_retries} retries: {last_exception}"
+                )
+            logger.debug(
+                f"Failed to insert to ClickHouse after {self.max_retries} retries: {last_exception}"
+            )
         return False
 
     def send_trace(self, payload: dict[str, Any]) -> bool:

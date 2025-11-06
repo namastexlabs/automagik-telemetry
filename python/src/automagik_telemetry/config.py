@@ -257,7 +257,9 @@ def merge_config(user_config: TelemetryConfig) -> ValidatedConfig:
         timeout=int(
             user_config.timeout
             if user_config.timeout is not None
-            else (env_config.timeout if env_config.timeout is not None else DEFAULT_CONFIG["timeout"])
+            else (
+                env_config.timeout if env_config.timeout is not None else DEFAULT_CONFIG["timeout"]
+            )
         ),
         enabled=bool(
             user_config.enabled

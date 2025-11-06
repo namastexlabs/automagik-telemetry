@@ -93,7 +93,9 @@ class TestAutomagikTelemetryInitialization:
         assert client.config.project_name == "test-project"
         assert client.config.version == "1.0.0"
         assert client.config.organization == "namastex"
-        assert client.config.timeout is None  # None means use default (5) from env or DEFAULT_TIMEOUT
+        assert (
+            client.config.timeout is None
+        )  # None means use default (5) from env or DEFAULT_TIMEOUT
         assert client.endpoint == "https://telemetry.namastex.ai/v1/traces"
 
     def test_should_use_custom_endpoint_when_provided(
@@ -1634,7 +1636,8 @@ class TestCoverageTargeted:
 
         # Mock json.dumps to raise an exception
         with patch(
-            "automagik_telemetry.backends.otlp.json.dumps", side_effect=Exception("Serialization error")
+            "automagik_telemetry.backends.otlp.json.dumps",
+            side_effect=Exception("Serialization error"),
         ):
             # Should handle exception silently (lines 392-394)
             client.track_event("test.event", {})  # Should not raise
@@ -1878,7 +1881,9 @@ class TestTimerAndBatchCoverage:
         assert mock_urlopen.call_count >= 1
         await client.disable()
 
-    async def test_should_hit_exact_batch_threshold_for_logs(self, mock_urlopen, temp_home, monkeypatch):
+    async def test_should_hit_exact_batch_threshold_for_logs(
+        self, mock_urlopen, temp_home, monkeypatch
+    ):
         """Test hitting exactly batch_size for logs (line 543)."""
         monkeypatch.setenv("AUTOMAGIK_TELEMETRY_ENABLED", "true")
 

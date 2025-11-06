@@ -13,22 +13,30 @@
  */
 
 // Mock modules BEFORE importing the module under test
-jest.mock('fs');
-jest.mock('os', () => ({
-  homedir: jest.fn(() => '/home/testuser'),
+jest.mock("fs");
+jest.mock("os", () => ({
+  homedir: jest.fn(() => "/home/testuser"),
 }));
-jest.mock('readline');
+jest.mock("readline");
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as readline from 'readline';
-import { TelemetryOptIn, shouldPromptUser, promptUserIfNeeded } from '../src/opt-in';
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import * as readline from "readline";
+import {
+  TelemetryOptIn,
+  shouldPromptUser,
+  promptUserIfNeeded,
+} from "../src/opt-in";
 
-describe('TelemetryOptIn', () => {
-  const mockHomedir = '/home/testuser';
-  const mockPreferenceFile = path.join(mockHomedir, '.automagik', 'telemetry_preference');
-  const mockOptOutFile = path.join(mockHomedir, '.automagik-no-telemetry');
+describe("TelemetryOptIn", () => {
+  const mockHomedir = "/home/testuser";
+  const mockPreferenceFile = path.join(
+    mockHomedir,
+    ".automagik",
+    "telemetry_preference",
+  );
+  const mockOptOutFile = path.join(mockHomedir, ".automagik-no-telemetry");
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +46,7 @@ describe('TelemetryOptIn', () => {
 
     // Mock fs methods
     (fs.existsSync as jest.Mock).mockReturnValue(false);
-    (fs.readFileSync as jest.Mock).mockReturnValue('');
+    (fs.readFileSync as jest.Mock).mockReturnValue("");
     (fs.writeFileSync as jest.Mock).mockReturnValue(undefined);
     (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
     (fs.unlinkSync as jest.Mock).mockReturnValue(undefined);
@@ -46,12 +54,12 @@ describe('TelemetryOptIn', () => {
     (fs.closeSync as jest.Mock).mockReturnValue(undefined);
 
     // Mock process.stdin/stdout as TTY by default
-    Object.defineProperty(process.stdin, 'isTTY', {
+    Object.defineProperty(process.stdin, "isTTY", {
       value: true,
       writable: true,
       configurable: true,
     });
-    Object.defineProperty(process.stdout, 'isTTY', {
+    Object.defineProperty(process.stdout, "isTTY", {
       value: true,
       writable: true,
       configurable: true,
@@ -62,44 +70,44 @@ describe('TelemetryOptIn', () => {
     jest.restoreAllMocks();
   });
 
-  describe('hasUserDecided', () => {
-    it('should return false when no preference exists', () => {
+  describe("hasUserDecided", () => {
+    it("should return false when no preference exists", () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
       expect(TelemetryOptIn.hasUserDecided()).toBe(false);
     });
 
-    it('should return true when preference file exists', () => {
+    it("should return true when preference file exists", () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
       expect(TelemetryOptIn.hasUserDecided()).toBe(true);
     });
 
-    it('should return true when opt-out file exists', () => {
+    it("should return true when opt-out file exists", () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockOptOutFile;
       });
       expect(TelemetryOptIn.hasUserDecided()).toBe(true);
     });
 
-    it('should return true when environment variable is set', () => {
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+    it("should return true when environment variable is set", () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "true";
       expect(TelemetryOptIn.hasUserDecided()).toBe(true);
     });
 
-    it('should return true when environment variable is set to false', () => {
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'false';
+    it("should return true when environment variable is set to false", () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "false";
       expect(TelemetryOptIn.hasUserDecided()).toBe(true);
     });
   });
 
-  describe('getUserPreference', () => {
-    it('should return null when no preference exists', () => {
+  describe("getUserPreference", () => {
+    it("should return null when no preference exists", () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
       expect(TelemetryOptIn.getUserPreference()).toBeNull();
     });
 
-    it('should return false when opt-out file exists', () => {
+    it("should return false when opt-out file exists", () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockOptOutFile;
       });
@@ -110,7 +118,7 @@ describe('TelemetryOptIn', () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
-      (fs.readFileSync as jest.Mock).mockReturnValue('enabled');
+      (fs.readFileSync as jest.Mock).mockReturnValue("enabled");
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
     });
 
@@ -118,7 +126,7 @@ describe('TelemetryOptIn', () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
-      (fs.readFileSync as jest.Mock).mockReturnValue('true');
+      (fs.readFileSync as jest.Mock).mockReturnValue("true");
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
     });
 
@@ -126,7 +134,7 @@ describe('TelemetryOptIn', () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
-      (fs.readFileSync as jest.Mock).mockReturnValue('yes');
+      (fs.readFileSync as jest.Mock).mockReturnValue("yes");
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
     });
 
@@ -134,72 +142,75 @@ describe('TelemetryOptIn', () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
-      (fs.readFileSync as jest.Mock).mockReturnValue('1');
+      (fs.readFileSync as jest.Mock).mockReturnValue("1");
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
     });
 
-    it('should return false when preference file contains other value', () => {
+    it("should return false when preference file contains other value", () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
-      (fs.readFileSync as jest.Mock).mockReturnValue('disabled');
+      (fs.readFileSync as jest.Mock).mockReturnValue("disabled");
       expect(TelemetryOptIn.getUserPreference()).toBe(false);
     });
 
-    it('should prefer opt-out file over preference file', () => {
+    it("should prefer opt-out file over preference file", () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue('enabled');
+      (fs.readFileSync as jest.Mock).mockReturnValue("enabled");
       expect(TelemetryOptIn.getUserPreference()).toBe(false);
     });
 
-    it('should handle file read errors gracefully', () => {
+    it("should handle file read errors gracefully", () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
       (fs.readFileSync as jest.Mock).mockImplementation(() => {
-        throw new Error('Read error');
+        throw new Error("Read error");
       });
       expect(TelemetryOptIn.getUserPreference()).toBeNull();
     });
 
-    it('should check environment variable if no files exist', () => {
+    it("should check environment variable if no files exist", () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "true";
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
     });
 
-    it('should return true for env var values: 1, yes, on', () => {
+    it("should return true for env var values: 1, yes, on", () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = '1';
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "1";
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
 
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'yes';
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "yes";
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
 
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'on';
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "on";
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
     });
 
-    it('should be case-insensitive for environment variable', () => {
+    it("should be case-insensitive for environment variable", () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'TRUE';
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "TRUE";
       expect(TelemetryOptIn.getUserPreference()).toBe(true);
     });
   });
 
-  describe('savePreference', () => {
-    it('should save enabled preference to file', () => {
+  describe("savePreference", () => {
+    it("should save enabled preference to file", () => {
       TelemetryOptIn.savePreference(true);
 
       expect(fs.mkdirSync).toHaveBeenCalledWith(
-        path.join(mockHomedir, '.automagik'),
-        { recursive: true }
+        path.join(mockHomedir, ".automagik"),
+        { recursive: true },
       );
-      expect(fs.writeFileSync).toHaveBeenCalledWith(mockPreferenceFile, 'enabled');
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        mockPreferenceFile,
+        "enabled",
+      );
     });
 
-    it('should remove opt-out file when saving enabled preference', () => {
+    it("should remove opt-out file when saving enabled preference", () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockOptOutFile;
       });
@@ -209,14 +220,14 @@ describe('TelemetryOptIn', () => {
       expect(fs.unlinkSync).toHaveBeenCalledWith(mockOptOutFile);
     });
 
-    it('should create opt-out file when saving disabled preference', () => {
+    it("should create opt-out file when saving disabled preference", () => {
       TelemetryOptIn.savePreference(false);
 
-      expect(fs.openSync).toHaveBeenCalledWith(mockOptOutFile, 'w');
+      expect(fs.openSync).toHaveBeenCalledWith(mockOptOutFile, "w");
       expect(fs.closeSync).toHaveBeenCalled();
     });
 
-    it('should remove preference file when saving disabled preference', () => {
+    it("should remove preference file when saving disabled preference", () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
@@ -226,38 +237,38 @@ describe('TelemetryOptIn', () => {
       expect(fs.unlinkSync).toHaveBeenCalledWith(mockPreferenceFile);
     });
 
-    it('should handle errors gracefully when saving enabled', () => {
+    it("should handle errors gracefully when saving enabled", () => {
       (fs.mkdirSync as jest.Mock).mockImplementation(() => {
-        throw new Error('mkdir error');
+        throw new Error("mkdir error");
       });
 
       expect(() => TelemetryOptIn.savePreference(true)).not.toThrow();
     });
 
-    it('should handle errors gracefully when saving disabled', () => {
+    it("should handle errors gracefully when saving disabled", () => {
       (fs.openSync as jest.Mock).mockImplementation(() => {
-        throw new Error('open error');
+        throw new Error("open error");
       });
 
       expect(() => TelemetryOptIn.savePreference(false)).not.toThrow();
     });
   });
 
-  describe('Color Support Detection', () => {
-    it('should not support color when NO_COLOR is set', () => {
-      process.env.NO_COLOR = '1';
+  describe("Color Support Detection", () => {
+    it("should not support color when NO_COLOR is set", () => {
+      process.env.NO_COLOR = "1";
       const supportsColor = (TelemetryOptIn as any).supportsColor();
       expect(supportsColor).toBe(false);
     });
 
-    it('should support color when FORCE_COLOR is set', () => {
-      process.env.FORCE_COLOR = '1';
+    it("should support color when FORCE_COLOR is set", () => {
+      process.env.FORCE_COLOR = "1";
       const supportsColor = (TelemetryOptIn as any).supportsColor();
       expect(supportsColor).toBe(true);
     });
 
-    it('should not support color when stdout is not a TTY', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
+    it("should not support color when stdout is not a TTY", () => {
+      Object.defineProperty(process.stdout, "isTTY", {
         value: false,
         writable: true,
         configurable: true,
@@ -266,9 +277,9 @@ describe('TelemetryOptIn', () => {
       expect(supportsColor).toBe(false);
     });
 
-    it('should support color on Windows platform', () => {
-      Object.defineProperty(process, 'platform', {
-        value: 'win32',
+    it("should support color on Windows platform", () => {
+      Object.defineProperty(process, "platform", {
+        value: "win32",
         writable: true,
         configurable: true,
       });
@@ -276,48 +287,48 @@ describe('TelemetryOptIn', () => {
       expect(supportsColor).toBe(true);
     });
 
-    it('should support color when TERM is set', () => {
-      Object.defineProperty(process, 'platform', {
-        value: 'linux',
+    it("should support color when TERM is set", () => {
+      Object.defineProperty(process, "platform", {
+        value: "linux",
         writable: true,
         configurable: true,
       });
-      process.env.TERM = 'xterm-256color';
+      process.env.TERM = "xterm-256color";
       const supportsColor = (TelemetryOptIn as any).supportsColor();
       expect(supportsColor).toBe(true);
     });
 
-    it('should not support color when TERM is dumb', () => {
-      process.env.TERM = 'dumb';
+    it("should not support color when TERM is dumb", () => {
+      process.env.TERM = "dumb";
       const supportsColor = (TelemetryOptIn as any).supportsColor();
       expect(supportsColor).toBe(false);
     });
 
-    it('should test colorize with color support enabled', () => {
+    it("should test colorize with color support enabled", () => {
       // Set up environment to support colors
-      process.env.FORCE_COLOR = '1';
+      process.env.FORCE_COLOR = "1";
       const colorize = (TelemetryOptIn as any).colorize.bind(TelemetryOptIn);
-      const result = colorize('test', '31');
-      expect(result).toBe('\x1b[31mtest\x1b[0m');
+      const result = colorize("test", "31");
+      expect(result).toBe("\x1b[31mtest\x1b[0m");
     });
 
-    it('should test colorize without color support', () => {
+    it("should test colorize without color support", () => {
       // Disable color support
-      process.env.NO_COLOR = '1';
+      process.env.NO_COLOR = "1";
       const colorize = (TelemetryOptIn as any).colorize.bind(TelemetryOptIn);
-      const result = colorize('test', '31');
-      expect(result).toBe('test');
+      const result = colorize("test", "31");
+      expect(result).toBe("test");
     });
   });
 
-  describe('Interactive Environment Detection', () => {
-    it('should be interactive when stdin and stdout are TTYs', () => {
+  describe("Interactive Environment Detection", () => {
+    it("should be interactive when stdin and stdout are TTYs", () => {
       const isInteractive = (TelemetryOptIn as any).isInteractive();
       expect(isInteractive).toBe(true);
     });
 
-    it('should not be interactive when stdin is not a TTY', () => {
-      Object.defineProperty(process.stdin, 'isTTY', {
+    it("should not be interactive when stdin is not a TTY", () => {
+      Object.defineProperty(process.stdin, "isTTY", {
         value: false,
         writable: true,
         configurable: true,
@@ -326,8 +337,8 @@ describe('TelemetryOptIn', () => {
       expect(isInteractive).toBe(false);
     });
 
-    it('should not be interactive when stdout is not a TTY', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
+    it("should not be interactive when stdout is not a TTY", () => {
+      Object.defineProperty(process.stdout, "isTTY", {
         value: false,
         writable: true,
         configurable: true,
@@ -336,32 +347,32 @@ describe('TelemetryOptIn', () => {
       expect(isInteractive).toBe(false);
     });
 
-    it('should not be interactive in CI environment', () => {
-      process.env.CI = 'true';
+    it("should not be interactive in CI environment", () => {
+      process.env.CI = "true";
       const isInteractive = (TelemetryOptIn as any).isInteractive();
       expect(isInteractive).toBe(false);
     });
 
-    it('should not be interactive in GITHUB_ACTIONS', () => {
-      process.env.GITHUB_ACTIONS = 'true';
+    it("should not be interactive in GITHUB_ACTIONS", () => {
+      process.env.GITHUB_ACTIONS = "true";
       const isInteractive = (TelemetryOptIn as any).isInteractive();
       expect(isInteractive).toBe(false);
     });
 
-    it('should not be interactive in TRAVIS', () => {
-      process.env.TRAVIS = 'true';
+    it("should not be interactive in TRAVIS", () => {
+      process.env.TRAVIS = "true";
       const isInteractive = (TelemetryOptIn as any).isInteractive();
       expect(isInteractive).toBe(false);
     });
 
-    it('should not be interactive in JENKINS', () => {
-      process.env.JENKINS = 'true';
+    it("should not be interactive in JENKINS", () => {
+      process.env.JENKINS = "true";
       const isInteractive = (TelemetryOptIn as any).isInteractive();
       expect(isInteractive).toBe(false);
     });
   });
 
-  describe('promptUser', () => {
+  describe("promptUser", () => {
     let mockReadlineInterface: any;
 
     beforeEach(() => {
@@ -369,22 +380,24 @@ describe('TelemetryOptIn', () => {
         question: jest.fn(),
         close: jest.fn(),
       };
-      (readline.createInterface as jest.Mock).mockReturnValue(mockReadlineInterface);
+      (readline.createInterface as jest.Mock).mockReturnValue(
+        mockReadlineInterface,
+      );
     });
 
-    it('should not prompt if user already decided', async () => {
+    it("should not prompt if user already decided", async () => {
       (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
         return filePath === mockPreferenceFile;
       });
-      (fs.readFileSync as jest.Mock).mockReturnValue('enabled');
+      (fs.readFileSync as jest.Mock).mockReturnValue("enabled");
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       expect(result).toBe(true);
       expect(readline.createInterface).not.toHaveBeenCalled();
     });
 
-    it('should return false when user decided but preference is null', async () => {
+    it("should return false when user decided but preference is null", async () => {
       // This covers lines 152,156: hasUserDecided() true but getUserPreference() null
       // Scenario: preference file exists (so hasUserDecided returns true)
       // but reading it throws an error (so getUserPreference returns null)
@@ -392,176 +405,203 @@ describe('TelemetryOptIn', () => {
         return filePath === mockPreferenceFile;
       });
       (fs.readFileSync as jest.Mock).mockImplementation(() => {
-        throw new Error('Read error');
+        throw new Error("Read error");
       });
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       // Should return false as the preference is null and falls back to false
       expect(result).toBe(false);
       expect(readline.createInterface).not.toHaveBeenCalled();
     });
 
-    it('should not prompt in non-interactive environment', async () => {
-      Object.defineProperty(process.stdin, 'isTTY', {
+    it("should not prompt in non-interactive environment", async () => {
+      Object.defineProperty(process.stdin, "isTTY", {
         value: false,
         writable: true,
         configurable: true,
       });
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       expect(result).toBe(false);
       expect(readline.createInterface).not.toHaveBeenCalled();
     });
 
-    it('should prompt user and save yes response', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('y');
-      });
+    it("should prompt user and save yes response", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("y");
+        },
+      );
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       expect(result).toBe(true);
       expect(readline.createInterface).toHaveBeenCalled();
-      expect(fs.writeFileSync).toHaveBeenCalledWith(mockPreferenceFile, 'enabled');
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        mockPreferenceFile,
+        "enabled",
+      );
     });
 
-    it('should prompt user and save yes (full word) response', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('yes');
-      });
+    it("should prompt user and save yes (full word) response", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("yes");
+        },
+      );
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       expect(result).toBe(true);
     });
 
-    it('should prompt user and save no response', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('n');
-      });
+    it("should prompt user and save no response", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("n");
+        },
+      );
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
-
-      expect(result).toBe(false);
-      expect(fs.openSync).toHaveBeenCalledWith(mockOptOutFile, 'w');
-    });
-
-    it('should treat empty response as no', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('');
-      });
-
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       expect(result).toBe(false);
+      expect(fs.openSync).toHaveBeenCalledWith(mockOptOutFile, "w");
     });
 
-    it('should be case-insensitive', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('YES');
-      });
+    it("should treat empty response as no", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("");
+        },
+      );
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
+
+      expect(result).toBe(false);
+    });
+
+    it("should be case-insensitive", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("YES");
+        },
+      );
+
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       expect(result).toBe(true);
     });
 
-    it('should handle user cancellation (error)', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        throw new Error('User cancelled');
-      });
+    it("should handle user cancellation (error)", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          throw new Error("User cancelled");
+        },
+      );
 
-      const result = await TelemetryOptIn.promptUser('TestProject');
+      const result = await TelemetryOptIn.promptUser("TestProject");
 
       expect(result).toBe(false);
-      expect(fs.openSync).toHaveBeenCalledWith(mockOptOutFile, 'w');
+      expect(fs.openSync).toHaveBeenCalledWith(mockOptOutFile, "w");
     });
 
-    it('should display project name in prompt', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('y');
-      });
+    it("should display project name in prompt", async () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("y");
+        },
+      );
 
-      await TelemetryOptIn.promptUser('MyAwesomeProject');
+      await TelemetryOptIn.promptUser("MyAwesomeProject");
 
       expect(consoleSpy).toHaveBeenCalled();
       const calls = consoleSpy.mock.calls;
-      const promptText = calls.find((call) => call[0]?.includes('MyAwesomeProject'));
+      const promptText = calls.find((call) =>
+        call[0]?.includes("MyAwesomeProject"),
+      );
       expect(promptText).toBeDefined();
 
       consoleSpy.mockRestore();
     });
 
-    it('should close readline interface after response', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('y');
-      });
+    it("should close readline interface after response", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("y");
+        },
+      );
 
-      await TelemetryOptIn.promptUser('TestProject');
+      await TelemetryOptIn.promptUser("TestProject");
 
       expect(mockReadlineInterface.close).toHaveBeenCalled();
     });
 
-    it('should use default project name when called without arguments', async () => {
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('y');
-      });
+    it("should use default project name when called without arguments", async () => {
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("y");
+        },
+      );
 
       // Call without any arguments to test the default parameter
       const result = await TelemetryOptIn.promptUser();
 
       expect(result).toBe(true);
       // Verify the default "Automagik" project name is used in the output
-      const consoleSpy = jest.spyOn(console, 'log');
-      mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-        callback('y');
-      });
+      const consoleSpy = jest.spyOn(console, "log");
+      mockReadlineInterface.question.mockImplementation(
+        (prompt: string, callback: Function) => {
+          callback("y");
+        },
+      );
 
       await TelemetryOptIn.promptUser();
 
       // The prompt should contain "Automagik" when no project name is provided
       const calls = consoleSpy.mock.calls;
-      const promptWithDefault = calls.find((call) => call[0]?.includes('Automagik'));
+      const promptWithDefault = calls.find((call) =>
+        call[0]?.includes("Automagik"),
+      );
       expect(promptWithDefault).toBeDefined();
 
       consoleSpy.mockRestore();
     });
   });
 
-  describe('Helper Functions', () => {
-    describe('shouldPromptUser', () => {
-      it('should return true when user has not decided and is interactive', () => {
+  describe("Helper Functions", () => {
+    describe("shouldPromptUser", () => {
+      it("should return true when user has not decided and is interactive", () => {
         (fs.existsSync as jest.Mock).mockReturnValue(false);
-        expect(shouldPromptUser('TestProject')).toBe(true);
+        expect(shouldPromptUser("TestProject")).toBe(true);
       });
 
-      it('should return false when user already decided', () => {
+      it("should return false when user already decided", () => {
         (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
           return filePath === mockPreferenceFile;
         });
-        expect(shouldPromptUser('TestProject')).toBe(false);
+        expect(shouldPromptUser("TestProject")).toBe(false);
       });
 
-      it('should return false in non-interactive environment', () => {
-        Object.defineProperty(process.stdin, 'isTTY', {
+      it("should return false in non-interactive environment", () => {
+        Object.defineProperty(process.stdin, "isTTY", {
           value: false,
           writable: true,
           configurable: true,
         });
-        expect(shouldPromptUser('TestProject')).toBe(false);
+        expect(shouldPromptUser("TestProject")).toBe(false);
       });
 
-      it('should use default project name when not provided', () => {
+      it("should use default project name when not provided", () => {
         // This covers line 285: default parameter value
         (fs.existsSync as jest.Mock).mockReturnValue(false);
         expect(shouldPromptUser()).toBe(true);
       });
     });
 
-    describe('promptUserIfNeeded', () => {
+    describe("promptUserIfNeeded", () => {
       let mockReadlineInterface: any;
 
       beforeEach(() => {
@@ -569,39 +609,44 @@ describe('TelemetryOptIn', () => {
           question: jest.fn(),
           close: jest.fn(),
         };
-        (readline.createInterface as jest.Mock).mockReturnValue(mockReadlineInterface);
+        (readline.createInterface as jest.Mock).mockReturnValue(
+          mockReadlineInterface,
+        );
       });
 
-      it('should prompt if needed', async () => {
-        mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-          callback('y');
-        });
+      it("should prompt if needed", async () => {
+        mockReadlineInterface.question.mockImplementation(
+          (prompt: string, callback: Function) => {
+            callback("y");
+          },
+        );
 
-        const result = await promptUserIfNeeded('TestProject');
+        const result = await promptUserIfNeeded("TestProject");
         expect(result).toBe(true);
       });
 
-      it('should not prompt if user already decided', async () => {
+      it("should not prompt if user already decided", async () => {
         (fs.existsSync as jest.Mock).mockImplementation((filePath) => {
           return filePath === mockPreferenceFile;
         });
-        (fs.readFileSync as jest.Mock).mockReturnValue('enabled');
+        (fs.readFileSync as jest.Mock).mockReturnValue("enabled");
 
-        const result = await promptUserIfNeeded('TestProject');
+        const result = await promptUserIfNeeded("TestProject");
         expect(result).toBe(true);
         expect(readline.createInterface).not.toHaveBeenCalled();
       });
 
-      it('should use default project name when not provided', async () => {
+      it("should use default project name when not provided", async () => {
         // This covers line 293: default parameter value
-        mockReadlineInterface.question.mockImplementation((prompt: string, callback: Function) => {
-          callback('y');
-        });
+        mockReadlineInterface.question.mockImplementation(
+          (prompt: string, callback: Function) => {
+            callback("y");
+          },
+        );
 
         const result = await promptUserIfNeeded();
         expect(result).toBe(true);
       });
     });
   });
-
 });

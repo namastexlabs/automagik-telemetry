@@ -125,7 +125,9 @@ class TestClickHouseErrorPathsWithVerbose:
 
         # Mock HTTPError with 400 status
         with patch("automagik_telemetry.backends.clickhouse.urlopen") as mock_urlopen:
-            http_error = HTTPError("http://test", 400, "Bad Request", {}, io.BytesIO(b"Bad Request"))  # type: ignore
+            http_error = HTTPError(
+                "http://test", 400, "Bad Request", {}, io.BytesIO(b"Bad Request")
+            )  # type: ignore
             mock_urlopen.side_effect = http_error
 
             backend.add_to_batch(span_data)
@@ -158,7 +160,9 @@ class TestClickHouseErrorPathsWithVerbose:
 
     def test_verbose_message_after_retry_exhaustion(self, capsys: Any) -> None:
         """Test verbose print after all retries exhausted (line 306)."""
-        backend = ClickHouseBackend(verbose=True, batch_size=1, max_retries=1, retry_backoff_base=0.01)
+        backend = ClickHouseBackend(
+            verbose=True, batch_size=1, max_retries=1, retry_backoff_base=0.01
+        )
 
         span_data = {
             "trace_id": "12345678901234567890123456789012",
@@ -254,7 +258,7 @@ class TestOTLPBackendFlush:
         backend = OTLPBackend(
             endpoint="http://localhost:4318/v1/traces",
             metrics_endpoint="http://localhost:4318/v1/metrics",
-            logs_endpoint="http://localhost:4318/v1/logs"
+            logs_endpoint="http://localhost:4318/v1/logs",
         )
 
         result = backend.flush()
@@ -281,6 +285,7 @@ class TestClickHouseHTTPErrorHandling:
 
         # Mock 503 server error response that eventually succeeds
         call_count = 0
+
         def mock_urlopen_side_effect(*args: Any, **kwargs: Any) -> Any:
             nonlocal call_count
             call_count += 1
@@ -300,7 +305,9 @@ class TestClickHouseHTTPErrorHandling:
                 mock_response.__exit__ = Mock(return_value=False)
                 return mock_response
 
-        with patch("automagik_telemetry.backends.clickhouse.urlopen", side_effect=mock_urlopen_side_effect):
+        with patch(
+            "automagik_telemetry.backends.clickhouse.urlopen", side_effect=mock_urlopen_side_effect
+        ):
             backend.add_to_batch(span_data)
 
         # Should have retried and succeeded
@@ -347,11 +354,7 @@ class TestBackwardCompatibilityMetrics:
         backend = ClickHouseBackend(batch_size=100)
 
         with patch("automagik_telemetry.backends.clickhouse.urlopen"):
-            result = backend.send_metric(
-                payload=None,
-                metric_name="test_metric",
-                value=10.0
-            )
+            result = backend.send_metric(payload=None, metric_name="test_metric", value=10.0)
 
         assert result is True
 
@@ -373,10 +376,6 @@ class TestBackwardCompatibilityLogs:
         backend = ClickHouseBackend(batch_size=100)
 
         with patch("automagik_telemetry.backends.clickhouse.urlopen"):
-            result = backend.send_log(
-                payload=None,
-                message="Test log message",
-                level="INFO"
-            )
+            result = backend.send_log(payload=None, message="Test log message", level="INFO")
 
         assert result is True

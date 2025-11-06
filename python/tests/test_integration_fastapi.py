@@ -272,12 +272,12 @@ async def test_fastapi_telemetry_overhead(fastapi_app: FastAPI) -> None:
     # Solution 3: Assert against P95 instead of average (more robust to outliers)
     # P95 should be < 200ms (accounts for system variance naturally)
     # This is more realistic for WSL/CI environments where P95 can be 80-200ms under load
-    assert p95 < 0.200, f"P95 latency {p95*1000:.3f}ms exceeded 200ms threshold"
+    assert p95 < 0.200, f"P95 latency {p95 * 1000:.3f}ms exceeded 200ms threshold"
 
     # Solution 1: Also keep average check with increased margin
     # Average request should be fast (< 45ms with telemetry)
     # Increased by 50% from 30ms to account for CI/CD, system load, and WSL overhead
-    assert avg_time < 0.045, f"Average latency {avg_time*1000:.3f}ms exceeded 45ms threshold"
+    assert avg_time < 0.045, f"Average latency {avg_time * 1000:.3f}ms exceeded 45ms threshold"
 
 
 async def test_fastapi_no_event_loop_blocking(fastapi_app: FastAPI) -> None:

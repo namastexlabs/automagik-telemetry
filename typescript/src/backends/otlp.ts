@@ -107,8 +107,12 @@ export class OTLPBackend implements TelemetryBackend {
       if (this.verbose) {
         console.debug(`\n[Telemetry] Sending ${signalType}`);
         console.debug(`  Endpoint: ${endpoint}`);
-        console.debug(`  Size: ${Buffer.byteLength(payloadString, "utf-8")} bytes (compressed: ${typeof body !== "string"})`);
-        console.debug(`  Payload preview: ${payloadString.substring(0, 200)}...\n`);
+        console.debug(
+          `  Size: ${Buffer.byteLength(payloadString, "utf-8")} bytes (compressed: ${typeof body !== "string"})`,
+        );
+        console.debug(
+          `  Payload preview: ${payloadString.substring(0, 200)}...\n`,
+        );
       }
 
       // Send HTTP request using native fetch (Node.js 18+)

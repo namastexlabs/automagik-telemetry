@@ -10,15 +10,15 @@
  * Port of Python's test_integration_memory.py to TypeScript
  */
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { AutomagikTelemetry, LogSeverity, MetricType } from '../src/client';
-import type { TelemetryConfig } from '../src/config';
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { AutomagikTelemetry, LogSeverity, MetricType } from "../src/client";
+import type { TelemetryConfig } from "../src/config";
 
 // Mock file system operations
-jest.mock('fs');
-jest.mock('os');
+jest.mock("fs");
+jest.mock("os");
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -36,21 +36,21 @@ function forceGC(): void {
   }
 }
 
-describe('Memory Leak Detection', () => {
-  const mockHomedir = '/home/testuser';
+describe("Memory Leak Detection", () => {
+  const mockHomedir = "/home/testuser";
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Mock os methods
     (os.homedir as jest.Mock).mockReturnValue(mockHomedir);
-    (os.platform as jest.Mock).mockReturnValue('linux');
-    (os.release as jest.Mock).mockReturnValue('5.10.0');
-    (os.arch as jest.Mock).mockReturnValue('x64');
+    (os.platform as jest.Mock).mockReturnValue("linux");
+    (os.release as jest.Mock).mockReturnValue("5.10.0");
+    (os.arch as jest.Mock).mockReturnValue("x64");
 
     // Mock fs methods
     (fs.existsSync as jest.Mock).mockReturnValue(false);
-    (fs.readFileSync as jest.Mock).mockReturnValue('');
+    (fs.readFileSync as jest.Mock).mockReturnValue("");
     (fs.writeFileSync as jest.Mock).mockReturnValue(undefined);
     (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
 
@@ -62,7 +62,7 @@ describe('Memory Leak Detection', () => {
     });
 
     // Enable telemetry
-    process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+    process.env.AUTOMAGIK_TELEMETRY_ENABLED = "true";
 
     // Force garbage collection before each test
     forceGC();
@@ -73,9 +73,9 @@ describe('Memory Leak Detection', () => {
     forceGC();
   });
 
-  describe('Simple Event Memory Leaks', () => {
-    it('should not leak memory with 10k simple events', async () => {
-      console.log('\n=== Testing memory leaks with simple events ===');
+  describe("Simple Event Memory Leaks", () => {
+    it("should not leak memory with 10k simple events", async () => {
+      console.log("\n=== Testing memory leaks with simple events ===");
 
       // Get baseline memory
       forceGC();
@@ -84,8 +84,8 @@ describe('Memory Leak Detection', () => {
       console.log(`Baseline memory: ${baselineMemory.toFixed(2)} MB`);
 
       const client = new AutomagikTelemetry({
-        projectName: 'test-memory',
-        version: '1.0.0',
+        projectName: "test-memory",
+        version: "1.0.0",
         batchSize: 50,
         flushInterval: 60000, // Disable auto-flush
         compressionEnabled: true,
@@ -96,7 +96,7 @@ describe('Memory Leak Detection', () => {
       const memorySamples: number[] = [];
 
       for (let i = 0; i < numEvents; i++) {
-        client.trackEvent('test.memory.simple', { event_id: i });
+        client.trackEvent("test.memory.simple", { event_id: i });
 
         // Sample memory every 1000 events
         if (i % 1000 === 0 && i > 0) {
@@ -122,7 +122,9 @@ describe('Memory Leak Detection', () => {
 
       console.log(`\nFinal memory: ${finalMemory.toFixed(2)} MB`);
       console.log(`Total growth: ${memoryGrowth.toFixed(2)} MB`);
-      console.log(`Memory per event: ${((memoryGrowth / numEvents) * 1024).toFixed(3)} KB`);
+      console.log(
+        `Memory per event: ${((memoryGrowth / numEvents) * 1024).toFixed(3)} KB`,
+      );
 
       // Memory growth should be minimal (< 25 MB for 10k events - CI env variance)
       expect(memoryGrowth).toBeLessThan(25);
@@ -131,7 +133,8 @@ describe('Memory Leak Detection', () => {
       if (memorySamples.length > 1) {
         const earlyAvg = (memorySamples[0] + memorySamples[1]) / 2;
         const lateAvg =
-          (memorySamples[memorySamples.length - 2] + memorySamples[memorySamples.length - 1]) /
+          (memorySamples[memorySamples.length - 2] +
+            memorySamples[memorySamples.length - 1]) /
           2;
         const growthRate = lateAvg - earlyAvg;
         console.log(`Memory growth rate: ${growthRate.toFixed(2)} MB`);
@@ -139,8 +142,8 @@ describe('Memory Leak Detection', () => {
       }
     });
 
-    it('should return memory to baseline after flush', async () => {
-      console.log('\n=== Testing memory returns to baseline after flush ===');
+    it("should return memory to baseline after flush", async () => {
+      console.log("\n=== Testing memory returns to baseline after flush ===");
 
       // Get baseline
       forceGC();
@@ -149,8 +152,8 @@ describe('Memory Leak Detection', () => {
       console.log(`Baseline memory: ${baselineMemory.toFixed(2)} MB`);
 
       const client = new AutomagikTelemetry({
-        projectName: 'test-memory-baseline',
-        version: '1.0.0',
+        projectName: "test-memory-baseline",
+        version: "1.0.0",
         batchSize: 10000,
         flushInterval: 60000,
       });
@@ -158,9 +161,9 @@ describe('Memory Leak Detection', () => {
       // Generate events
       const numEvents = 5000;
       for (let i = 0; i < numEvents; i++) {
-        client.trackEvent('test.memory.baseline', {
+        client.trackEvent("test.memory.baseline", {
           event_id: i,
-          data: 'x'.repeat(100),
+          data: "x".repeat(100),
         });
       }
 
@@ -190,9 +193,9 @@ describe('Memory Leak Detection', () => {
     });
   });
 
-  describe('Sustained Load Memory Stability', () => {
-    it('should maintain stable memory under sustained load', async () => {
-      console.log('\n=== Testing memory stability under sustained load ===');
+  describe("Sustained Load Memory Stability", () => {
+    it("should maintain stable memory under sustained load", async () => {
+      console.log("\n=== Testing memory stability under sustained load ===");
 
       // Get baseline
       forceGC();
@@ -201,15 +204,19 @@ describe('Memory Leak Detection', () => {
       console.log(`Baseline memory: ${baselineMemory.toFixed(2)} MB`);
 
       const client = new AutomagikTelemetry({
-        projectName: 'test-memory-sustained',
-        version: '1.0.0',
+        projectName: "test-memory-sustained",
+        version: "1.0.0",
         batchSize: 100,
         flushInterval: 1000, // 1s flush interval
       });
 
       // Run for shorter period in tests (10s instead of 30s)
       const durationSeconds = 10;
-      const memorySamples: Array<{ time: number; memory_mb: number; events: number }> = [];
+      const memorySamples: Array<{
+        time: number;
+        memory_mb: number;
+        events: number;
+      }> = [];
       const startTime = Date.now();
 
       console.log(`\nRunning sustained load for ${durationSeconds}s...`);
@@ -218,7 +225,7 @@ describe('Memory Leak Detection', () => {
       while ((Date.now() - startTime) / 1000 < durationSeconds) {
         // Send batch of events
         for (let i = 0; i < 10; i++) {
-          client.trackEvent('test.memory.sustained', {
+          client.trackEvent("test.memory.sustained", {
             event_id: eventCount,
             timestamp: Date.now(),
           });
@@ -235,7 +242,9 @@ describe('Memory Leak Detection', () => {
             memory_mb: currentMemory,
             events: eventCount,
           });
-          console.log(`  ${elapsed.toFixed(0)}s: ${currentMemory.toFixed(2)} MB, ${eventCount} events`);
+          console.log(
+            `  ${elapsed.toFixed(0)}s: ${currentMemory.toFixed(2)} MB, ${eventCount} events`,
+          );
         }
 
         await new Promise((resolve) => setTimeout(resolve, 10));
@@ -251,7 +260,9 @@ describe('Memory Leak Detection', () => {
 
       console.log(`\nTotal events sent: ${eventCount}`);
       console.log(`Final memory: ${finalMemory.toFixed(2)} MB`);
-      console.log(`Memory growth: ${(finalMemory - baselineMemory).toFixed(2)} MB`);
+      console.log(
+        `Memory growth: ${(finalMemory - baselineMemory).toFixed(2)} MB`,
+      );
 
       // Analyze memory stability
       if (memorySamples.length > 3) {
@@ -270,9 +281,9 @@ describe('Memory Leak Detection', () => {
     });
   });
 
-  describe('Large Payload Memory Usage', () => {
-    it('should handle large payloads without excessive memory growth', async () => {
-      console.log('\n=== Testing large payload memory usage ===');
+  describe("Large Payload Memory Usage", () => {
+    it("should handle large payloads without excessive memory growth", async () => {
+      console.log("\n=== Testing large payload memory usage ===");
 
       // Get baseline
       forceGC();
@@ -281,8 +292,8 @@ describe('Memory Leak Detection', () => {
       console.log(`Baseline memory: ${baselineMemory.toFixed(2)} MB`);
 
       const client = new AutomagikTelemetry({
-        projectName: 'test-memory-large',
-        version: '1.0.0',
+        projectName: "test-memory-large",
+        version: "1.0.0",
         batchSize: 100,
         flushInterval: 60000,
       });
@@ -292,11 +303,11 @@ describe('Memory Leak Detection', () => {
       for (let i = 0; i < numEvents; i++) {
         const largePayload = {
           event_id: i,
-          large_field_1: 'a'.repeat(1000),
-          large_field_2: 'b'.repeat(1000),
-          large_field_3: 'c'.repeat(1000),
+          large_field_1: "a".repeat(1000),
+          large_field_2: "b".repeat(1000),
+          large_field_3: "c".repeat(1000),
         };
-        client.trackEvent('test.memory.large', largePayload);
+        client.trackEvent("test.memory.large", largePayload);
 
         // Periodic flush
         if (i % 100 === 0 && i > 0) {
@@ -323,9 +334,9 @@ describe('Memory Leak Detection', () => {
     });
   });
 
-  describe('Mixed Signals Memory Usage', () => {
-    it('should handle mixed signal types without memory leaks', async () => {
-      console.log('\n=== Testing mixed signals memory usage ===');
+  describe("Mixed Signals Memory Usage", () => {
+    it("should handle mixed signal types without memory leaks", async () => {
+      console.log("\n=== Testing mixed signals memory usage ===");
 
       // Get baseline
       forceGC();
@@ -334,8 +345,8 @@ describe('Memory Leak Detection', () => {
       console.log(`Baseline memory: ${baselineMemory.toFixed(2)} MB`);
 
       const client = new AutomagikTelemetry({
-        projectName: 'test-memory-mixed',
-        version: '1.0.0',
+        projectName: "test-memory-mixed",
+        version: "1.0.0",
         batchSize: 200,
         flushInterval: 60000,
       });
@@ -344,10 +355,10 @@ describe('Memory Leak Detection', () => {
       const numIterations = 2000;
       for (let i = 0; i < numIterations; i++) {
         // Trace
-        client.trackEvent('test.memory.mixed.trace', { id: i });
+        client.trackEvent("test.memory.mixed.trace", { id: i });
 
         // Metric
-        client.trackMetric('test.memory.mixed.metric', i, MetricType.GAUGE);
+        client.trackMetric("test.memory.mixed.metric", i, MetricType.GAUGE);
 
         // Log
         client.trackLog(`Mixed signal test ${i}`, LogSeverity.INFO);
@@ -377,9 +388,9 @@ describe('Memory Leak Detection', () => {
     });
   });
 
-  describe('Repeated Enable/Disable Cycles', () => {
-    it('should not leak memory with repeated enable/disable', async () => {
-      console.log('\n=== Testing repeated enable/disable ===');
+  describe("Repeated Enable/Disable Cycles", () => {
+    it("should not leak memory with repeated enable/disable", async () => {
+      console.log("\n=== Testing repeated enable/disable ===");
 
       // Get baseline
       forceGC();
@@ -392,15 +403,15 @@ describe('Memory Leak Detection', () => {
 
       for (let i = 0; i < numCycles; i++) {
         const client = new AutomagikTelemetry({
-          projectName: 'test-cycle',
-          version: '1.0.0',
+          projectName: "test-cycle",
+          version: "1.0.0",
           batchSize: 10,
           flushInterval: 60000,
         });
 
         // Send some events
         for (let j = 0; j < 10; j++) {
-          client.trackEvent('test.cycle', { cycle: i, event: j });
+          client.trackEvent("test.cycle", { cycle: i, event: j });
         }
 
         // Flush and disable
@@ -426,16 +437,18 @@ describe('Memory Leak Detection', () => {
       const memoryGrowth = finalMemory - baselineMemory;
 
       console.log(`\nAfter ${numCycles} cycles:`);
-      console.log(`  Memory: ${finalMemory.toFixed(2)} MB (+${memoryGrowth.toFixed(2)} MB)`);
+      console.log(
+        `  Memory: ${finalMemory.toFixed(2)} MB (+${memoryGrowth.toFixed(2)} MB)`,
+      );
 
       // Memory growth should be minimal (< 10 MB)
       expect(memoryGrowth).toBeLessThan(10);
     });
   });
 
-  describe('Queue Memory Bounds', () => {
-    it('should not grow queues unbounded in memory', async () => {
-      console.log('\n=== Testing queue memory bounds ===');
+  describe("Queue Memory Bounds", () => {
+    it("should not grow queues unbounded in memory", async () => {
+      console.log("\n=== Testing queue memory bounds ===");
 
       // Get baseline
       forceGC();
@@ -444,8 +457,8 @@ describe('Memory Leak Detection', () => {
       console.log(`Baseline memory: ${baselineMemory.toFixed(2)} MB`);
 
       const client = new AutomagikTelemetry({
-        projectName: 'test-queue-bounds',
-        version: '1.0.0',
+        projectName: "test-queue-bounds",
+        version: "1.0.0",
         batchSize: 10000, // Large batch to accumulate events
         flushInterval: 3600000, // Very long interval
       });
@@ -454,9 +467,9 @@ describe('Memory Leak Detection', () => {
       const numEvents = 5000;
 
       for (let i = 0; i < numEvents; i++) {
-        client.trackEvent('test.queue.bounds', {
+        client.trackEvent("test.queue.bounds", {
           event_id: i,
-          data: 'x'.repeat(50),
+          data: "x".repeat(50),
         });
       }
 

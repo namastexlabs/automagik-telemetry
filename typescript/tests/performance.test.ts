@@ -5,10 +5,10 @@
  * These tests can be skipped in CI by excluding the 'performance' test pattern.
  */
 
-import { AutomagikTelemetry, MetricType } from '../src/client';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import { AutomagikTelemetry, MetricType } from "../src/client";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 // Mock fetch for performance testing
 global.fetch = jest.fn();
@@ -44,9 +44,9 @@ function calculateStats(timings: number[]): TimingStats {
 }
 
 function printStats(operation: string, stats: TimingStats): void {
-  console.log('\n' + '='.repeat(60));
+  console.log("\n" + "=".repeat(60));
   console.log(`Performance: ${operation}`);
-  console.log('='.repeat(60));
+  console.log("=".repeat(60));
   console.log(`  Count:      ${stats.count.toLocaleString()} operations`);
   console.log(`  Mean:       ${stats.mean.toFixed(3)} ms`);
   console.log(`  Median:     ${stats.median.toFixed(3)} ms`);
@@ -55,10 +55,10 @@ function printStats(operation: string, stats: TimingStats): void {
   console.log(`  P95:        ${stats.p95.toFixed(3)} ms`);
   console.log(`  P99:        ${stats.p99.toFixed(3)} ms`);
   console.log(`  StdDev:     ${stats.stdev.toFixed(3)} ms`);
-  console.log('='.repeat(60) + '\n');
+  console.log("=".repeat(60) + "\n");
 }
 
-describe('Performance Benchmarks', () => {
+describe("Performance Benchmarks", () => {
   let mockFetch: jest.MockedFunction<typeof fetch>;
 
   beforeEach(() => {
@@ -73,18 +73,18 @@ describe('Performance Benchmarks', () => {
     } as Response);
 
     // Force enable telemetry
-    process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+    process.env.AUTOMAGIK_TELEMETRY_ENABLED = "true";
   });
 
   afterEach(() => {
     delete process.env.AUTOMAGIK_TELEMETRY_ENABLED;
   });
 
-  describe('trackEvent Performance', () => {
-    it('should have <1ms average overhead with realistic payloads', async () => {
+  describe("trackEvent Performance", () => {
+    it("should have <1ms average overhead with realistic payloads", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 1000;
@@ -92,28 +92,28 @@ describe('Performance Benchmarks', () => {
 
       // Realistic event payload
       const eventData = {
-        feature_name: 'api_endpoint',
-        feature_category: 'messaging',
-        user_action: 'send_message',
-        message_type: 'text',
+        feature_name: "api_endpoint",
+        feature_category: "messaging",
+        user_action: "send_message",
+        message_type: "text",
         success: true,
       };
 
       // Warmup
       for (let i = 0; i < 10; i++) {
-        client.trackEvent('benchmark.test', eventData);
+        client.trackEvent("benchmark.test", eventData);
       }
 
       // Actual benchmark
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        client.trackEvent('benchmark.feature_used', eventData);
+        client.trackEvent("benchmark.feature_used", eventData);
         const end = performance.now();
         timings.push(end - start);
       }
 
       const stats = calculateStats(timings);
-      printStats('trackEvent() with realistic payload', stats);
+      printStats("trackEvent() with realistic payload", stats);
 
       // Assertions
       expect(stats.mean).toBeLessThan(1.0);
@@ -121,24 +121,24 @@ describe('Performance Benchmarks', () => {
     }, 30000); // Increase timeout for benchmark
   });
 
-  describe('trackError Performance', () => {
-    it('should have <1ms average overhead with error context', async () => {
+  describe("trackError Performance", () => {
+    it("should have <1ms average overhead with error context", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 1000;
       const timings: number[] = [];
 
       // Create realistic error
-      const testError = new Error('Connection timeout after 30 seconds');
+      const testError = new Error("Connection timeout after 30 seconds");
 
       const context = {
-        error_code: 'OMNI-1001',
-        operation: 'send_message',
+        error_code: "OMNI-1001",
+        operation: "send_message",
         retry_count: 3,
-        endpoint: '/api/v1/messages',
+        endpoint: "/api/v1/messages",
       };
 
       // Warmup
@@ -155,7 +155,7 @@ describe('Performance Benchmarks', () => {
       }
 
       const stats = calculateStats(timings);
-      printStats('trackError() with context', stats);
+      printStats("trackError() with context", stats);
 
       // Assertions
       expect(stats.mean).toBeLessThan(1.0);
@@ -163,38 +163,48 @@ describe('Performance Benchmarks', () => {
     }, 30000);
   });
 
-  describe('trackMetric Performance', () => {
-    it('should have <1ms average overhead with attributes', async () => {
+  describe("trackMetric Performance", () => {
+    it("should have <1ms average overhead with attributes", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 1000;
       const timings: number[] = [];
 
       const attributes = {
-        operation_type: 'api_request',
-        endpoint: '/v1/contacts',
+        operation_type: "api_request",
+        endpoint: "/v1/contacts",
         status_code: 200,
         cache_hit: true,
       };
 
       // Warmup
       for (let i = 0; i < 10; i++) {
-        client.trackMetric('benchmark.latency', 123.45, MetricType.GAUGE, attributes);
+        client.trackMetric(
+          "benchmark.latency",
+          123.45,
+          MetricType.GAUGE,
+          attributes,
+        );
       }
 
       // Actual benchmark
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        client.trackMetric('operation.latency', 123.45, MetricType.GAUGE, attributes);
+        client.trackMetric(
+          "operation.latency",
+          123.45,
+          MetricType.GAUGE,
+          attributes,
+        );
         const end = performance.now();
         timings.push(end - start);
       }
 
       const stats = calculateStats(timings);
-      printStats('trackMetric() with attributes', stats);
+      printStats("trackMetric() with attributes", stats);
 
       // Assertions
       expect(stats.mean).toBeLessThan(1.0);
@@ -202,38 +212,38 @@ describe('Performance Benchmarks', () => {
     }, 30000);
   });
 
-  describe('Disabled Client Overhead', () => {
-    it('should have near-zero overhead when disabled', async () => {
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'false';
+  describe("Disabled Client Overhead", () => {
+    it("should have near-zero overhead when disabled", async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "false";
 
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 10000;
       const timings: number[] = [];
 
       const eventData = {
-        feature_name: 'test_feature',
-        action: 'click',
+        feature_name: "test_feature",
+        action: "click",
       };
 
       // Warmup
       for (let i = 0; i < 100; i++) {
-        client.trackEvent('test.event', eventData);
+        client.trackEvent("test.event", eventData);
       }
 
       // Actual benchmark
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        client.trackEvent('test.event', eventData);
+        client.trackEvent("test.event", eventData);
         const end = performance.now();
         timings.push(end - start);
       }
 
       const stats = calculateStats(timings);
-      printStats('Disabled client overhead', stats);
+      printStats("Disabled client overhead", stats);
 
       // Disabled client should be extremely fast (just a boolean check)
       expect(stats.mean).toBeLessThan(0.01);
@@ -241,11 +251,11 @@ describe('Performance Benchmarks', () => {
     }, 30000);
   });
 
-  describe('Large Attribute Set Performance', () => {
-    it('should handle large attribute sets efficiently', async () => {
+  describe("Large Attribute Set Performance", () => {
+    it("should handle large attribute sets efficiently", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 1000;
@@ -256,8 +266,8 @@ describe('Performance Benchmarks', () => {
       for (let i = 0; i < 50; i++) {
         largeAttributes[`attribute_${i}`] = `value_${i}`;
       }
-      largeAttributes.feature_name = 'complex_operation';
-      largeAttributes.user_id = 'anon-12345';
+      largeAttributes.feature_name = "complex_operation";
+      largeAttributes.user_id = "anon-12345";
       largeAttributes.session_duration = 3600;
       largeAttributes.items_processed = 1000;
       largeAttributes.success_rate = 0.95;
@@ -266,19 +276,19 @@ describe('Performance Benchmarks', () => {
 
       // Warmup
       for (let i = 0; i < 10; i++) {
-        client.trackEvent('benchmark.large_attrs', largeAttributes);
+        client.trackEvent("benchmark.large_attrs", largeAttributes);
       }
 
       // Actual benchmark
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        client.trackEvent('benchmark.large_attrs', largeAttributes);
+        client.trackEvent("benchmark.large_attrs", largeAttributes);
         const end = performance.now();
         timings.push(end - start);
       }
 
       const stats = calculateStats(timings);
-      printStats('Large attribute set (50+ attributes)', stats);
+      printStats("Large attribute set (50+ attributes)", stats);
 
       // Should still be fast even with many attributes
       expect(stats.mean).toBeLessThan(2.0);
@@ -287,20 +297,20 @@ describe('Performance Benchmarks', () => {
     }, 30000);
   });
 
-  describe('Concurrent Tracking Simulation', () => {
-    it('should handle rapid consecutive events efficiently', async () => {
+  describe("Concurrent Tracking Simulation", () => {
+    it("should handle rapid consecutive events efficiently", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 500;
       const timings: number[] = [];
 
       const events: Array<[string, Record<string, any>]> = [
-        ['feature.used', { feature: 'export', format: 'csv' }],
-        ['error.occurred', { code: 'E001', severity: 'low' }],
-        ['metric.recorded', { latency: 45.2, endpoint: '/api/data' }],
+        ["feature.used", { feature: "export", format: "csv" }],
+        ["error.occurred", { code: "E001", severity: "low" }],
+        ["metric.recorded", { latency: 45.2, endpoint: "/api/data" }],
       ];
 
       // Warmup
@@ -321,7 +331,7 @@ describe('Performance Benchmarks', () => {
       }
 
       const stats = calculateStats(timings);
-      printStats('3 concurrent events per iteration', stats);
+      printStats("3 concurrent events per iteration", stats);
 
       // Total time for 3 events should be reasonable
       const avgPerEvent = stats.mean / 3;
@@ -331,16 +341,16 @@ describe('Performance Benchmarks', () => {
     }, 30000);
   });
 
-  describe('Payload Size Impact', () => {
-    it('should scale gracefully with payload size', async () => {
+  describe("Payload Size Impact", () => {
+    it("should scale gracefully with payload size", async () => {
       const iterations = 1000;
       const payloadSizes = [1, 10, 50, 100];
       const results: Record<number, TimingStats> = {};
 
       for (const size of payloadSizes) {
         const client = new AutomagikTelemetry({
-          projectName: 'benchmark-test',
-          version: '1.0.0',
+          projectName: "benchmark-test",
+          version: "1.0.0",
         });
 
         const timings: number[] = [];
@@ -351,13 +361,13 @@ describe('Performance Benchmarks', () => {
 
         // Warmup
         for (let i = 0; i < 10; i++) {
-          client.trackEvent('size.test', data);
+          client.trackEvent("size.test", data);
         }
 
         // Benchmark
         for (let i = 0; i < iterations; i++) {
           const start = performance.now();
-          client.trackEvent('size.test', data);
+          client.trackEvent("size.test", data);
           const end = performance.now();
           timings.push(end - start);
         }
@@ -366,30 +376,30 @@ describe('Performance Benchmarks', () => {
       }
 
       // Print comparison
-      console.log('\n' + '='.repeat(60));
-      console.log('Payload Size Impact');
-      console.log('='.repeat(60));
-      console.log('Size      Mean       P95        P99');
-      console.log('-'.repeat(60));
+      console.log("\n" + "=".repeat(60));
+      console.log("Payload Size Impact");
+      console.log("=".repeat(60));
+      console.log("Size      Mean       P95        P99");
+      console.log("-".repeat(60));
       for (const [size, stats] of Object.entries(results)) {
         console.log(
-          `${size.padEnd(10)}${stats.mean.toFixed(3).padEnd(11)}${stats.p95.toFixed(3).padEnd(11)}${stats.p99.toFixed(3)}`
+          `${size.padEnd(10)}${stats.mean.toFixed(3).padEnd(11)}${stats.p95.toFixed(3).padEnd(11)}${stats.p99.toFixed(3)}`,
         );
       }
-      console.log('='.repeat(60) + '\n');
+      console.log("=".repeat(60) + "\n");
 
       // Even large payloads should be reasonable
       expect(results[100].mean).toBeLessThan(5.0);
     }, 60000);
   });
 
-  describe('Memory Usage', () => {
-    it('should not leak memory with many events (disabled client)', async () => {
-      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'false';
+  describe("Memory Usage", () => {
+    it("should not leak memory with many events (disabled client)", async () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = "false";
 
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       // Force garbage collection if available
@@ -402,7 +412,7 @@ describe('Performance Benchmarks', () => {
       // Track many events with disabled client (should have minimal overhead)
       const eventCount = 10000;
       for (let i = 0; i < eventCount; i++) {
-        client.trackEvent('memory.test', {
+        client.trackEvent("memory.test", {
           iteration: i,
           data: `test_data_${i}`,
           value: i * 1.5,
@@ -419,15 +429,23 @@ describe('Performance Benchmarks', () => {
       const heapIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
       const heapIncreasePerEvent = heapIncrease / eventCount;
 
-      console.log('\n' + '='.repeat(60));
-      console.log('Memory Usage Test (Disabled Client)');
-      console.log('='.repeat(60));
+      console.log("\n" + "=".repeat(60));
+      console.log("Memory Usage Test (Disabled Client)");
+      console.log("=".repeat(60));
       console.log(`  Events tracked:    ${eventCount.toLocaleString()}`);
-      console.log(`  Initial heap:      ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`  Final heap:        ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`  Heap increase:     ${(heapIncrease / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`  Per event:         ${heapIncreasePerEvent.toFixed(2)} bytes`);
-      console.log('='.repeat(60) + '\n');
+      console.log(
+        `  Initial heap:      ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+      );
+      console.log(
+        `  Final heap:        ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+      );
+      console.log(
+        `  Heap increase:     ${(heapIncrease / 1024 / 1024).toFixed(2)} MB`,
+      );
+      console.log(
+        `  Per event:         ${heapIncreasePerEvent.toFixed(2)} bytes`,
+      );
+      console.log("=".repeat(60) + "\n");
 
       // Disabled client should have minimal memory impact
       // Allow up to 10KB per event for test overhead and V8 internals
@@ -435,11 +453,11 @@ describe('Performance Benchmarks', () => {
     }, 30000);
   });
 
-  describe('String Truncation Performance', () => {
-    it('should handle long strings efficiently', async () => {
+  describe("String Truncation Performance", () => {
+    it("should handle long strings efficiently", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 1000;
@@ -447,27 +465,27 @@ describe('Performance Benchmarks', () => {
 
       // Create very long strings that need truncation
       const longData = {
-        description: 'x'.repeat(10000), // Will be truncated to 500
-        error_message: 'y'.repeat(5000),
-        stack_trace: 'z'.repeat(8000),
-        normal_field: 'regular value',
+        description: "x".repeat(10000), // Will be truncated to 500
+        error_message: "y".repeat(5000),
+        stack_trace: "z".repeat(8000),
+        normal_field: "regular value",
       };
 
       // Warmup
       for (let i = 0; i < 10; i++) {
-        client.trackEvent('truncation.test', longData);
+        client.trackEvent("truncation.test", longData);
       }
 
       // Benchmark
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        client.trackEvent('truncation.test', longData);
+        client.trackEvent("truncation.test", longData);
         const end = performance.now();
         timings.push(end - start);
       }
 
       const stats = calculateStats(timings);
-      printStats('String truncation (3 long strings)', stats);
+      printStats("String truncation (3 long strings)", stats);
 
       // Truncation should not add significant overhead
       expect(stats.mean).toBeLessThan(2.0);
@@ -475,11 +493,11 @@ describe('Performance Benchmarks', () => {
     }, 30000);
   });
 
-  describe('System Info Collection Overhead', () => {
-    it('should collect system info quickly', async () => {
+  describe("System Info Collection Overhead", () => {
+    it("should collect system info quickly", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 1000;
@@ -497,18 +515,18 @@ describe('Performance Benchmarks', () => {
       }
 
       const stats = calculateStats(timings);
-      printStats('System info collection', stats);
+      printStats("System info collection", stats);
 
       // System info collection should be very fast
       expect(stats.mean).toBeLessThan(0.1);
     }, 30000);
   });
 
-  describe('Async Operation Performance', () => {
-    it('should not block on async operations', async () => {
+  describe("Async Operation Performance", () => {
+    it("should not block on async operations", async () => {
       const client = new AutomagikTelemetry({
-        projectName: 'benchmark-test',
-        version: '1.0.0',
+        projectName: "benchmark-test",
+        version: "1.0.0",
       });
 
       const iterations = 100;
@@ -524,19 +542,19 @@ describe('Performance Benchmarks', () => {
                 ok: true,
               } as Response);
             }, 100); // 100ms delay
-          })
+          }),
       );
 
       // Benchmark - these should not block since events are async
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        client.trackEvent('async.test', { iteration: i });
+        client.trackEvent("async.test", { iteration: i });
         const end = performance.now();
         timings.push(end - start);
       }
 
       const stats = calculateStats(timings);
-      printStats('Async operations (100ms network delay)', stats);
+      printStats("Async operations (100ms network delay)", stats);
 
       // Should not be blocked by network delay since it's async
       // Allow higher threshold due to V8 optimization variance
@@ -548,6 +566,6 @@ describe('Performance Benchmarks', () => {
 
 // Helper to run benchmarks directly
 if (require.main === module) {
-  console.log('Running performance benchmarks...\n');
+  console.log("Running performance benchmarks...\n");
   // Note: Jest handles test execution
 }

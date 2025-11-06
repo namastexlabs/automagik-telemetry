@@ -2,11 +2,7 @@
  * Test for backends index exports.
  */
 
-import {
-  TelemetryBackend,
-  ClickHouseBackend,
-  OTLPBackend,
-} from "../index";
+import { TelemetryBackend, ClickHouseBackend, OTLPBackend } from "../index";
 
 describe("Backends Index", () => {
   describe("Exports", () => {

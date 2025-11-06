@@ -70,7 +70,9 @@ def mock_urlopen(mock_http_response: Mock) -> Generator[Mock, None, None]:
     Mock urllib.request.urlopen to prevent actual HTTP requests.
     Patches where urlopen is used (in OTLP backend module) rather than where it's defined.
     """
-    with patch("automagik_telemetry.backends.otlp.urlopen", return_value=mock_http_response) as mock:
+    with patch(
+        "automagik_telemetry.backends.otlp.urlopen", return_value=mock_http_response
+    ) as mock:
         yield mock
 
 

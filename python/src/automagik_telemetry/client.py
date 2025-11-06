@@ -376,7 +376,6 @@ class AutomagikTelemetry:
         self._flush_timer.daemon = True
         self._flush_timer.start()
 
-
     def _get_sdk_version(self) -> str:
         """Get SDK version from package metadata (single source of truth)."""
         try:

@@ -632,7 +632,7 @@ export class ClickHouseBackend implements TelemetryBackend {
     // Auto-flush if batch size reached
     if (this.traceBatch.length >= this.batchSize) {
       this.flush().catch((err) => {
-        console.error('[ClickHouse] Auto-flush traces failed:', err);
+        console.error("[ClickHouse] Auto-flush traces failed:", err);
       });
     }
   }
@@ -1092,7 +1092,7 @@ export class ClickHouseBackend implements TelemetryBackend {
       // Auto-flush if batch size reached
       if (this.metricBatch.length >= this.batchSize) {
         this.flush().catch((err) => {
-          console.error('[ClickHouse] Auto-flush metrics failed:', err);
+          console.error("[ClickHouse] Auto-flush metrics failed:", err);
         });
       }
 
@@ -1239,7 +1239,7 @@ export class ClickHouseBackend implements TelemetryBackend {
       // Auto-flush if batch size reached
       if (this.logBatch.length >= this.batchSize) {
         this.flush().catch((err) => {
-          console.error('[ClickHouse] Auto-flush logs failed:', err);
+          console.error("[ClickHouse] Auto-flush logs failed:", err);
         });
       }
 

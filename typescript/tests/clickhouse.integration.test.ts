@@ -27,7 +27,8 @@ const runIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
 const describeIntegration = isCI && !runIntegration ? describe.skip : describe;
 
 // ClickHouse configuration
-const CLICKHOUSE_ENDPOINT = process.env.CLICKHOUSE_ENDPOINT || "http://localhost:8123";
+const CLICKHOUSE_ENDPOINT =
+  process.env.CLICKHOUSE_ENDPOINT || "http://localhost:8123";
 const CLICKHOUSE_DATABASE = process.env.CLICKHOUSE_DATABASE || "telemetry";
 const CLICKHOUSE_TABLE = process.env.CLICKHOUSE_TABLE || "traces";
 const CLICKHOUSE_USERNAME = process.env.CLICKHOUSE_USERNAME || "default";
@@ -53,7 +54,7 @@ async function executeClickHouseQuery(query: string): Promise<any> {
     // Add authentication if provided
     if (CLICKHOUSE_USERNAME) {
       const auth = Buffer.from(
-        `${CLICKHOUSE_USERNAME}:${CLICKHOUSE_PASSWORD}`
+        `${CLICKHOUSE_USERNAME}:${CLICKHOUSE_PASSWORD}`,
       ).toString("base64");
       options.headers = {
         Authorization: `Basic ${auth}`,
@@ -78,8 +79,8 @@ async function executeClickHouseQuery(query: string): Promise<any> {
         } else {
           reject(
             new Error(
-              `ClickHouse query failed with status ${res.statusCode}: ${data}`
-            )
+              `ClickHouse query failed with status ${res.statusCode}: ${data}`,
+            ),
           );
         }
       });
@@ -109,7 +110,7 @@ async function isClickHouseAvailable(): Promise<boolean> {
     console.warn(
       "\n⚠️  ClickHouse not available at",
       CLICKHOUSE_ENDPOINT,
-      "\n   Run: cd infra && docker compose up -d clickhouse\n"
+      "\n   Run: cd infra && docker compose up -d clickhouse\n",
     );
     return false;
   }
@@ -136,7 +137,7 @@ async function waitForData(
   projectName: string,
   minCount: number = 1,
   maxAttempts: number = 30,
-  delayMs: number = 500
+  delayMs: number = 500,
 ): Promise<any> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -154,7 +155,7 @@ async function waitForData(
   }
 
   throw new Error(
-    `Timeout waiting for data in ClickHouse (expected at least ${minCount} rows)`
+    `Timeout waiting for data in ClickHouse (expected at least ${minCount} rows)`,
   );
 }
 
@@ -173,7 +174,7 @@ describeIntegration("ClickHouse Backend Integration", () => {
     clickhouseAvailable = await isClickHouseAvailable();
     if (!clickhouseAvailable) {
       console.log(
-        "\n⏭️  Skipping ClickHouse integration tests (ClickHouse not available)\n"
+        "\n⏭️  Skipping ClickHouse integration tests (ClickHouse not available)\n",
       );
     }
   });
@@ -238,14 +239,18 @@ describeIntegration("ClickHouse Backend Integration", () => {
       expect(result.data.length).toBeGreaterThanOrEqual(2);
 
       // Verify first event
-      const event1 = result.data.find((row: any) => row.span_name === "test.event.one");
+      const event1 = result.data.find(
+        (row: any) => row.span_name === "test.event.one",
+      );
       expect(event1).toBeDefined();
       expect(event1.service_name).toBe(projectName);
       expect(event1.project_name).toContain("test-e2e");
       expect(event1.attributes).toBeDefined();
 
       // Verify second event
-      const event2 = result.data.find((row: any) => row.span_name === "test.event.two");
+      const event2 = result.data.find(
+        (row: any) => row.span_name === "test.event.two",
+      );
       expect(event2).toBeDefined();
       expect(event2.attributes).toBeDefined();
 
@@ -281,7 +286,9 @@ describeIntegration("ClickHouse Backend Integration", () => {
       const result = await waitForData(projectName, numEvents);
       expect(result.data.length).toBeGreaterThanOrEqual(numEvents);
 
-      console.log(`✅ Verified ${result.data.length} batched traces in ClickHouse`);
+      console.log(
+        `✅ Verified ${result.data.length} batched traces in ClickHouse`,
+      );
     }, 30000);
 
     test("should handle high-throughput bursts", async () => {
@@ -311,7 +318,9 @@ describeIntegration("ClickHouse Backend Integration", () => {
 
       console.log(`Generation time: ${generationTime}ms`);
       console.log(`Total time with flush: ${totalTime}ms`);
-      console.log(`Rate: ${(numEvents / (totalTime / 1000)).toFixed(1)} events/sec`);
+      console.log(
+        `Rate: ${(numEvents / (totalTime / 1000)).toFixed(1)} events/sec`,
+      );
 
       // Wait for data
       await sleep(3000);
@@ -684,7 +693,9 @@ describeIntegration("ClickHouse Backend Integration", () => {
       console.log(`\nPerformance test: ${numEvents} events`);
       console.log(`  Generation: ${generationTime}ms`);
       console.log(`  Total (with flush): ${totalTime}ms`);
-      console.log(`  Rate: ${(numEvents / (totalTime / 1000)).toFixed(1)} events/sec`);
+      console.log(
+        `  Rate: ${(numEvents / (totalTime / 1000)).toFixed(1)} events/sec`,
+      );
 
       // Should be fast
       expect(generationTime).toBeLessThan(2000); // < 2s for generation
@@ -695,7 +706,9 @@ describeIntegration("ClickHouse Backend Integration", () => {
       const result = await waitForData(projectName, numEvents);
       expect(result.data.length).toBeGreaterThanOrEqual(numEvents);
 
-      console.log(`✅ Performance test passed: ${result.data.length} events verified`);
+      console.log(
+        `✅ Performance test passed: ${result.data.length} events verified`,
+      );
     }, 60000);
   });
 });

@@ -593,7 +593,6 @@ export class AutomagikTelemetry {
     }
   }
 
-
   /**
    * Add event to queue and flush if batch size reached.
    *
@@ -1145,9 +1144,13 @@ export class AutomagikTelemetry {
           if (event.type === "trace") {
             sendPromises.push(this.otlpBackend.sendTrace(event.payload));
           } else if (event.type === "metric") {
-            sendPromises.push(this.otlpBackend.sendMetric(event.payload, endpoint));
+            sendPromises.push(
+              this.otlpBackend.sendMetric(event.payload, endpoint),
+            );
           } else if (event.type === "log") {
-            sendPromises.push(this.otlpBackend.sendLog(event.payload, endpoint));
+            sendPromises.push(
+              this.otlpBackend.sendLog(event.payload, endpoint),
+            );
           }
         }
       }
