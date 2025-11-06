@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import pytest
-from flaky import flaky  # Solution 2: Import flaky decorator
 
 # Skip if fastapi not installed
 pytest.importorskip("fastapi")
@@ -225,7 +224,6 @@ def test_fastapi_concurrent_requests(
     telemetry_client.flush()
 
 
-@flaky(max_runs=3, min_passes=1)  # Solution 2: Retry up to 3 times, need 1 pass
 async def test_fastapi_telemetry_overhead(fastapi_app: FastAPI) -> None:
     """Measure telemetry overhead in request/response cycle."""
     client = TestClient(fastapi_app)

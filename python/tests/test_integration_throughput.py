@@ -14,7 +14,6 @@ import threading
 import time
 
 import pytest
-from flaky import flaky  # Solution 2: Import flaky decorator
 
 from automagik_telemetry import AutomagikTelemetry, MetricType, TelemetryConfig
 
@@ -122,7 +121,6 @@ def test_sustained_throughput(high_throughput_client: AutomagikTelemetry) -> Non
     high_throughput_client.flush()
 
 
-@flaky(max_runs=3, min_passes=1)  # Solution 2: Retry up to 3 times, need 1 pass
 def test_concurrent_producers(high_throughput_client: AutomagikTelemetry) -> None:
     """Test multiple threads producing events concurrently."""
     num_threads = 10
