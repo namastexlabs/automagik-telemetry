@@ -1,6 +1,5 @@
 """Tests for the StandardEvents schema."""
 
-
 from automagik_telemetry.schema import StandardEvents
 
 
