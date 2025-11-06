@@ -27,11 +27,12 @@ wheels = [
 
 [[package]]
 name = "automagik-telemetry"
-version = "0.2.0"
+version = "0.1.4"
 source = { editable = "." }
 
 [package.optional-dependencies]
 dev = [
+    { name = "flaky" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -41,6 +42,7 @@ dev = [
 ]
 integration = [
     { name = "fastapi" },
+    { name = "flaky" },
     { name = "httpx" },
     { name = "psutil" },
     { name = "pytest" },
@@ -57,6 +59,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", marker = "extra == 'integration'", specifier = ">=0.109.0" },
+    { name = "flaky", marker = "extra == 'dev'", specifier = ">=3.7.0" },
+    { name = "flaky", marker = "extra == 'integration'", specifier = ">=3.7.0" },
     { name = "httpx", marker = "extra == 'integration'", specifier = ">=0.26.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10.0" },
     { name = "psutil", marker = "extra == 'integration'", specifier = ">=5.9.0" },
@@ -181,6 +185,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a6/f4/152127681182e6413e7a89684c434e19e7414ed7ac0c632999c3c6980640/fastapi-0.119.1.tar.gz", hash = "sha256:a5e3426edce3fe221af4e1992c6d79011b247e3b03cc57999d697fe76cbf8ae0", size = 338616, upload-time = "2025-10-20T11:30:27.734Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b1/26/e6d959b4ac959fdb3e9c4154656fc160794db6af8e64673d52759456bf07/fastapi-0.119.1-py3-none-any.whl", hash = "sha256:0b8c2a2cce853216e150e9bd4faaed88227f8eb37de21cb200771f491586a27f", size = 108123, upload-time = "2025-10-20T11:30:26.185Z" },
+]
+
+[[package]]
+name = "flaky"
+version = "3.8.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/c5/ef69119a01427204ff2db5fc8f98001087bcce719bbb94749dcd7b191365/flaky-3.8.1.tar.gz", hash = "sha256:47204a81ec905f3d5acfbd61daeabcada8f9d4031616d9bcb0618461729699f5", size = 25248, upload-time = "2024-03-12T22:17:59.265Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/b8/b830fc43663246c3f3dd1ae7dca4847b96ed992537e85311e27fa41ac40e/flaky-3.8.1-py2.py3-none-any.whl", hash = "sha256:194ccf4f0d3a22b2de7130f4b62e45e977ac1b5ccad74d4d48f3005dcc38815e", size = 19139, upload-time = "2024-03-12T22:17:51.59Z" },
 ]
 
 [[package]]

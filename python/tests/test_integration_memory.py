@@ -355,7 +355,7 @@ def test_mixed_signals_memory_usage(memory_test_client: AutomagikTelemetry) -> N
     assert memory_growth < 10, f"Excessive memory growth: {memory_growth:.2f} MB"
 
 
-def test_repeated_enable_disable_no_leak(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_repeated_enable_disable_no_leak(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that repeatedly enabling/disabling doesn't leak memory."""
     print("\n=== Testing repeated enable/disable ===")
 
@@ -387,7 +387,7 @@ def test_repeated_enable_disable_no_leak(monkeypatch: pytest.MonkeyPatch) -> Non
 
         # Flush and disable
         client.flush()
-        client.disable()
+        await client.disable()
 
         # Explicitly delete client
         del client

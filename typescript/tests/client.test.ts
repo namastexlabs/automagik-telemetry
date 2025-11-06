@@ -681,6 +681,49 @@ describe('AutomagikTelemetry', () => {
       status = client.getStatus();
       expect(status.enabled).toBe(true);
     });
+
+    it('should show queue sizes by event type', () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        batchSize: 100, // Large batch to accumulate events
+      });
+
+      // Track different event types
+      client.trackEvent('test.trace.event', { key: 'trace1' });
+      client.trackEvent('test.trace.event', { key: 'trace2' });
+      client.trackMetric('test.metric', 42.5);
+      client.trackMetric('test.metric2', 100);
+      client.trackMetric('test.metric3', 200);
+      client.trackLog('Test log message');
+
+      const status = client.getStatus() as any;
+
+      // Check that queue sizes are reported correctly
+      expect(status.queue_sizes).toBeDefined();
+      expect(status.queue_sizes.traces).toBe(2);
+      expect(status.queue_sizes.metrics).toBe(3);
+      expect(status.queue_sizes.logs).toBe(1);
+
+      delete process.env.AUTOMAGIK_TELEMETRY_ENABLED;
+    });
+
+    it('should show zero queue sizes when no events are queued', () => {
+      process.env.AUTOMAGIK_TELEMETRY_ENABLED = 'true';
+      const client = new AutomagikTelemetry({
+        ...mockConfig,
+        batchSize: 100,
+      });
+
+      const status = client.getStatus() as any;
+
+      expect(status.queue_sizes).toBeDefined();
+      expect(status.queue_sizes.traces).toBe(0);
+      expect(status.queue_sizes.metrics).toBe(0);
+      expect(status.queue_sizes.logs).toBe(0);
+
+      delete process.env.AUTOMAGIK_TELEMETRY_ENABLED;
+    });
   });
 
   describe('Batch Processing', () => {
@@ -723,13 +766,17 @@ describe('AutomagikTelemetry', () => {
       client.trackEvent('test.event.2');
       client.trackEvent('test.event.3'); // This triggers flush
 
-      // Wait for async flush to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for async flush to complete (events are sent individually)
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
+      // Each event is sent as a separate request (3 events = 3 fetch calls)
       expect(global.fetch).toHaveBeenCalledTimes(3);
 
-      // Clean up timer
+      // Clean up timer and wait for disable to complete
       await client.disable();
+
+      // Wait for any remaining async operations to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Restore fake timers for other tests in this describe block
       jest.useFakeTimers();
@@ -756,8 +803,11 @@ describe('AutomagikTelemetry', () => {
 
       expect(global.fetch).toHaveBeenCalled();
 
-      // Clean up timer
+      // Clean up timer and wait for disable to complete
       await client.disable();
+
+      // Wait for any remaining async operations to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Restore fake timers for other tests in this describe block
       jest.useFakeTimers();
@@ -1290,7 +1340,8 @@ describe('AutomagikTelemetry', () => {
 
       client.trackEvent('test.event', { key: 'value' });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for auto-flush and retries to complete
+      await new Promise((resolve) => setTimeout(resolve, 3200));
 
       // ClickHouse backend handles sending internally
       expect(client).toBeDefined();
@@ -1307,6 +1358,9 @@ describe('AutomagikTelemetry', () => {
       client.trackEvent('test.event.2', { key: 'value2' });
 
       await client.flush();
+
+      // Wait for any retry operations to complete
+      await new Promise((resolve) => setTimeout(resolve, 3100));
 
       expect(client).toBeDefined();
     });

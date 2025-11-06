@@ -165,12 +165,15 @@ describe('Edge Case Coverage', () => {
         ...mockConfig,
         compressionEnabled: true,
         compressionThreshold: 200,
+        batchSize: 1, // Flush immediately
       });
 
       // Create payload exactly at threshold
       const exactData = { message: 'x'.repeat(200) };
       client.trackEvent('test.event', exactData);
 
+      // Wait for flush to complete
+      await client.flush();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(global.fetch).toHaveBeenCalled();

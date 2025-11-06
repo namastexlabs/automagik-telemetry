@@ -309,6 +309,8 @@ describe('OTLP Integration Tests', () => {
 
       client.trackEvent('integration.test.large_payload', largeData);
 
+      // Wait for flush to complete
+      await client.flush();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(global.fetch).toHaveBeenCalled();

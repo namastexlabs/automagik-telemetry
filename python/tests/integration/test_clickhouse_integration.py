@@ -406,7 +406,7 @@ def test_verify_data_structure_in_clickhouse(
     print("Data structure verified successfully")
 
 
-def test_backend_configuration_from_env(
+async def test_backend_configuration_from_env(
     monkeypatch: pytest.MonkeyPatch,
     clickhouse_available: bool,
     clickhouse_endpoint: str,
@@ -438,10 +438,10 @@ def test_backend_configuration_from_env(
     print("Environment variable configuration verified successfully")
 
     # Cleanup
-    client.disable()
+    await client.disable()
 
 
-def test_backend_configuration_from_config(
+async def test_backend_configuration_from_config(
     monkeypatch: pytest.MonkeyPatch,
     clickhouse_available: bool,
     clickhouse_endpoint: str,
@@ -478,7 +478,7 @@ def test_backend_configuration_from_config(
     print("Config object configuration verified successfully")
 
     # Cleanup
-    client.disable()
+    await client.disable()
 
 
 async def test_backend_default_to_otlp(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -501,7 +501,7 @@ async def test_backend_default_to_otlp(monkeypatch: pytest.MonkeyPatch) -> None:
     print("Default backend (OTLP) verified successfully")
 
     # Cleanup
-    client.disable()
+    await client.disable()
 
 
 async def test_backend_switching(
@@ -525,7 +525,7 @@ async def test_backend_switching(
     assert otlp_client.backend_type == "otlp"
     assert otlp_client._clickhouse_backend is None
 
-    otlp_client.disable()
+    await otlp_client.disable()
 
     # Create ClickHouse client
     clickhouse_config = TelemetryConfig(

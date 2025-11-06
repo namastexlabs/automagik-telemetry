@@ -542,4 +542,155 @@ describe('Async Telemetry Operations', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
   });
+
+  describe('Async Method Variants', () => {
+    it('should track event using trackEventAsync', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackEventAsync('test.event', { key: 'value' });
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track event using trackEventAsync without attributes', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackEventAsync('test.event');
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track error using trackErrorAsync', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+      const testError = new Error('Test error message');
+
+      await client.trackErrorAsync(testError, { context_key: 'context_value' });
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track error using trackErrorAsync without context', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+      const testError = new Error('Test error message');
+
+      await client.trackErrorAsync(testError);
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should truncate long error messages in trackErrorAsync', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+      const longMessage = 'x'.repeat(5000); // Very long message
+      const testError = new Error(longMessage);
+
+      await client.trackErrorAsync(testError);
+
+      // Verify fetch was called (error should be truncated internally)
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track metric using trackMetricAsync with default type', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackMetricAsync('test.metric', 42.5);
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track metric using trackMetricAsync with specific type', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackMetricAsync('test.metric', 100, MetricType.COUNTER, { unit: 'count' });
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track metric using trackMetricAsync without attributes', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackMetricAsync('test.metric', 100, MetricType.HISTOGRAM);
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track log using trackLogAsync with default severity', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackLogAsync('Test log message');
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track log using trackLogAsync with specific severity', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackLogAsync('Test error log', LogSeverity.ERROR, { error_code: 'ERR001' });
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should track log using trackLogAsync without attributes', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      await client.trackLogAsync('Test warning log', LogSeverity.WARN);
+
+      // Verify fetch was called
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should handle concurrent async method calls', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+      const testError = new Error('Test error');
+
+      await Promise.all([
+        client.trackEventAsync('event.1', { key: 'value1' }),
+        client.trackErrorAsync(testError, { context: 'test' }),
+        client.trackMetricAsync('metric.1', 42.5, MetricType.GAUGE),
+        client.trackLogAsync('Log message', LogSeverity.INFO, { source: 'test' }),
+      ]);
+
+      // All four calls should have been made
+      expect(global.fetch).toHaveBeenCalledTimes(4);
+    });
+
+    it('should return promises from async methods', async () => {
+      const client = new AutomagikTelemetry(mockConfig);
+
+      const eventPromise = client.trackEventAsync('test.event');
+      expect(eventPromise).toBeInstanceOf(Promise);
+      await eventPromise;
+
+      const errorPromise = client.trackErrorAsync(new Error('test'));
+      expect(errorPromise).toBeInstanceOf(Promise);
+      await errorPromise;
+
+      const metricPromise = client.trackMetricAsync('test.metric', 1);
+      expect(metricPromise).toBeInstanceOf(Promise);
+      await metricPromise;
+
+      const logPromise = client.trackLogAsync('test log');
+      expect(logPromise).toBeInstanceOf(Promise);
+      await logPromise;
+    });
+
+    it('should handle errors gracefully in async methods', async () => {
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      const client = new AutomagikTelemetry(mockConfig);
+
+      // Should not throw
+      await expect(client.trackEventAsync('test.event')).resolves.toBeUndefined();
+      await expect(client.trackErrorAsync(new Error('test'))).resolves.toBeUndefined();
+      await expect(client.trackMetricAsync('test.metric', 1)).resolves.toBeUndefined();
+      await expect(client.trackLogAsync('test log')).resolves.toBeUndefined();
+    });
+  });
 });

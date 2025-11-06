@@ -300,7 +300,7 @@ def test_concurrent_sends_to_collector(otlp_client: AutomagikTelemetry) -> None:
     print(f"Concurrent sends from {num_threads} threads completed successfully")
 
 
-def test_retry_on_temporary_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_retry_on_temporary_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test retry logic with temporary failures."""
     print("\n=== Testing retry logic ===")
 
@@ -334,10 +334,10 @@ def test_retry_on_temporary_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     print("Retry logic test completed")
 
     # Cleanup
-    client.disable()
+    await client.disable()
 
 
-def test_custom_endpoint_configuration() -> None:
+async def test_custom_endpoint_configuration() -> None:
     """Test custom endpoint configuration."""
     print("\n=== Testing custom endpoint configuration ===")
 
@@ -373,7 +373,7 @@ def test_custom_endpoint_configuration() -> None:
     time.sleep(0.5)
 
     # Cleanup
-    client.disable()
+    await client.disable()
 
     print("Custom endpoint configuration test completed")
 

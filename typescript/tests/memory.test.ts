@@ -407,6 +407,9 @@ describe('Memory Leak Detection', () => {
         await client.flush();
         client.disable();
 
+        // Allow async cleanup to complete
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
         // Periodic garbage collection
         if (i % 10 === 0 && i > 0) {
           forceGC();

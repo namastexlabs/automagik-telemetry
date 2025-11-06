@@ -29,7 +29,7 @@ class TelemetryBackend(ABC):
     """
 
     @abstractmethod
-    def send_trace(self, payload: dict[str, Any]) -> bool:
+    def send_trace(self, payload: dict[str, Any]) -> bool:  # pragma: no cover
         """
         Send a trace span to the backend.
 
@@ -49,7 +49,7 @@ class TelemetryBackend(ABC):
         pass
 
     @abstractmethod
-    def send_metric(self, payload: dict[str, Any], **kwargs: Any) -> bool:
+    def send_metric(self, payload: dict[str, Any], **kwargs: Any) -> bool:  # pragma: no cover
         """
         Send a metric to the backend.
 
@@ -70,7 +70,7 @@ class TelemetryBackend(ABC):
         pass
 
     @abstractmethod
-    def send_log(self, payload: dict[str, Any], **kwargs: Any) -> bool:
+    def send_log(self, payload: dict[str, Any], **kwargs: Any) -> bool:  # pragma: no cover
         """
         Send a log entry to the backend.
 
@@ -91,7 +91,7 @@ class TelemetryBackend(ABC):
         pass
 
     @abstractmethod
-    def flush(self) -> bool:
+    def flush(self) -> bool:  # pragma: no cover
         """
         Flush any pending/buffered data to the backend.
 
